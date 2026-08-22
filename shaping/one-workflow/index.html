@@ -410,6 +410,22 @@
               unit-tested once, in the package &mdash; projects stop carrying their
               own copies of the scripts and of the tests that guard them.
             </p>
+            <p>
+              Enforcement gates split three ways, no option: the <em>rule</em> (every
+              surface reachable by a spec, every capability mirrored, every surface
+              demo-seeded) is generated doctrine; the <em>checking code</em> that
+              enforces it is package-generated in the stack layer, since walking a
+              route tree is stack-specific; and the <em>lists</em> the check reads
+              &mdash; excused surfaces with written rationales, the shrink-only
+              pending register, the seed manifest &mdash; are committed, project-owned
+              files the configuration points at, because they are facts about the
+              project that must survive regeneration. A project on a stack the
+              package does not ship keeps its own playbook and its own checker
+              scripts as project content, and the generated instructions point at
+              them exactly as they point at package-generated ones &mdash; a stack
+              layer earns packaging when a second project shares the stack, and not
+              before.
+            </p>
           </div>
         </details>
         <p>
