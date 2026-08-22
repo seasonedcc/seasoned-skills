@@ -386,6 +386,19 @@
               maintained on its own &mdash; is absorbed into the package outright, so
               one upgrade updates it everywhere it is materialized.
             </p>
+            <p>
+              Worktree provisioning, no option: one TypeScript implementation in the
+              package replaces the three divergent copies, driven entirely by the
+              resource table the project&rsquo;s configuration declares &mdash; which
+              databases, which port bases, which services, which repositories. The
+              lifecycle contract is the part all three copies already agreed on:
+              resources allocated by deterministic hash of the lane name and recorded
+              in a managed environment block that doubles as the idempotency
+              sentinel; setup safe to re-run; teardown that drops only namespaced
+              resources and never touches the branch. The provisioning logic is
+              unit-tested once, in the package &mdash; projects stop carrying their
+              own copies of the scripts and of the tests that guard them.
+            </p>
           </div>
         </details>
         <p>
