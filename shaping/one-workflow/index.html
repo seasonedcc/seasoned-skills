@@ -441,6 +441,21 @@
               stance to the other is a project of its own; the option is what lets
               both architectures be first-class until such a project happens.
             </p>
+            <p>
+              Where the stack layer ships a framework primitive, the primitive&rsquo;s
+              contract is part of the layer and is not optional. The action-input
+              primitive is the proving case: two projects carried different
+              implementations under the same name, differing in what wins when a
+              route parameter and a form field share a name. The package ships one
+              contract &mdash; a submitted form field wins for exactly the fields the
+              form actually submitted, and route parameters win for everything it did
+              not, so a schema&rsquo;s coerced default can never silently overwrite a
+              real parameter &mdash; and that contract is pinned by a test that
+              travels with the primitive. The losing implementation&rsquo;s companion
+              doctrine (a rule forbidding parameter-named fields in form schemas,
+              which existed only to dodge the clobbering) dies with it: converging on
+              the sounder contract deletes a rule instead of adding one.
+            </p>
           </div>
         </details>
         <p>
