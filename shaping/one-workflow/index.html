@@ -288,6 +288,14 @@
               from a fresh direct read of the check states after the watch returns,
               before anything acts on it.
             </p>
+            <p>
+              The full end-to-end suite is continuous integration&rsquo;s job, never a
+              local step, no option: locally a lane runs the specs judged related to
+              the change &mdash; related by the change&rsquo;s blast radius, not
+              literally the specs of the files touched &mdash; and the full-suite
+              verdict comes from the integration run on the draft pull request, read
+              fresh.
+            </p>
           </div>
         </details>
         <p>
