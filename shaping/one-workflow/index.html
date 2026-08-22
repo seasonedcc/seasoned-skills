@@ -456,6 +456,29 @@
               which existed only to dodge the clobbering) dies with it: converging on
               the sounder contract deletes a rule instead of adding one.
             </p>
+            <p>
+              Machine surfaces (an MCP server, a public API) are governed by
+              stack-neutral doctrine, enforced per stack. The core rule &mdash; every
+              tool wraps a business function through the same layer the product
+              uses, so the surfaces cannot drift apart &mdash; admits exceptions only
+              by criterion, never by a hard-coded allowlist: a tool may stand outside
+              the rule exactly when it is a <em>pure context projection</em>
+              (reflecting the authenticated context back, with no business function
+              to wrap) or an <em>MCP-only transport primitive</em> (the equivalent
+              capability rides a different transport outside the tool surface, so a
+              wrapped function cannot exist). Every excepted tool is listed in a
+              committed, project-owned exception register with a one-line rationale,
+              and the parity check reads the register, so an unregistered exception
+              fails the gate &mdash; the same three-way split as every enforced rule:
+              doctrine generated, checker per stack (package-generated where the
+              package ships the stack, project content otherwise), register
+              committed. The standard a machine surface is held to is <em>capability
+              parity with the product</em>, written down in a committed parity
+              standard; where a project declares a machine surface, the generated
+              review skills audit changes to it against that standard by outcome
+              fitness, never by endpoint existence &mdash; a surface can have every
+              endpoint and still fail the person using it.
+            </p>
           </div>
         </details>
         <p>
