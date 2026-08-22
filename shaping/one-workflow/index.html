@@ -147,40 +147,95 @@
 
         <h3>In plain language</h3>
         <p>
-          Describe the solution the way you would to the person in the story. What
-          appears, where, and what it lets them do that they could not do before.
+          The whole way of working &mdash; the standing instructions, every guide, the
+          small supporting tools &mdash; moves into one published package that any project
+          can install. A project adopts it by installing the package and filling in one
+          configuration file; from then on, staying current means upgrading a version.
         </p>
-
-        <figure class="drawing">
-          <div class="drawing-canvas shaping-drawing-frame">
-            <!-- Draw here with the drawing library: ShapingDrawing, loaded from
-                 ../assets/drawing/. Hand-drawn and lo-fi — boxes and arrows. -->
-          </div>
-          <figcaption>One line saying what this drawing shows.</figcaption>
-        </figure>
-
         <p>
-          Keep going in prose. Where a claim rests on something technical, attach the
-          detail right here, next to it, as a note the reader can open or ignore.
+          The heart of the idea: nothing the package produces is ever written by hand
+          inside a project again. From the configuration plus the package&rsquo;s own
+          content, the install <em>generates</em> every instruction file the
+          project&rsquo;s agents read. A project commits only what is genuinely its own
+          &mdash; the configuration file and its own content, kept wherever it prefers.
+          Everything generated is disposable and rebuilt at will.
         </p>
-
-        <!-- The technical affordance. Anchor one beside whatever it defines: a
-             paragraph, a list item, a drawing's caption. Copy this block as often as
-             you need. The kind label is free text — SCHEMA, CONTRACT, SPIKE, DATA. -->
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Schema</span>
-            What this note defines
+            <span class="technical-kind">Contract</span>
+            What the install materializes, and what a project commits
           </summary>
           <div class="technical-body">
-            <p>The technical detail behind the sentence above. Short. Concrete.</p>
-            <pre><code>table_or_signature(
-  field  type,
-  field  type
-)</code></pre>
+            <p>
+              Generated and gitignored: the project&rsquo;s agent instructions file, every
+              skill, the hooks, and the supporting scripts. Committed by the project:
+              <code>seasoned-skills.config.ts</code> at the repo root, plus the
+              project-owned content files it points at (project facts, custom
+              instructions, design-system vocabulary). Published: a public npm package
+              under an MIT license &mdash; the package carries only our own prose and
+              machinery.
+            </p>
           </div>
         </details>
+        <p>
+          Because instructions are generated, differences between projects stop being
+          forks and become configuration. Divergence comes in two kinds: <em>drift</em>
+          &mdash; the same rule aging differently in each copy &mdash; which generation
+          eliminates; and <em>legitimate difference</em> &mdash; a team repository versus
+          a solo one, a stack without a given technology, a practice one project is not
+          ready for &mdash; which the configuration expresses. Giving legitimate
+          difference a home leaves illegitimate difference nowhere to hide.
+        </p>
+        <p>
+          The workflow is organized in layers a project enables when it is ready for
+          them. Enabling a layer composes it into everything else: every generated
+          instruction that should mention it starts mentioning it, and disabling it
+          removes every trace, so no instruction ever points at a practice the project
+          does not run. One discipline keeps this honest: a configuration option exists
+          only where a genuine, durable difference between projects demands one &mdash;
+          our own active projects&rsquo; configurations are the tested combinations, and
+          an option no project uses gets deleted.
+        </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Options ruled so far
+          </summary>
+          <div class="technical-body">
+            <p>
+              From the doctrine adjudication: agent merges to the base branch during a
+              goal are off by default and opt-in per project; everything else unified with
+              no option &mdash; checkouts never leave the default branch (documentation
+              work uses an unprovisioned worktree), questionnaires only when the user may
+              be away, browser verification for any work that could affect user-facing
+              behavior, the reference-privacy rule everywhere and not toggleable, the
+              leaner one-question rule, the responsive bar&rsquo;s stack-neutral core with
+              framework-coupled lines injected from project content, and the quality
+              bar&rsquo;s design-system clause restored.
+            </p>
+          </div>
+        </details>
+        <p>
+          The package also teaches agents to run it. It ships a skill about itself: how
+          to install, how to configure, how to upgrade. New versions arrive with
+          migration instructions written for agents, so when an upgrade brings breaking
+          changes or new configuration, an agent performs the upgrade the way it performs
+          any other work &mdash; upgrading the workflow is itself agent work.
+        </p>
+        <p>
+          The books and posts our shaping practice leans on are never inside the package.
+          The package carries machinery instead: it fetches the freely published sources
+          from their authors&rsquo; own sites at install time, and for the one commercial
+          book it asks for the user&rsquo;s own copy &mdash; when none is provided, the
+          skill is generated with our own distilled account of that book&rsquo;s method,
+          written in our own words.
+        </p>
+        <p>
+          And this repository is the first consumer: the workflow&rsquo;s own home
+          installs the package, configures it, and works under the very rules it ships.
+        </p>
 
         <h3>Walkthrough</h3>
         <p>
@@ -190,13 +245,36 @@
         </p>
         <ol class="walkthrough">
           <li>
-            <p>Where they start, and what they see.</p>
+            <p>
+              An agent in one project trips over something &mdash; say, that one-line
+              shell mistake &mdash; and the lesson is learned. Instead of editing that
+              project&rsquo;s own instructions, the lesson is written once, into the
+              package&rsquo;s source.
+            </p>
           </li>
           <li>
-            <p>What they do next, and how the solution answers.</p>
+            <p>A new version of the package is released.</p>
           </li>
           <li>
-            <p>Where they end up, and how they know they are done.</p>
+            <p>
+              In each project, an agent performs the upgrade: it reads the
+              version&rsquo;s notes, adjusts the configuration if the notes ask for it,
+              and regenerates every instruction file. The lesson now exists everywhere.
+            </p>
+          </li>
+          <li>
+            <p>
+              The next session in any project carries the warning. The mistake that once
+              cost an afternoon in a sibling project cannot repeat anywhere &mdash; the
+              warning travels by default, not by memory.
+            </p>
+          </li>
+          <li>
+            <p>
+              And when a new project joins: install, configure, generate. The full way of
+              working arrives in minutes, current to the latest version, with nothing
+              copied by hand and nothing to prune.
+            </p>
           </li>
         </ol>
 
@@ -206,23 +284,87 @@
           this document, before the build starts.
         </p>
         <dl class="time-bombs">
-          <dt>The danger, stated as the thing that could blow up mid-build.</dt>
+          <dt>
+            The package is public, but the shaping practice leans on books and talks that
+            belong to their authors.
+          </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            The decision that takes it off the table.
+            The package distributes machinery, never texts. Freely published sources are
+            fetched from their authors&rsquo; own sites on the user&rsquo;s machine; the
+            one commercial book is built only from the user&rsquo;s own copy, with our
+            own distilled account as the fallback; every built corpus is gitignored; and
+            the repository&rsquo;s history was recreated clean, with open-sourcing set to
+            publish from a fresh repository.
           </dd>
-          <dt>The second danger.</dt>
+          <dt>
+            Configuration sprawl quietly reintroduces the drift this project exists to
+            kill &mdash; every option doubles the space of generated output nobody has
+            read.
+          </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            Its solution.
+            An option exists only where a genuine, durable difference between projects
+            demands one. Our active projects&rsquo; configurations are the tested
+            combinations, and an option no project uses gets deleted.
+          </dd>
+          <dt>
+            A breaking upgrade strands a project on an old version because nobody wants
+            to do the migration by hand.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Upgrades are agent work. The package ships a skill about itself, and every
+            version with breaking changes or new configuration arrives with migration
+            instructions written for an agent to execute.
+          </dd>
+          <dt>
+            Someone hand-edits a generated file, and the edit silently dies on the next
+            regeneration &mdash; or worse, survives as a local fork.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Generated output is gitignored and rebuilt at will, so a hand-edit cannot be
+            committed and cannot survive; the only two doors for change are the
+            project&rsquo;s configuration and the package&rsquo;s source.
+          </dd>
+          <dt>
+            The unified instructions bloat: merging every project&rsquo;s hard-won rules
+            produces doctrine that taxes every session&rsquo;s attention forever.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Where variants differ, the leaner one wins unless the longer one demonstrably
+            changes behavior &mdash; and a rule that exists only to compensate for a
+            degraded orchestrator is bloat, not refinement, and is dropped.
           </dd>
         </dl>
 
         <h3>No-gos</h3>
         <p>Things this project deliberately does not do, so nobody has to wonder.</p>
         <ul class="no-gos">
-          <li>Something a reader might reasonably expect, and why it is out.</li>
-          <li>Another one.</li>
+          <li>
+            No adoption smaller than a layer. A project cannot pick individual pieces
+            &agrave; la carte; a layer comes whole or not at all, because its pieces
+            reference each other.
+          </li>
+          <li>
+            Not a marketplace. The package ships the Seasoned workflow and nothing else
+            &mdash; it is not a general registry for third-party skills.
+          </li>
+          <li>
+            No copyrighted text ever ships in the package or enters the repository, even
+            while it is private.
+          </li>
+          <li>
+            The growth-frameworks material and the talk and interview transcripts are out
+            of the workflow entirely.
+          </li>
+          <li>
+            Deterministic size-testing of instructions &mdash; machinery that measures
+            and bounds how much context the workflow itself consumes &mdash; is a future
+            project, not this one. Here we only hold the line by judgment.
+          </li>
         </ul>
       </section>
 
