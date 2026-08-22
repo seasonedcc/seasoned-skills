@@ -222,6 +222,21 @@
               legacy surfaces &mdash; are named from its own content, so the same rule
               serves greenfield and long-lived projects alike.
             </p>
+            <p>
+              From the skills adjudication: what an agent does with breakage it
+              discovers outside its task&rsquo;s scope is the second option. In every
+              project, every finding gets an explicit disposition the moment it is
+              confirmed &mdash; nothing parked undecided, nothing dropped. But only
+              projects that opt in let agents <em>fix</em> discovered breakage
+              autonomously, under a codified Definition of Broken &mdash; a failing
+              gate, a reproducible runtime failure, a violation of written doctrine;
+              never a judgment call. Projects not ready for that level of autonomy get
+              the conservative default: out-of-scope findings are banked with evidence
+              and adjudicated with the user. In both modes, an out-of-scope fix
+              executes in its own dedicated pass, never inline in the lane that found
+              it &mdash; that is what keeps lanes convergent and review rounds
+              terminating.
+            </p>
           </div>
         </details>
         <p>
@@ -242,6 +257,13 @@
         <p>
           And this repository is the first consumer: the workflow&rsquo;s own home
           installs the package, configures it, and works under the very rules it ships.
+          The project&rsquo;s final stage then migrates our three active projects onto
+          the package &mdash; the install replacing everything each of them grew by
+          hand. That migration is the framing&rsquo;s outcome test run for real: three
+          different stacks, three different configurations, no capability lost &mdash;
+          and it doubles as the quality assurance pass, because any gap between what
+          the package generates and what a project relied on surfaces there, before
+          anyone else adopts it.
         </p>
 
         <h3>Walkthrough</h3>
