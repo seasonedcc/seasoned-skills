@@ -281,6 +281,13 @@
               judged a workaround for an older harness and is retired, not shipped;
               the migration verifies current harness behavior as its closing check.
             </p>
+            <p>
+              A continuous-integration watch is a completion signal only, no option:
+              its exit code is never the verdict &mdash; the watch command has
+              reported success on genuinely failed runs &mdash; and the verdict comes
+              from a fresh direct read of the check states after the watch returns,
+              before anything acts on it.
+            </p>
           </div>
         </details>
         <p>
