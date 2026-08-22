@@ -348,6 +348,14 @@
               whatever listens on the lane&rsquo;s ports, so a worker stack orphaned
               by a killed run cannot outlive its lane.
             </p>
+            <p>
+              Saved browser state &mdash; cookies, sessions &mdash; always goes to an
+              absolute path in the scratchpad directory, never a relative one, no
+              option: relative paths have landed credential files inside repository
+              checkouts. Every example in the generated skill complies, and stale
+              counter-examples die at generation time because the whole skill is
+              regenerated from the package.
+            </p>
           </div>
         </details>
         <p>
