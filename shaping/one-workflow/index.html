@@ -189,6 +189,46 @@
             </p>
           </div>
         </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The package&rsquo;s own stack
+          </summary>
+          <div class="technical-body">
+            <p>
+              The package is TypeScript on Node, published to npm with the
+              command-line tool as its binary. The configuration file is real
+              TypeScript: the package exports its types, so a project&rsquo;s editor
+              flags a bad option before the tool ever runs, and the tool loads
+              <code>seasoned-skills.config.ts</code> through an embedded TypeScript
+              loader, so consuming projects need no build step of their own. Prose
+              stays markdown; weaving is code: skill and doctrine text lives as
+              markdown fragments &mdash; diffable, editable prose &mdash; and typed
+              composition functions assemble each generated file from those
+              fragments according to the configuration. There is no text-template
+              language, because layer and option weaving is conditional logic, and
+              it deserves type-checking and unit tests rather than template
+              conditionals.
+            </p>
+            <p>
+              Two test tiers, both in the package. Unit tests cover the
+              deterministic code &mdash; provisioning, the footprint managers, the
+              sweeps. Golden-output generation tests cover the weaving: synthetic
+              fixture configurations mirror the tested combinations &mdash; one per
+              active project&rsquo;s shape, carrying no project identity &mdash;
+              with the full generated tree snapshotted, and every tested value of
+              every option covered by at least one fixture. This makes the
+              option-discipline rule executable rather than aspirational, and it
+              means a template change is reviewed as a diff of what projects will
+              actually receive, not a diff of template internals. Releases are
+              semantic versions on npm, each shipping its agent-readable migration
+              notes; the repository runs the release practice the package ships,
+              and its own stack layer stays off &mdash; the package is a
+              command-line tool, not a web application.
+            </p>
+          </div>
+        </details>
         <div id="drawing-generation"></div>
         <p>
           Because instructions are generated, differences between projects stop being
