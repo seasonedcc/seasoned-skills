@@ -259,6 +259,19 @@
               does not survive contact with builders, who background the command and
               end their turn stalled.
             </p>
+            <p>
+              The third option: how a branch reaches the mainline, and with it how a
+              pushed branch syncs with its base &mdash; one setting, because the sync
+              strategy follows from the merge strategy. A repository that merges pull
+              requests with a merge commit keeps its branch history linear by syncing
+              lanes with rebase, and carries the discipline that makes rewriting
+              pushed history safe: patch-identity verification and post-rebase
+              reconciliation. A repository that squash-merges syncs every pushed
+              branch by merging the base in and never rewrites pushed commits &mdash;
+              the branch&rsquo;s intermediate history vanishes at the squash, so merge
+              commits cost nothing. Each mode weaves in only its own discipline; no
+              project carries both.
+            </p>
           </div>
         </details>
         <p>
