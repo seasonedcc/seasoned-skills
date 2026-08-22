@@ -426,6 +426,21 @@
               layer earns packaging when a second project shares the stack, and not
               before.
             </p>
+            <p>
+              The database mutability stance is the stack layer&rsquo;s deepest
+              option, with exactly two tested values: <em>append-only, zero
+              exceptions</em> &mdash; insert is the only write the application ever
+              performs, deletion is an event &mdash; or <em>mutable when not
+              derivable</em>, where in-place updates and explicit transactional
+              deletes stay legitimate. Everything the two architectures agree on
+              ships unconditionally as the shared core: identity versus event tables,
+              no nullable columns, no derivable columns, the state-derivation
+              patterns, the lock discipline and commit-order rule for absolute-set
+              events, the performance ladder. The stance decides only which
+              write-discipline clauses weave in on top. Converging a project from one
+              stance to the other is a project of its own; the option is what lets
+              both architectures be first-class until such a project happens.
+            </p>
           </div>
         </details>
         <p>
