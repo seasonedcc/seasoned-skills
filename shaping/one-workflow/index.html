@@ -311,6 +311,14 @@
               break, failing every such assertion at once. Specs assert the
               destination and the re-navigated state instead.
             </p>
+            <p>
+              No cap on concurrent suites, no option: the orchestrator owns every
+              long gate run, so it schedules heavy suites by judgment when lanes pile
+              up, and a contention-shaped failure &mdash; connection exhaustion,
+              timeouts under load &mdash; is re-run alone before anyone treats it as a
+              defect. A machine&rsquo;s real capacity limits are that project&rsquo;s
+              own facts, not package doctrine.
+            </p>
           </div>
         </details>
         <p>
