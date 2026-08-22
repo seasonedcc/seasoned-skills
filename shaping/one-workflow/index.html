@@ -237,6 +237,17 @@
               it &mdash; that is what keeps lanes convergent and review rounds
               terminating.
             </p>
+            <p>
+              Also from the skills adjudication, no option: a pull request opens as a
+              <em>draft</em> the moment the fast gates pass &mdash; so continuous
+              integration overlaps with local verification &mdash; and flips to ready
+              for review only after the full pre-merge pipeline completes: builder
+              claims verified, full gates green, the adversarial code-review audit
+              done, and a ruling on every confirmed finding. Small diffs are not
+              exempt from the pipeline; they simply overlap it. Paid auto-reviewers
+              are the consuming repository&rsquo;s concern: configure them to ignore
+              drafts.
+            </p>
           </div>
         </details>
         <p>
