@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Seasoned CLI — shaping document</title>
+    <link rel="stylesheet" href="../assets/document.css" />
+    <link rel="stylesheet" href="../assets/drawing/drawing.css" />
+    <script src="../assets/document.js"></script>
+    <script src="../assets/drawing/shaping-drawing.js"></script>
+  </head>
+  <body>
+    <div class="doc-bar">
+      <div class="doc-bar-inner">
+        <button
+          type="button"
+          class="tech-switch"
+          role="switch"
+          aria-checked="true"
+          data-technical-toggle
+        >
+          Technical details
+          <span class="tech-switch-track" aria-hidden="true">
+            <span class="tech-switch-thumb"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <main class="doc">
+      <!-- Part one: the title and the one-sentence essence. -->
+      <!-- Part two: the status — one bit, built or not. -->
+      <header class="masthead">
+        <p class="masthead-eyebrow">Shaping document</p>
+        <h1>Seasoned CLI</h1>
+        <p class="essence">
+          Every Seasoned project runs the same way of working, installed by one command
+          and kept current by upgrading one package.
+        </p>
+        <!-- Flip data-built to "true" the day it ships. There is no third state. -->
+        <p class="status" data-built="false">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-label-unbuilt">Not built yet</span>
+          <span class="status-label-built">Built</span>
+        </p>
+      </header>
+
+      <!-- Part three: the framing. Plain words only — no system names, no table names,
+           no jargon. If a sentence needs the reader to know how software works, rewrite
+           it. The people who hold the business rules read this to tell us where we have
+           it wrong, before anything gets built. -->
+      <section class="part" id="framing">
+        <header class="part-header">
+          <p class="part-kicker">Why this matters</p>
+          <h2>The framing</h2>
+          <p class="part-note">
+            The problem this project sets out to solve, and how we will know it is
+            solved &mdash; told in the words of the people who live it.
+          </p>
+        </header>
+
+        <h3>The struggling moment</h3>
+        <p>
+          One person runs several products, and over the last years built a single way of
+          working across all of them: standing instructions, step-by-step guides for
+          recurring work, and small tools, all tuned so AI agents can carry most of the
+          building. Each project keeps its own hand-made copy of that way of working. On
+          the day this project was framed, an agent working in one repository made a
+          one-line mistake that another project&rsquo;s instructions had explicitly warned
+          against for weeks &mdash; the warning simply never traveled. That is the pattern:
+          every lesson is learned once but taught to only one project, and the person who
+          maintains all the copies is the only bridge between them.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              All my projects are converging to a similar workflow (processes, skills,
+              CLAUDE.md, etc), and I want them to converge even more.
+            </p>
+          </blockquote>
+          <figcaption>Said while opening this project.</figcaption>
+        </figure>
+
+        <h3>Today's way, and where it breaks</h3>
+        <p>
+          The way of working spreads by hand: when a piece of it improves in one project,
+          someone must remember it exists elsewhere, copy it over, and adapt it &mdash;
+          three times, for every improvement. In practice that rarely happens, so the
+          copies drift. Measured on the day of framing: of the nine guides all active
+          projects share, exactly one was still identical everywhere &mdash; every other
+          copy had quietly forked. Starting a new project means copying from whichever
+          existing project feels most current and pruning what does not apply, with no way
+          to tell later which parts are behind.
+        </p>
+
+        <h3>The outcome test</h3>
+        <p>
+          Take any of our active projects, remove every hand-maintained piece of the way
+          of working, and install this package in its place: the project works exactly as
+          it did before &mdash; nothing lost, and everything that was particular to that
+          project preserved through its own configuration. From that day on, staying
+          current means upgrading a version, and a lesson written once reaches every
+          project on its next upgrade.
+        </p>
+
+        <h3>Why now</h3>
+        <p>
+          Agents now do the building, so the way of working &mdash; not any single
+          product&rsquo;s code &mdash; has become the company&rsquo;s biggest compounding
+          asset, and it is the one asset currently maintained by hand in parallel copies.
+          Every week of three-way drift makes the eventual reunification harder, and the
+          next project to adopt the workflow should cost an install, not an afternoon of
+          copying and pruning.
+        </p>
+
+        <h3>The big hire and the little hires</h3>
+        <p>
+          The big hire is deliberate and total: a project adopts by handing its whole way
+          of working to the package &mdash; all or nothing. The install takes over the
+          project&rsquo;s standing instructions, its guides, and its supporting tools from
+          day one; there is no partial adoption, and that is a promise, not a limitation.
+        </p>
+        <p>
+          The little hires are the upgrades: each new version quietly bringing every
+          project the newest lessons, and each newly-learned lesson written once, in one
+          place, with certainty it will reach everywhere.
+        </p>
+      </section>
+
+      <!-- Part four: the shape. Still plain language, now about the solution. Drawings
+           stay lo-fi on purpose: enough to argue with, not enough to mistake for a
+           design. Technical detail belongs in a <details class="technical" open> note beside
+           the thing it defines — never gathered into a technical section. -->
+      <section class="part" id="shape">
+        <header class="part-header">
+          <p class="part-kicker">What we will build</p>
+          <h2>The shape</h2>
+          <p class="part-note">
+            The solution at the level of what people see and do. The drawings are rough
+            sketches of how it works, not of how it will look.
+          </p>
+        </header>
+
+        <h3>In plain language</h3>
+        <p>
+          Describe the solution the way you would to the person in the story. What
+          appears, where, and what it lets them do that they could not do before.
+        </p>
+
+        <figure class="drawing">
+          <div class="drawing-canvas shaping-drawing-frame">
+            <!-- Draw here with the drawing library: ShapingDrawing, loaded from
+                 ../assets/drawing/. Hand-drawn and lo-fi — boxes and arrows. -->
+          </div>
+          <figcaption>One line saying what this drawing shows.</figcaption>
+        </figure>
+
+        <p>
+          Keep going in prose. Where a claim rests on something technical, attach the
+          detail right here, next to it, as a note the reader can open or ignore.
+        </p>
+
+        <!-- The technical affordance. Anchor one beside whatever it defines: a
+             paragraph, a list item, a drawing's caption. Copy this block as often as
+             you need. The kind label is free text — SCHEMA, CONTRACT, SPIKE, DATA. -->
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Schema</span>
+            What this note defines
+          </summary>
+          <div class="technical-body">
+            <p>The technical detail behind the sentence above. Short. Concrete.</p>
+            <pre><code>table_or_signature(
+  field  type,
+  field  type
+)</code></pre>
+          </div>
+        </details>
+
+        <h3>Walkthrough</h3>
+        <p>
+          Replay the framing's story — the same person, the same moment — with this in
+          place. Step by step, in their words, so the reader can check it against how the
+          work really goes.
+        </p>
+        <ol class="walkthrough">
+          <li>
+            <p>Where they start, and what they see.</p>
+          </li>
+          <li>
+            <p>What they do next, and how the solution answers.</p>
+          </li>
+          <li>
+            <p>Where they end up, and how they know they are done.</p>
+          </li>
+        </ol>
+
+        <h3>Time bombs</h3>
+        <p>
+          The places where this could blow up mid-build. Each one is defused here, in
+          this document, before the build starts.
+        </p>
+        <dl class="time-bombs">
+          <dt>The danger, stated as the thing that could blow up mid-build.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            The decision that takes it off the table.
+          </dd>
+          <dt>The second danger.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Its solution.
+          </dd>
+        </dl>
+
+        <h3>No-gos</h3>
+        <p>Things this project deliberately does not do, so nobody has to wonder.</p>
+        <ul class="no-gos">
+          <li>Something a reader might reasonably expect, and why it is out.</li>
+          <li>Another one.</li>
+        </ul>
+      </section>
+
+      <!-- Part five: the goal. Technical — the toggle hides this whole section. Keep
+           the text under 4,000 characters; the meter tracks it. -->
+      <section class="part technical-section" id="goal">
+        <header class="part-header">
+          <p class="part-kicker">How the build starts</p>
+          <h2>The goal</h2>
+          <p class="part-note">
+            The text that ignites the build, ready to paste, with a live count against
+            its 4,000-character limit.
+          </p>
+        </header>
+
+        <div class="goal" data-goal>
+<pre class="goal-text" data-goal-text>Write the goal here, in the second person, addressed to whoever picks up the build.
+
+Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, and name the boundaries the build must not cross.</pre>
+          <div class="goal-footer">
+            <div class="goal-meter" aria-hidden="true">
+              <div class="goal-meter-fill" data-goal-meter-fill></div>
+            </div>
+            <p class="goal-count" data-goal-count aria-live="polite"></p>
+            <button type="button" class="goal-copy" data-goal-copy>Copy</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
