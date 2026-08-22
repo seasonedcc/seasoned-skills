@@ -178,6 +178,7 @@
             </p>
           </div>
         </details>
+        <div id="drawing-generation"></div>
         <p>
           Because instructions are generated, differences between projects stop being
           forks and become configuration. Divergence comes in two kinds: <em>drift</em>
@@ -213,7 +214,13 @@
               behavior, the reference-privacy rule everywhere and not toggleable, the
               leaner one-question rule, the responsive bar&rsquo;s stack-neutral core with
               framework-coupled lines injected from project content, and the quality
-              bar&rsquo;s design-system clause restored.
+              bar&rsquo;s design-system clause restored. Backwards compatibility is a
+              confidence judgment, never a blanket ban: the generated rule reads
+              &ldquo;do not add backwards compatibility unless you are 100% confident it
+              is necessary&rdquo;, and a project&rsquo;s real compatibility contracts
+              &mdash; a GA API surface&rsquo;s consumers, live integrations, frozen
+              legacy surfaces &mdash; are named from its own content, so the same rule
+              serves greenfield and long-lived projects alike.
             </p>
           </div>
         </details>
@@ -277,6 +284,7 @@
             </p>
           </li>
         </ol>
+        <div id="drawing-lesson"></div>
 
         <h3>Time bombs</h3>
         <p>
@@ -394,5 +402,108 @@ Say what to build and what &ldquo;done&rdquo; means, point at this document for 
         </div>
       </section>
     </main>
+
+    <script>
+      // Drawing 1 — where a project's instructions come from.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'generation-model',
+          width: 900,
+          height: 470,
+          style: 'marker',
+          label:
+            'Three inputs — the package, the configuration, and the project-owned files — feed a generate step that produces every instruction file, all gitignored.'
+        })
+
+        s.rect(40, 30, 250, 100, { width: 7 })
+        s.text('THE PACKAGE', 165, 68, { size: 24, weight: 700, align: 'middle', caps: true })
+        s.text('templates + migration notes', 165, 102, { size: 16, align: 'middle' })
+
+        s.rect(40, 170, 250, 100, { width: 7 })
+        s.text('CONFIG', 165, 208, { size: 24, weight: 700, align: 'middle', caps: true })
+        s.text('one committed file', 165, 242, { size: 16, align: 'middle' })
+
+        s.rect(40, 310, 250, 100, { width: 7 })
+        s.text('PROJECT-OWNED FILES', 165, 348, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('facts, custom instructions', 165, 382, { size: 16, align: 'middle' })
+
+        s.arrow([295, 80], [392, 198], { width: 6 })
+        s.arrow([295, 220], [372, 220], { width: 6 })
+        s.arrow([295, 360], [392, 244], { width: 6 })
+
+        s.ellipse(475, 220, 95, 46, { width: 6 })
+        s.text('GENERATE', 475, 228, { size: 23, weight: 700, align: 'middle', caps: true })
+
+        s.arrow([575, 220], [624, 220], { width: 6, color: 'accent' })
+
+        s.rect(630, 70, 240, 300, { width: 7 })
+        s.text('INSTRUCTIONS', 750, 108, { size: 22, weight: 700, align: 'middle', caps: true })
+        s.text('CLAUDE.md', 660, 158, { size: 18 })
+        s.text('every skill', 660, 198, { size: 18 })
+        s.text('hooks', 660, 238, { size: 18 })
+        s.text('scripts', 660, 278, { size: 18 })
+        s.squiggle(660, 312, 180, { width: 5 })
+        s.text('GENERATED · GITIGNORED', 750, 402, {
+          size: 17, weight: 600, align: 'middle', caps: true, color: 'accent'
+        })
+
+        s.callout(1, 340, 130, { radius: 22 })
+        s.callout(2, 750, 440, { radius: 22, color: 'accent' })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'The only two doors for change: the project’s configuration and the package’s source. Two of the three inputs are the project’s own, committed files.',
+            'Nothing on this side is ever written by hand — gitignored, disposable, rebuilt at will.'
+          ],
+          caption: 'Where a project’s instructions come from once the package is installed.'
+        }).mount('#drawing-generation')
+      })();
+
+      // Drawing 2 — the route a lesson travels.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'lesson-travels',
+          width: 900,
+          height: 430,
+          style: 'marker',
+          label:
+            'A lesson learned in one project goes up into the package once, and comes back down into every project when agents upgrade and regenerate.'
+        })
+
+        s.rect(355, 30, 190, 85, { width: 7 })
+        s.text('THE PACKAGE', 450, 64, { size: 21, weight: 700, align: 'middle', caps: true })
+        s.text('new version', 450, 96, { size: 16, align: 'middle' })
+
+        s.rect(50, 300, 190, 85, { width: 7 })
+        s.text('PROJECT A', 145, 336, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('the lesson is learned here', 145, 368, { size: 14, align: 'middle', color: 'accent' })
+
+        s.rect(355, 300, 190, 85, { width: 7 })
+        s.text('PROJECT B', 450, 340, { size: 20, weight: 700, align: 'middle', caps: true })
+
+        s.rect(660, 300, 190, 85, { width: 7 })
+        s.text('PROJECT C', 755, 340, { size: 20, weight: 700, align: 'middle', caps: true })
+
+        s.arrow([120, 295], [348, 85], { width: 6, color: 'accent', curve: 'arc', bow: 0.35 })
+        s.arrow([405, 120], [160, 293], { width: 6 })
+        s.arrow([450, 120], [450, 293], { width: 6 })
+        s.arrow([495, 120], [740, 293], { width: 6 })
+
+        s.callout(1, 170, 160, { radius: 22, color: 'accent' })
+        s.callout(2, 590, 60, { radius: 22 })
+        s.callout(3, 560, 230, { radius: 22 })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'A lesson learned in one project is written once, into the package’s source — never into that project’s own copy.',
+            'A new version of the package is released.',
+            'In every project, an agent upgrades and regenerates; the lesson now exists everywhere — including in projects that join later.'
+          ],
+          caption: 'The route a lesson travels: up into the package once, down into every project on the next upgrade.'
+        }).mount('#drawing-lesson')
+      })();
+    </script>
   </body>
 </html>
