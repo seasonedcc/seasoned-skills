@@ -739,9 +739,23 @@
         </header>
 
         <div class="goal" data-goal>
-<pre class="goal-text" data-goal-text>Write the goal here, in the second person, addressed to whoever picks up the build.
+<pre class="goal-text" data-goal-text>Build One Workflow: converge every project&rsquo;s workflow into a single source of truth, installed with one command and kept current by upgrading a version.
 
-Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, and name the boundaries the build must not cross.</pre>
+Before anything else, read shaping/one-workflow/index.html in full &mdash; it is the single source of truth for this build &mdash; and everything else in its folder, including references/, which carries the battle-tested material the package inherits.
+
+What to build: the seasoned-skills npm package and its CLI, exactly as the document shapes it &mdash; the five layers (doctrine, practice skills, the optional stack layer, deterministic code, corpus machinery), the generation model (package templates woven with the configuration and the project-owned content it points at), the two surgical footprint managers, the per-project runtime settings, and the package&rsquo;s own skill for installing, configuring, and upgrading itself. Every ruling in the document&rsquo;s Contract notes is binding. The no-gos are binding. This repository&rsquo;s standing rules are binding &mdash; above all: copyrighted corpora never enter the repository, and the private reference projects are never named in anything repository-visible.
+
+Work branches from main.
+
+Done means, in order:
+
+1. This repository is consumer number zero: it installs the package it ships, its configuration is committed, and the hand-maintained copies the install replaces are deleted.
+
+2. The final stage migrates our three active projects onto the package. Ask the user for the local migration plan document; its per-project details never enter this repository. That migration is the framing&rsquo;s outcome test run for real &mdash; three different stacks, three different configurations, no capability lost &mdash; and it doubles as the quality-assurance pass: any gap between what the package generates and what a project relied on must surface and be closed there.
+
+3. The closing audit: audit the complete implementation against the document, section by section &mdash; every element, every contract, every time bomb&rsquo;s defusal, every no-go &mdash; and fix every shortfall before calling the goal met. The audit is part of this goal, never a follow-up.
+
+4. Flip this document&rsquo;s built bit when it ships.</pre>
           <div class="goal-footer">
             <div class="goal-meter" aria-hidden="true">
               <div class="goal-meter-fill" data-goal-meter-fill></div>
