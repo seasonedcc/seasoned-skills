@@ -248,6 +248,17 @@
               are the consuming repository&rsquo;s concern: configure them to ignore
               drafts.
             </p>
+            <p>
+              Long gates belong to the orchestrator, no option: a builder&rsquo;s
+              charter ends at commit &mdash; or commit and push &mdash; and stops
+              there, with only the fast, cheap checks (lint, type-checking the
+              affected files) run in the builder&rsquo;s own foreground. The
+              orchestrator runs the full gates itself as its own background shells and
+              owns push, pull request, and merge. This is a structural fix, not an
+              exhortation: instructing builders to run a long suite in the foreground
+              does not survive contact with builders, who background the command and
+              end their turn stalled.
+            </p>
           </div>
         </details>
         <p>
