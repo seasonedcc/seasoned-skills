@@ -209,11 +209,28 @@
           our own active projects&rsquo; configurations are the tested combinations, and
           an option no project uses gets deleted.
         </p>
+        <p>
+          Concretely, the package has five layers. The <em>doctrine</em> layer is the
+          standing instruction file every working session reads first. The
+          <em>practice skills</em> are the guides for how work is done &mdash;
+          orchestrating agents, testing, reviewing, shaping, releasing &mdash; and
+          every one of them comes with the workflow, whole, because every project we
+          run uses all of them. The <em>stack layer</em> &mdash; the guides tied to
+          one specific technology stack &mdash; is the only optional one: a project
+          declares its stack, or doesn&rsquo;t. The <em>deterministic code</em> layer
+          is the small supporting tools: the scripts, the hooks, and each
+          project&rsquo;s runtime settings. And the <em>corpus machinery</em> builds,
+          on each person&rsquo;s own machine, the reference library the shaping
+          practice reads from. The configuration decides which layers materialize
+          &mdash; and a skill enters the package only when a second project needs it,
+          never on the hope that one someday might.
+        </p>
+        <div id="drawing-layers"></div>
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
             <span class="technical-kind">Contract</span>
-            Options ruled so far
+            Rulings &mdash; how work flows
           </summary>
           <div class="technical-body">
             <p>
@@ -299,6 +316,15 @@
               from a fresh direct read of the check states after the watch returns,
               before anything acts on it.
             </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Rulings &mdash; testing discipline
+          </summary>
+          <div class="technical-body">
             <p>
               The full end-to-end suite is continuous integration&rsquo;s job, never a
               local step, no option: locally a lane runs the specs judged related to
@@ -330,6 +356,15 @@
               defect. A machine&rsquo;s real capacity limits are that project&rsquo;s
               own facts, not package doctrine.
             </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Rulings &mdash; skills in practice
+          </summary>
+          <div class="technical-body">
             <p>
               The design-system guide is generated in two parts: the package&rsquo;s
               standard guidelines &mdash; the design doctrine every project shares,
@@ -381,6 +416,15 @@
               idea-grilling skill is absorbed by the shaping practice, which
               interrogates ideas as a matter of course.
             </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Rulings &mdash; runtime and deterministic code
+          </summary>
+          <div class="technical-body">
             <p>
               The runtime assumptions the workflow depends on &mdash; the model and
               its effort level, always-on thinking, automatic compaction and memory
@@ -426,6 +470,15 @@
               layer earns packaging when a second project shares the stack, and not
               before.
             </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Rulings &mdash; the stack layer
+          </summary>
+          <div class="technical-body">
             <p>
               The database mutability stance is the stack layer&rsquo;s deepest
               option, with exactly two tested values: <em>append-only, zero
@@ -800,6 +853,60 @@ Say what to build and what &ldquo;done&rdquo; means, point at this document for 
           ],
           caption: 'The route a lesson travels: up into the package once, down into every project on the next upgrade.'
         }).mount('#drawing-lesson')
+      })();
+
+      // Drawing 3 — the package's layers, and which of them a project materializes.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'layers',
+          width: 900,
+          height: 470,
+          style: 'marker',
+          label:
+            'The package holds five layers; each project’s configuration decides which of them materialize, shown by one project taking all five and another skipping the stack layer.'
+        })
+
+        s.rect(30, 30, 330, 410, { width: 7 })
+        s.text('THE PACKAGE', 195, 66, { size: 22, weight: 700, align: 'middle', caps: true })
+
+        s.rect(55, 88, 280, 56, { width: 5 })
+        s.text('DOCTRINE', 195, 122, { size: 16, weight: 700, align: 'middle', caps: true })
+
+        s.rect(55, 156, 280, 56, { width: 5 })
+        s.text('PRACTICE SKILLS · CORE', 195, 190, { size: 15, weight: 700, align: 'middle', caps: true })
+
+        s.rect(55, 224, 280, 56, { width: 5, color: 'accent' })
+        s.text('STACK LAYER · OPTIONAL', 195, 258, { size: 15, weight: 700, align: 'middle', caps: true, color: 'accent' })
+
+        s.rect(55, 292, 280, 56, { width: 5 })
+        s.text('DETERMINISTIC CODE', 195, 326, { size: 15, weight: 700, align: 'middle', caps: true })
+
+        s.rect(55, 360, 280, 56, { width: 5 })
+        s.text('CORPUS MACHINERY', 195, 394, { size: 15, weight: 700, align: 'middle', caps: true })
+
+        s.arrow([365, 160], [555, 120], { width: 6 })
+        s.arrow([365, 320], [555, 360], { width: 6 })
+        s.text('config decides', 455, 218, { size: 15, align: 'middle' })
+
+        s.rect(560, 55, 310, 130, { width: 7 })
+        s.text('A PROJECT ON THE STACK', 715, 96, { size: 15, weight: 700, align: 'middle', caps: true })
+        s.text('all five layers woven in', 715, 130, { size: 14, align: 'middle' })
+
+        s.rect(560, 300, 310, 130, { width: 7 })
+        s.text('A PROJECT ON ANOTHER STACK', 715, 341, { size: 14, weight: 700, align: 'middle', caps: true })
+        s.text('stack layer absent, no trace left', 715, 375, { size: 14, align: 'middle' })
+
+        s.callout(1, 390, 258, { radius: 22, color: 'accent' })
+        s.callout(2, 715, 250, { radius: 22 })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'The only optional layer today — keyed by the stack the configuration declares. The layer machinery stays ready for the layers to come.',
+            'Disabling a layer removes every trace: no generated instruction ever mentions a practice the project does not run.'
+          ],
+          caption: 'The package’s five layers, and how each project’s configuration decides which of them materialize.'
+        }).mount('#drawing-layers')
       })();
     </script>
   </body>
