@@ -331,6 +331,23 @@
               project&rsquo;s own guidelines, within the standard doctrine&rsquo;s
               bounds.
             </p>
+            <p>
+              Browser hygiene splits by audience, no option: the lane-side discipline
+              &mdash; one session for the whole run, named after the lane, closed
+              before reporting &mdash; lives in the browser skill, and the
+              orchestrator-side discipline &mdash; a reported close is not evidence
+              the processes died, sweep to zero between waves, a gate that turns
+              flaky while browser work is in flight is a leak suspect before it is a
+              product bug &mdash; lives in the orchestration skill, because the
+              orchestrator rarely loads the browser skill. The never-pattern-kill
+              rule is embodied, not repeated: the package ships two sweep tools
+              &mdash; a browser sweep, and a lane-process orphan sweep that lists and
+              kills processes by lane, wired to run at session end and runnable by
+              hand &mdash; and both kill only by exact process id, so every kill
+              passes through a tool that enforces the rule. Lane teardown also kills
+              whatever listens on the lane&rsquo;s ports, so a worker stack orphaned
+              by a killed run cannot outlive its lane.
+            </p>
           </div>
         </details>
         <p>
