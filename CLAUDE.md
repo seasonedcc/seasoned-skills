@@ -2,7 +2,7 @@
 
 This repo is the home of the Seasoned workflow: the skills, processes, and deterministic code our projects share. It will ship as a `seasoned-skills` npm package with a CLI, so a project adopts the workflow — and stays current — by upgrading a version.
 
-The existing `seasonedcc/shaping-skill` and `seasonedcc/requests-from-meetings-skill` repos will be absorbed into this one and deleted once every consuming project has migrated.
+The existing `seasonedcc/shaping-skill`, `seasonedcc/requests-from-meetings-skill`, and `seasonedcc/claude-code-statusline` repos will be absorbed into this one and deleted once every consuming project has migrated.
 
 ## Copy verbatim, edit later
 
