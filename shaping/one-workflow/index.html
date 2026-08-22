@@ -272,6 +272,15 @@
               commits cost nothing. Each mode weaves in only its own discipline; no
               project carries both.
             </p>
+            <p>
+              Long-lived processes, no option: every process a lane needs beyond a
+              single turn &mdash; a development server, a worker &mdash; runs as its
+              own harness background task, never forked with <code>&amp;</code> inside
+              another task&rsquo;s shell, and every lane process is swept at session
+              end. The double-fork detachment helper one project grew for this is
+              judged a workaround for an older harness and is retired, not shipped;
+              the migration verifies current harness behavior as its closing check.
+            </p>
           </div>
         </details>
         <p>
