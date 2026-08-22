@@ -168,13 +168,24 @@
           </summary>
           <div class="technical-body">
             <p>
-              Generated and gitignored: the project&rsquo;s agent instructions file, every
-              skill, the hooks, and the supporting scripts. Committed by the project:
-              <code>seasoned-skills.config.ts</code> at the repo root, plus the
-              project-owned content files it points at (project facts, custom
-              instructions, design-system vocabulary). Published: a public npm package
-              under an MIT license &mdash; the package carries only our own prose and
-              machinery.
+              Generated and gitignored: the project&rsquo;s agent instructions file,
+              every skill the package ships, the hooks, and the supporting scripts.
+              Committed by the project: <code>seasoned-skills.config.ts</code> at the
+              repo root, plus the project-owned content files it points at (project
+              facts, custom instructions, design-system vocabulary). Published: a
+              public npm package under an MIT license &mdash; the package carries only
+              our own prose and machinery.
+            </p>
+            <p>
+              The package shares the agent-configuration folder with the project; it
+              never owns it. A project keeps its own committed skills alongside the
+              generated ones and its own additions to the agent settings. The tool
+              manages exactly two footprints surgically: in the ignore file, a script
+              checks that every path the package generates is ignored and adds only
+              the missing entries, never removing or reordering anything the project
+              put there; in the settings file, the tool enforces the values of the
+              keys the workflow depends on and leaves every other key untouched.
+              Check-and-edit, idempotent, in both files.
             </p>
           </div>
         </details>
