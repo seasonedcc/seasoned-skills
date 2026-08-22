@@ -305,6 +305,12 @@
               ever shrinks, and once empty it is held empty forever. &ldquo;No spec
               yet&rdquo; is never a rationale for exclusion.
             </p>
+            <p>
+              Specs never assert one-shot flash messages, no option: their delivery
+              rests on a global no-prefetch property any future change can silently
+              break, failing every such assertion at once. Specs assert the
+              destination and the re-navigated state instead.
+            </p>
           </div>
         </details>
         <p>
