@@ -310,11 +310,14 @@
               <em>draft</em> the moment the fast gates pass &mdash; so continuous
               integration overlaps with local verification &mdash; and flips to ready
               for review only after the full pre-merge pipeline completes: builder
-              claims verified, full gates green, the adversarial code-review audit
-              done, and a ruling on every confirmed finding. Small diffs are not
-              exempt from the pipeline; they simply overlap it. Paid auto-reviewers
-              are the consuming repository&rsquo;s concern: configure them to ignore
-              drafts.
+              claims verified, full gates green, the adversarial review done, and a
+              ruling on every confirmed finding. The adversarial review is the
+              package&rsquo;s own pull-request-review loop &mdash; the review family
+              ships with the core, so every project runs the same loop, and it
+              supersedes the harness&rsquo;s built-in code review in the Definition
+              of Done. Small diffs are not exempt from the pipeline; they simply
+              overlap it. Paid auto-reviewers are the consuming repository&rsquo;s
+              concern: configure them to ignore drafts.
             </p>
             <p>
               Long gates belong to the orchestrator, no option: a builder&rsquo;s
