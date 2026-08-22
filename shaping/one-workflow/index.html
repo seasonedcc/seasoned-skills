@@ -479,6 +479,24 @@
               fitness, never by endpoint existence &mdash; a surface can have every
               endpoint and still fail the person using it.
             </p>
+            <p>
+              Two smaller convergences set precedents worth naming. When two
+              projects&rsquo; skills disagree about a fact &mdash; what a shared
+              library actually does &mdash; the source decides: the merged skill
+              states the verified behavior, and the text that guessed wrong is
+              simply corrected, because a skill that misstates a fact teaches the
+              error to every future session. And on database identifier length,
+              the rule is <em>names in the source always equal names in the
+              database</em>: every declared identifier fits the engine&rsquo;s
+              limit, enforced by a deterministic check that fails the gate on any
+              identifier the engine would silently truncate. Letting long names
+              truncate was considered and rejected &mdash; it parks a divergence
+              between source and database behind preconditions someone must keep
+              true forever, and the first future by-name reference (a reindex, a
+              drop, a query plan, a conflict clause) trips over it. Descriptive
+              names still win; the limit is a naming exercise, not information
+              loss.
+            </p>
           </div>
         </details>
         <p>
