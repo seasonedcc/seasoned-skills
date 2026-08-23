@@ -5,16 +5,19 @@ import {
   allocateCacheStoreIndex,
   cacheStoreIndexFromUrl,
   defaultDatabasePrefix,
-  envKeyForPort,
+  ENV_MARKER,
   type LaneAllocation,
   laneDatabaseName,
   laneEnvValues,
+  laneEnvValuesForFile,
   laneSlug,
-  parseLaneAllocation,
+  parseLaneAllocationFromFiles,
+  type ResolvedDatabase,
+  type ResolvedEnvFile,
   type ResolvedProvisioning,
   readEnvValues,
   repointLocalhostUrls,
-  reservedPortsFromEnvFiles,
+  reservedPortsFromLaneEnvFiles,
   resolvePortPlan,
   resolveProvisioning,
   seedRefusal,
@@ -178,30 +181,81 @@ function laneWorktrees(
   })
 }
 
-function siblingEnvFileContents(
-  mainRepository: string,
-  currentWorktreePath: string,
-  envFile: string,
-) {
-  const listing = git(['worktree', 'list', '--porcelain'], { cwd: mainRepository })
-  return worktreePathsFromPorcelain(listing, currentWorktreePath).map((path) => {
-    const envPath = join(path, envFile)
-    return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+/** One declared env file with the main checkout's contents at its path. */
+type MainEnvFile = {
+  file: ResolvedEnvFile
+  contents: string
+  values: Record<string, string>
+}
+
+function readMainEnvFiles(primaryRepositoryPath: string, resolved: ResolvedProvisioning) {
+  return resolved.envFiles.map((file): MainEnvFile => {
+    const path = join(primaryRepositoryPath, file.path)
+    const contents = existsSync(path) ? readFileSync(path, 'utf8') : ''
+    return { file, contents, values: readEnvValues(contents) }
   })
 }
 
-/** The main checkout's URL for a database resource, with the primary as fallback. */
-function mainDatabaseUrl(
-  mainEnvValues: Record<string, string>,
-  resolved: ResolvedProvisioning,
-  envKey: string,
+/** The first value any main env file carries for a key, in declaration order. */
+function firstMainValue(mainFiles: MainEnvFile[], key: string | undefined) {
+  if (key === undefined) return undefined
+  for (const { values } of mainFiles) {
+    if (values[key] !== undefined) return values[key]
+  }
+  return undefined
+}
+
+/** Main env values merged across the declared files; the first file wins. */
+function mergedMainEnvValues(mainFiles: MainEnvFile[]) {
+  const merged: Record<string, string> = {}
+  for (const { values } of mainFiles) {
+    for (const [key, value] of Object.entries(values)) {
+      if (!(key in merged)) merged[key] = value
+    }
+  }
+  return merged
+}
+
+/**
+ * Every declared env file of every sibling worktree (the main checkout
+ * included), one contents entry per declared file, in declaration order.
+ */
+function siblingLaneEnvFileContents(
+  mainRepository: string,
+  currentWorktreePath: string,
+  envFiles: ResolvedEnvFile[],
 ) {
-  const primaryKey = resolved.databases[0]?.envKey
+  const listing = git(['worktree', 'list', '--porcelain'], { cwd: mainRepository })
+  return worktreePathsFromPorcelain(listing, currentWorktreePath).map((path) =>
+    envFiles.map((file) => {
+      const envPath = join(path, file.path)
+      return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+    }),
+  )
+}
+
+/**
+ * The main checkout's URL a lane database is derived from: read under the
+ * database's env key from the files that carry that database — the same key
+ * name may point at a different database in another file — with the primary
+ * database's key as fallback.
+ */
+function mainDatabaseUrl(
+  mainFiles: MainEnvFile[],
+  resolved: ResolvedProvisioning,
+  database: ResolvedDatabase,
+) {
+  const carrying = mainFiles.filter(({ file }) =>
+    file.databases.some((candidate) => candidate.name === database.name),
+  )
   const url =
-    mainEnvValues[envKey] ?? (primaryKey ? mainEnvValues[primaryKey] : undefined)
+    carrying.map(({ values }) => values[database.envKey]).find(Boolean) ??
+    firstMainValue(mainFiles, database.envKey) ??
+    firstMainValue(mainFiles, resolved.databases[0]?.envKey)
   if (!url) {
+    const where = carrying[0]?.file.path ?? resolved.envFile
     throw new Error(
-      `the main checkout's ${resolved.envFile} carries no ${envKey}; provisioning needs it to derive lane database URLs`,
+      `the main checkout's ${where} carries no ${database.envKey}; provisioning needs it to derive lane database URLs`,
     )
   }
   return url
@@ -210,19 +264,15 @@ function mainDatabaseUrl(
 async function allocateLane({
   resolved,
   slug,
-  mainEnvValues,
-  siblingEnvFiles,
+  mainFiles,
+  siblingLaneFiles,
 }: {
   resolved: ResolvedProvisioning
   slug: string
-  mainEnvValues: Record<string, string>
-  siblingEnvFiles: (string | null)[]
+  mainFiles: MainEnvFile[]
+  siblingLaneFiles: (string | null)[][]
 }) {
-  const reserved = reservedPortsFromEnvFiles(
-    siblingEnvFiles,
-    resolved.portBases,
-    resolved.portBlocks,
-  )
+  const reserved = reservedPortsFromLaneEnvFiles(siblingLaneFiles, resolved)
   const ports = await resolvePortPlan(
     slug,
     resolved.portBases,
@@ -233,7 +283,7 @@ async function allocateLane({
   const databaseUrls: Record<string, string> = {}
   for (const database of resolved.databases) {
     databaseUrls[database.name] = withDatabaseName(
-      mainDatabaseUrl(mainEnvValues, resolved, database.envKey),
+      mainDatabaseUrl(mainFiles, resolved, database),
       laneDatabaseName(resolved.databasePrefix, slug, database.name),
     )
   }
@@ -241,13 +291,17 @@ async function allocateLane({
   let cacheIndexIsNew = false
   if (resolved.cacheStoreIndex) {
     const primaryKey = resolved.cacheStoreEnvKeys[0]
-    const mainCacheUrl = primaryKey === undefined ? undefined : mainEnvValues[primaryKey]
+    const cacheFile = mainFiles.find(({ file }) => file.cacheStore)
+    const mainCacheUrl =
+      primaryKey === undefined
+        ? undefined
+        : (cacheFile?.values[primaryKey] ?? firstMainValue(mainFiles, primaryKey))
     if (!mainCacheUrl) {
       throw new Error(
-        `the main checkout's ${resolved.envFile} carries no ${primaryKey ?? 'cache-store URL'}; cacheStoreIndex needs it`,
+        `the main checkout's ${cacheFile?.file.path ?? resolved.envFile} carries no ${primaryKey ?? 'cache-store URL'}; cacheStoreIndex needs it`,
       )
     }
-    const taken = siblingEnvFiles.flatMap((contents) => {
+    const taken = siblingLaneFiles.flat().flatMap((contents) => {
       if (!contents || primaryKey === undefined) return []
       const url = readEnvValues(contents)[primaryKey]
       const index = url === undefined ? null : cacheStoreIndexFromUrl(url)
@@ -292,26 +346,44 @@ async function startDeclaredServices(
   })
 }
 
-function writeLaneEnvFile({
+/**
+ * Write the lane's declared env files. Each seeds from the main checkout's
+ * file at the same relative path, repoints localhost URLs using its own port
+ * entries (the main file's value for each managed key is the from-port), and
+ * upserts its slice of the managed allocation block. `only` limits the write
+ * to the named paths — used to restore files missing from a partial lane.
+ */
+function writeLaneEnvFiles({
   resolved,
   allocation,
-  mainEnvContents,
-  mainEnvValues,
-  envPath,
+  slug,
+  mainFiles,
+  worktreePath,
+  only,
 }: {
   resolved: ResolvedProvisioning
   allocation: LaneAllocation
-  mainEnvContents: string
-  mainEnvValues: Record<string, string>
-  envPath: string
+  slug: string
+  mainFiles: MainEnvFile[]
+  worktreePath: string
+  only?: ReadonlySet<string>
 }) {
-  let contents = mainEnvContents
-  for (const [name, port] of Object.entries(allocation.ports)) {
-    const mainPort = Number(mainEnvValues[envKeyForPort(name)])
-    contents = repointLocalhostUrls(contents, mainPort, port)
+  for (const { file, contents: mainContents, values: mainValues } of mainFiles) {
+    if (only && !only.has(file.path)) continue
+    let contents = mainContents
+    for (const [envKey, portName] of Object.entries(file.ports)) {
+      const port = allocation.ports[portName]
+      if (port === undefined) continue
+      contents = repointLocalhostUrls(contents, Number(mainValues[envKey]), port)
+    }
+    const envPath = join(worktreePath, file.path)
+    mkdirSync(dirname(envPath), { recursive: true })
+    writeFileSync(
+      envPath,
+      upsertEnvValues(contents, laneEnvValuesForFile(allocation, resolved, file, slug)),
+    )
+    log(`wrote ${envPath} with the lane's allocation`)
   }
-  writeFileSync(envPath, upsertEnvValues(contents, laneEnvValues(allocation, resolved)))
-  log(`wrote ${envPath} with the lane's allocation`)
 }
 
 function summaryText(result: Omit<ProvisionResult, 'summary'>) {
@@ -372,38 +444,55 @@ async function provisionLane(
     return { ...base, seed, summary }
   }
 
-  const mainEnvPath = join(primary.repositoryPath, resolved.envFile)
-  const mainEnvContents = existsSync(mainEnvPath) ? readFileSync(mainEnvPath, 'utf8') : ''
-  const mainEnvValues = readEnvValues(mainEnvContents)
+  const mainFiles = readMainEnvFiles(primary.repositoryPath, resolved)
+  const mainEnvValues = mergedMainEnvValues(mainFiles)
 
   await startDeclaredServices(primary.repositoryPath, resolved, mainEnvValues)
 
-  const envPath = join(primary.worktreePath, resolved.envFile)
-  const existingContents = existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
-  const existing =
-    existingContents === null ? null : parseLaneAllocation(existingContents, resolved)
+  const laneFileContents = resolved.envFiles.map((file) => {
+    const envPath = join(primary.worktreePath, file.path)
+    return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+  })
+  const existing = parseLaneAllocationFromFiles(laneFileContents, resolved)
   let allocation: LaneAllocation
   let cacheIndexIsNew = false
   if (existing) {
     log('env file already carries the managed block; keeping the existing allocation')
     allocation = existing
+    // Partial state: a later declared file without the block is re-written
+    // from the same allocation.
+    const missing = new Set(
+      resolved.envFiles
+        .filter((_, index) => !laneFileContents[index]?.includes(ENV_MARKER))
+        .map((file) => file.path),
+    )
+    if (missing.size > 0) {
+      writeLaneEnvFiles({
+        resolved,
+        allocation,
+        slug,
+        mainFiles,
+        worktreePath: primary.worktreePath,
+        only: missing,
+      })
+    }
   } else {
     ;({ allocation, cacheIndexIsNew } = await allocateLane({
       resolved,
       slug,
-      mainEnvValues,
-      siblingEnvFiles: siblingEnvFileContents(
+      mainFiles,
+      siblingLaneFiles: siblingLaneEnvFileContents(
         primary.repositoryPath,
         primary.worktreePath,
-        resolved.envFile,
+        resolved.envFiles,
       ),
     }))
-    writeLaneEnvFile({
+    writeLaneEnvFiles({
       resolved,
       allocation,
-      mainEnvContents,
-      mainEnvValues,
-      envPath,
+      slug,
+      mainFiles,
+      worktreePath: primary.worktreePath,
     })
   }
 

@@ -21,17 +21,22 @@ import {
   laneDatabaseFamily,
   laneDatabaseName,
   laneEnvValues,
+  laneEnvValuesForFile,
   laneProcessesFromLsofOutput,
   laneSlug,
   type PortPlan,
   parseLaneAllocation,
+  parseLaneAllocationFromFiles,
   parseTemplateFingerprint,
   planTemplateUsage,
   portsClaimedByEnv,
+  portsClaimedByEnvFile,
   portsHeldBy,
   readEnvValues,
+  replaceSlugTokens,
   repointLocalhostUrls,
   reservedPortsFromEnvFiles,
+  reservedPortsFromLaneEnvFiles,
   resolvePortPlan,
   resolveProvisioning,
   seedRefusal,
@@ -1170,5 +1175,402 @@ describe('resolveProvisioning', () => {
         { databasePrefix: 'app_wt_' },
       ),
     ).toThrow(/migrateCommand/)
+  })
+})
+
+/**
+ * Two env files reusing the SAME env key names for different allocations:
+ * PORT is the dev server in `.env` and the test server (heading a worker
+ * block) in the nested test-environment file, and each file carries
+ * DATABASE_URL pointing at a different lane database.
+ */
+const twoFileResolved = resolveProvisioning(
+  {
+    databases: [
+      { name: 'development', envKey: 'DATABASE_URL', seeded: true },
+      { name: 'test', envKey: 'DATABASE_URL' },
+    ],
+    portBases: { port: 4100, maildevPort: 11100, testPort: 5100, testMaildevPort: 13100 },
+    portBlocks: { testPort: E2E_WORKER_COUNT },
+    cacheStoreIndex: true,
+    repositories: [{ path: '.', migrateCommand: 'pnpm run db:migrate' }],
+    envFiles: [
+      {
+        path: '.env',
+        databases: ['development'],
+        ports: { PORT: 'port', MAILDEV_PORT: 'maildevPort' },
+        cacheStore: true,
+        extra: { TELEMETRY_ENABLED: 'false' },
+      },
+      {
+        path: 'apps/web/.env.test',
+        databases: ['test'],
+        ports: { PORT: 'testPort', MAILDEV_PORT: 'testMaildevPort' },
+        extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}', LANE: '{slug}' },
+      },
+    ],
+  },
+  { databasePrefix: 'app_wt_' },
+)
+
+const twoFileAllocation: LaneAllocation = {
+  ports: { port: 4187, maildevPort: 11187, testPort: 5187, testMaildevPort: 13187 },
+  databaseUrls: {
+    development: 'postgresql://localhost:5432/app_wt_task_a_development',
+    test: 'postgresql://localhost:5432/app_wt_task_a_test',
+  },
+  cacheStoreUrl: 'redis://localhost:6379/3',
+}
+
+describe('resolveProvisioning envFiles', () => {
+  it('synthesizes one entry equivalent to the single-file behavior when absent', () => {
+    expect(resolvedFixture.envFiles).toEqual([
+      {
+        path: '.env',
+        databases: resolvedFixture.databases,
+        ports: {
+          PORT: 'port',
+          HMR_PORT: 'hmrPort',
+          MAILDEV_PORT: 'maildevPort',
+          MAILDEV_WEB_PORT: 'maildevWebPort',
+          TEST_PORT: 'testPort',
+          TEST_MAILDEV_PORT: 'testMaildevPort',
+          TEST_MAILDEV_WEB_PORT: 'testMaildevWebPort',
+        },
+        cacheStore: true,
+        extra: {},
+      },
+    ])
+  })
+
+  it('synthesizes the entry at the configured envFile path', () => {
+    const resolved = resolveProvisioning(
+      { envFile: 'apps/web/.env' },
+      { databasePrefix: 'app_wt_' },
+    )
+    expect(resolved.envFiles).toEqual([
+      { path: 'apps/web/.env', databases: [], ports: {}, cacheStore: true, extra: {} },
+    ])
+  })
+
+  it('resolves declared entries, applying every default', () => {
+    const resolved = resolveProvisioning(
+      {
+        portBases: { port: 4100 },
+        envFiles: [{ path: '.env', ports: { PORT: 'port' } }],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    expect(resolved.envFiles).toEqual([
+      {
+        path: '.env',
+        databases: [],
+        ports: { PORT: 'port' },
+        cacheStore: false,
+        extra: {},
+      },
+    ])
+  })
+
+  it('resolves the two-file table, listing each file its own databases', () => {
+    expect(twoFileResolved.envFiles.map((file) => file.path)).toEqual([
+      '.env',
+      'apps/web/.env.test',
+    ])
+    expect(
+      twoFileResolved.envFiles.map((file) =>
+        file.databases.map((database) => database.name),
+      ),
+    ).toEqual([['development'], ['test']])
+  })
+
+  it('rejects an empty list', () => {
+    expect(() =>
+      resolveProvisioning({ envFiles: [] }, { databasePrefix: 'app_wt_' }),
+    ).toThrow(/at least one file/)
+  })
+
+  it('rejects a path declared twice', () => {
+    expect(() =>
+      resolveProvisioning(
+        { envFiles: [{ path: '.env' }, { path: '.env' }] },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/declares "\.env" twice/)
+  })
+
+  it('rejects a file naming an undeclared database', () => {
+    expect(() =>
+      resolveProvisioning(
+        { envFiles: [{ path: '.env', databases: ['development'] }] },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/no database resource declares it/)
+  })
+
+  it('rejects a declared database listed in no file', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          databases: [{ name: 'development' }],
+          repositories: [{ path: '.', migrateCommand: 'make migrate' }],
+          envFiles: [{ path: '.env' }],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/listed in no envFiles entry/)
+  })
+
+  it('rejects a port entry naming an undeclared port', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          portBases: { port: 4100 },
+          envFiles: [{ path: '.env', ports: { PORT: 'port', TEST_PORT: 'testPort' } }],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/portBases does not declare it/)
+  })
+
+  it('rejects a declared port mapped in no file', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          portBases: { port: 4100, testPort: 5100 },
+          envFiles: [{ path: '.env', ports: { PORT: 'port' } }],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/mapped in no envFiles entry/)
+  })
+
+  it('rejects cacheStoreIndex with no file carrying the cache store', () => {
+    expect(() =>
+      resolveProvisioning(
+        { cacheStoreIndex: true, envFiles: [{ path: '.env' }] },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/carries cacheStore/)
+  })
+
+  it('rejects env keys that could not be parsed back', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          portBases: { port: 4100 },
+          envFiles: [{ path: '.env', ports: { appPort: 'port' } }],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/SCREAMING_SNAKE_CASE/)
+    expect(() =>
+      resolveProvisioning(
+        {
+          portBases: { port: 4100 },
+          envFiles: [
+            { path: '.env', ports: { PORT: 'port' }, extra: { 'weird-key': 'x' } },
+          ],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/SCREAMING_SNAKE_CASE/)
+  })
+
+  it('rejects a file writing the same env key twice', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          portBases: { port: 4100 },
+          envFiles: [{ path: '.env', ports: { PORT: 'port' }, extra: { PORT: '9999' } }],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/writes env key "PORT" more than once/)
+  })
+})
+
+describe('replaceSlugTokens', () => {
+  it('replaces both tokens, dashing the slug where asked', () => {
+    expect(replaceSlugTokens('uploads-{slug-dashed}-of-{slug}', 'task_a')).toBe(
+      'uploads-task-a-of-task_a',
+    )
+  })
+
+  it('leaves values without tokens alone', () => {
+    expect(replaceSlugTokens('false', 'task_a')).toBe('false')
+  })
+})
+
+describe('laneEnvValuesForFile', () => {
+  const [devFile, testFile] = twoFileResolved.envFiles as [
+    (typeof twoFileResolved.envFiles)[number],
+    (typeof twoFileResolved.envFiles)[number],
+  ]
+
+  it("renders the dev file's slice: its database, its ports, cache, extras", () => {
+    expect(
+      laneEnvValuesForFile(twoFileAllocation, twoFileResolved, devFile, 'task_a'),
+    ).toEqual({
+      DATABASE_URL: 'postgresql://localhost:5432/app_wt_task_a_development',
+      PORT: '4187',
+      MAILDEV_PORT: '11187',
+      REDIS_URL: 'redis://localhost:6379/3',
+      TELEMETRY_ENABLED: 'false',
+    })
+  })
+
+  it('remaps the same key names to the test allocations in the test file', () => {
+    expect(
+      laneEnvValuesForFile(twoFileAllocation, twoFileResolved, testFile, 'task_a'),
+    ).toEqual({
+      DATABASE_URL: 'postgresql://localhost:5432/app_wt_task_a_test',
+      PORT: '5187',
+      MAILDEV_PORT: '13187',
+      STORAGE_BUCKET: 'uploads-task-a',
+      LANE: 'task_a',
+    })
+  })
+
+  it('refuses an allocation missing a port the file records', () => {
+    expect(() =>
+      laneEnvValuesForFile(
+        { ...twoFileAllocation, ports: { port: 4187, maildevPort: 11187 } },
+        twoFileResolved,
+        testFile,
+        'task_a',
+      ),
+    ).toThrow(/no port for "testPort"/)
+  })
+})
+
+describe('parseLaneAllocationFromFiles', () => {
+  const contentsByFile = twoFileResolved.envFiles.map((file) =>
+    upsertEnvValues(
+      'SESSION_SECRET=s\n',
+      laneEnvValuesForFile(twoFileAllocation, twoFileResolved, file, 'task_a'),
+    ),
+  )
+
+  it('round-trips the allocation across the files, keys remapped per file', () => {
+    expect(parseLaneAllocationFromFiles(contentsByFile, twoFileResolved)).toEqual(
+      twoFileAllocation,
+    )
+  })
+
+  it('treats a lane whose FIRST file lacks the marker as unallocated', () => {
+    expect(
+      parseLaneAllocationFromFiles([null, contentsByFile[1]], twoFileResolved),
+    ).toBeNull()
+    expect(
+      parseLaneAllocationFromFiles(['PORT=4187\n', contentsByFile[1]], twoFileResolved),
+    ).toBeNull()
+  })
+
+  it('complains when a missing later file leaves a value recorded nowhere', () => {
+    expect(() =>
+      parseLaneAllocationFromFiles([contentsByFile[0], null], twoFileResolved),
+    ).toThrow(/fix or delete the block and re-run/)
+  })
+
+  it('tolerates a missing later file whose values are recorded elsewhere', () => {
+    const resolved = resolveProvisioning(
+      {
+        portBases: { port: 4100 },
+        envFiles: [
+          { path: '.env', ports: { PORT: 'port' } },
+          { path: '.env.test', ports: { PORT: 'port' }, extra: { FOO: 'bar' } },
+        ],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    const first = [ENV_MARKER, 'PORT=4187'].join('\n')
+    expect(parseLaneAllocationFromFiles([first, null], resolved)).toEqual({
+      ports: { port: 4187 },
+      databaseUrls: {},
+    })
+  })
+
+  it('complains when two files disagree about a recorded value', () => {
+    const resolved = resolveProvisioning(
+      {
+        portBases: { port: 4100 },
+        envFiles: [
+          { path: '.env', ports: { PORT: 'port' } },
+          { path: '.env.test', ports: { PORT: 'port' } },
+        ],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    const first = [ENV_MARKER, 'PORT=4187'].join('\n')
+    const second = [ENV_MARKER, 'PORT=4188'].join('\n')
+    expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
+      /disagree about the port "port"/,
+    )
+  })
+
+  it('complains when a marked file misses one of its own keys', () => {
+    const broken = (contentsByFile[1] as string)
+      .split('\n')
+      .filter((line) => !line.startsWith('DATABASE_URL='))
+      .join('\n')
+    expect(() =>
+      parseLaneAllocationFromFiles([contentsByFile[0], broken], twoFileResolved),
+    ).toThrow(/DATABASE_URL \(in apps\/web\/\.env\.test\)/)
+  })
+})
+
+describe('portsClaimedByEnvFile', () => {
+  const [devFile, testFile] = twoFileResolved.envFiles as [
+    (typeof twoFileResolved.envFiles)[number],
+    (typeof twoFileResolved.envFiles)[number],
+  ]
+
+  it("claims under the file's own mapping, whole blocks included", () => {
+    expect(
+      portsClaimedByEnvFile(
+        { PORT: '5187', MAILDEV_PORT: '13187' },
+        testFile,
+        twoFileResolved.portBlocks,
+      ).sort((first, second) => first - second),
+    ).toEqual([5187, 5188, 5189, 5190, 13187])
+  })
+
+  it('claims single ports for the dev file under the same key names', () => {
+    expect(
+      portsClaimedByEnvFile(
+        { PORT: '4187', MAILDEV_PORT: '11187' },
+        devFile,
+        twoFileResolved.portBlocks,
+      ).sort((first, second) => first - second),
+    ).toEqual([4187, 11187])
+  })
+})
+
+describe('reservedPortsFromLaneEnvFiles', () => {
+  const devContents = [ENV_MARKER, 'PORT=4187', 'MAILDEV_PORT=11187'].join('\n')
+  const testContents = [ENV_MARKER, 'PORT=5187', 'MAILDEV_PORT=13187'].join('\n')
+
+  it('unions every file of every lane; a colliding key contributes both values', () => {
+    const reserved = reservedPortsFromLaneEnvFiles(
+      [[devContents, testContents]],
+      twoFileResolved,
+    )
+    expect([...reserved].sort((first, second) => first - second)).toEqual([
+      4187, 5187, 5188, 5189, 5190, 11187, 13187,
+    ])
+  })
+
+  it('skips files without the managed block, keeping the rest of the lane', () => {
+    const reserved = reservedPortsFromLaneEnvFiles(
+      [
+        [devContents, 'PORT=9999\nMAILDEV_PORT=9899'],
+        [null, testContents],
+      ],
+      twoFileResolved,
+    )
+    expect([...reserved].sort((first, second) => first - second)).toEqual([
+      4187, 5187, 5188, 5189, 5190, 11187, 13187,
+    ])
   })
 })
