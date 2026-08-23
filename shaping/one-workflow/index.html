@@ -288,7 +288,14 @@
               semantic versions on npm, each shipping its agent-readable migration
               notes; the repository runs the release practice the package ships,
               and its own stack layer stays off &mdash; the package is a
-              command-line tool, not a web application.
+              command-line tool, not a web application. Versioning starts at
+              0.0.1 and stays below 1.0 deliberately: pre-1.0 releases promise
+              no stability, so breaking changes land in any release without the
+              ceremony of a major version &mdash; safe for consumers because
+              every project pins an exact version and every upgrade is an
+              agent-executed act that reads the migration notes and regenerates
+              the world. Reaching 1.0 is a milestone the package earns, not a
+              formality.
             </p>
           </div>
         </details>
