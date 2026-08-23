@@ -10,6 +10,12 @@ The shaping document's rulings decide how variants merge. Its Contract notes nam
 base variant for each merged skill and what gets grafted from the others; where a
 variant disagrees with the document, the document wins.
 
+Not every skill preserves every variant: where a copy is absent it was dropped
+deliberately — byte-identical to a preserved copy, or wholly superseded by the base
+the document names — and the document's merge tables adjudicate on the full set,
+absent copies included. A file lives in the tree closest to its merged home, which is
+not always the layer its source system kept it in.
+
 ## Layout
 
 - `doctrine/` — three variants of the standing instruction file every session reads

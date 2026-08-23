@@ -85,13 +85,14 @@
           <figcaption>Said while opening this project.</figcaption>
         </figure>
 
-        <h3>Today's way, and where it breaks</h3>
+        <h3>Today&rsquo;s way, and where it breaks</h3>
         <p>
           The way of working spreads by hand: when a piece of it improves in one project,
           someone must remember it exists elsewhere, copy it over, and adapt it &mdash;
-          three times, for every improvement. In practice that rarely happens, so the
-          copies drift. Measured on the day of framing: of the nine guides all active
-          projects share, exactly one was still identical everywhere &mdash; every other
+          once per sibling project, for every improvement. In practice that rarely happens, so the
+          copies drift. Measured on the day of framing, over the nine guides that
+          existed in all three projects&rsquo; folders that day: exactly one was
+          still identical everywhere &mdash; every other
           copy had quietly forked. Starting a new project means copying from whichever
           existing project feels most current and pruning what does not apply, with no way
           to tell later which parts are behind.
@@ -100,8 +101,8 @@
         <h3>The outcome test</h3>
         <p>
           Take any of our active projects, remove every hand-maintained piece of the way
-          of working, and install this package in its place: the project works exactly as
-          it did before &mdash; nothing lost, and everything that was particular to that
+          of working, and install this package in its place: the project works as
+          it did before &mdash; no capability lost, and everything that was particular to that
           project preserved through its own configuration. From that day on, staying
           current means upgrading a version, and a lesson written once reaches every
           project on its next upgrade.
@@ -122,7 +123,8 @@
           The big hire is deliberate and total: a project adopts by handing its whole way
           of working to the package &mdash; all or nothing. The install takes over the
           project&rsquo;s standing instructions, its guides, and its supporting tools from
-          day one; there is no partial adoption, and that is a promise, not a limitation.
+          day one; there is no half-adopted piece &mdash; the install takes over the
+          whole of what it covers &mdash; and that is a promise, not a limitation.
         </p>
         <p>
           The little hires are the upgrades: each new version quietly bringing every
@@ -158,7 +160,9 @@
           The heart of the idea: nothing the package produces is ever written by hand
           inside a project again. From the configuration plus the package&rsquo;s own
           content, the install <em>generates</em> every instruction file the
-          project&rsquo;s agents read. A project commits only what is genuinely its own
+          project&rsquo;s agents read. The line between generated and owned is sharp:
+          nothing generated is ever saved into the project&rsquo;s history, and what a
+          project keeps is what is genuinely its own
           &mdash; the configuration file and its own content, kept wherever it prefers.
           Everything generated is disposable and rebuilt at will.
         </p>
@@ -173,18 +177,22 @@
               Generated and gitignored: the project&rsquo;s agent instructions file,
               every skill the package ships, the hooks, and the supporting scripts.
               Committed by the project: <code>seasoned-skills.config.ts</code> at the
-              repo root, plus the project-owned content files it points at (project
-              facts, custom instructions, design-system vocabulary). Published: a
+              repo root, plus the project-owned content it points at &mdash; one
+              content directory, one file per generated skill and one for the
+              doctrine layer, carrying project facts, custom instructions,
+              design-system vocabulary. Published: a
               public npm package under an MIT license &mdash; the package carries only
-              our own prose and machinery.
+              our own prose and machinery, plus one openly licensed font that
+              travels with its own license file.
             </p>
             <p>
               The package shares the agent-configuration folder with the project; it
               never owns it. A project keeps its own committed skills alongside the
               generated ones &mdash; skills it wrote and skills it vendors from
               third parties, pinned by its own lock machinery &mdash; and its own
-              additions to the agent settings. The tool
-              manages exactly two footprints surgically: in the ignore file, a script
+              additions to the agent settings. The tool&rsquo;s managed footprint
+              is two files and one script entry.
+              In the ignore file, a script
               verifies that every path the package generates is <em>effectively</em>
               ignored &mdash; by asking git itself, never by grepping for a pattern,
               because a repository may ignore by whitelist and a present-looking
@@ -193,21 +201,28 @@
               project put there; in the settings file, the tool enforces the values
               of the keys the workflow depends on and leaves every other key
               untouched.
-              Check-and-edit, idempotent, in both files.
+              Check-and-edit, idempotent, in both files &mdash; and the same
+              discipline keeps the one managed script entry, the sync wiring,
+              in place.
             </p>
             <p>
               Installing assumes a codebase that is ready for the workflow, and
               the package&rsquo;s README says so before it says anything about
               installing. The workflow&rsquo;s criteria lean on machinery the
-              package does not create: an end-to-end suite whose surfaces can be
-              enumerated, the seed pipeline the demo-seed criterion asserts,
+              package does not create: a route surface the stack can enumerate
+              and an end-to-end suite that can reach it, the seed pipeline the
+              demo-seed criterion asserts,
               gates a continuous-integration run can execute, a repository
-              worktrees can be cut from. The README walks an adopting user
+              worktrees can be cut from, and the package itself pinned at an
+              exact version &mdash; the premise pre-1.0 upgrades rely on. The
+              README walks an adopting user
               through the prerequisites &mdash; for each criterion and layer,
               what it assumes of the codebase and what to put in place before
-              installing &mdash; and the configuration lets a project keep a
-              criterion off until its machinery exists, with the shrink-only
-              registers as the brownfield on-ramp once it does. The same section
+              installing. The configuration keeps the switched criteria off
+              until their machinery exists; the unswitched ones arrive with
+              brownfield on-ramps rather than off switches &mdash; the coverage
+              register seeded shrink-only, the excused-surfaces list carried
+              over. The same section
               covers the machine: the binaries and services the enabled workflow
               needs, the same list the doctor subcommand checks mechanically.
             </p>
@@ -223,8 +238,9 @@
               package versions, the assets are a compatibility surface: an
               upgrade must keep every previously committed document rendering
               correctly &mdash; the class vocabulary and drawing interface
-              evolve append-only, and the package&rsquo;s generation tests
-              render an old fixture document against the new assets to pin it.
+              evolve append-only, and the package&rsquo;s golden-output tier
+              renders an old fixture document &mdash; and an old fixture meeting
+              page &mdash; against the new assets to pin it.
               Standing project principles &mdash; the rulings that bind every
               session in a repository &mdash; are regular injection, not a
               hardcoded file with a hardcoded name: the shaping skill reads
@@ -248,11 +264,28 @@
               the manifest&rsquo;s contents are project data. Where the
               recordings live is a fact about a machine, never about the
               project, so it has no committed configuration at all &mdash; only
-              the personal, gitignored local file, the same species as personal
+              a personal, gitignored <code>config.local.json</code> beside the
+              data folder, the same species as personal
               settings, which the skill documents and asks for when missing.
               The transcription toolchain the practice depends on is pinned by
               the package and checked by doctor, so a transcript comes out the
               same on every machine.
+            </p>
+            <p>
+              The demo-video practice ships its machinery the same way. The
+              rendering rig and the narration engine are package deterministic
+              code, generated into the gitignored tree, and their tests move
+              into the package alongside provisioning&rsquo;s. Each
+              video&rsquo;s screenplay folder is committed project content;
+              rendered output never is. The model weights the narrator runs on
+              are never in the npm package: a once-per-machine setup fetches
+              them &mdash; about three gigabytes &mdash; into a local,
+              gitignored cache, with the narration voice pinned by checksum so
+              every machine speaks with the same voice, and the toolchain,
+              pinned like the transcription one, declared to doctor. The
+              practice consumes the seed pipeline the demo-seed criterion
+              asserts: demo state is seeded, never hand-crafted, so any video
+              can be re-rendered from scratch.
             </p>
           </div>
         </details>
@@ -283,7 +316,8 @@
               deterministic code &mdash; provisioning, the footprint managers, the
               sweeps. Golden-output generation tests cover the weaving: synthetic
               fixture configurations mirror the tested combinations &mdash; one per
-              active project&rsquo;s shape, carrying no project identity &mdash;
+              active project&rsquo;s shape, carrying no project identity, plus
+              this repository&rsquo;s own &mdash;
               with the full generated tree snapshotted, and every tested value of
               every option covered by at least one fixture. This makes the
               option-discipline rule executable rather than aspirational, and it
@@ -329,8 +363,9 @@
           difference a home leaves illegitimate difference nowhere to hide.
         </p>
         <p>
-          The workflow is organized in layers a project enables when it is ready for
-          them. Enabling a layer composes it into everything else: every generated
+          The workflow is organized in layers. One of them is optional today &mdash;
+          and the machinery stays ready for layers to come. Enabling a layer composes
+          it into everything else: every generated
           instruction that should mention it starts mentioning it, and disabling it
           removes every trace, so no instruction ever points at a practice the project
           does not run. One discipline keeps this honest: a configuration option exists
@@ -347,12 +382,17 @@
           run uses all of them. The <em>stack layer</em> &mdash; the guides tied to
           one specific technology stack &mdash; is the only optional one: a project
           declares its stack, or doesn&rsquo;t. The <em>deterministic code</em> layer
-          is the small supporting tools: the scripts, the hooks, and each
+          is the small supporting tools: the scripts, the hooks &mdash; small
+          guard scripts the agent&rsquo;s tooling runs automatically at set
+          moments &mdash; and each
           project&rsquo;s runtime settings. And the <em>corpus machinery</em> builds,
           on each person&rsquo;s own machine, the reference library the shaping
           practice reads from. The configuration decides which layers materialize
-          &mdash; and a skill enters the package only when a second project needs it,
-          never on the hope that one someday might.
+          &mdash; and a <em>new</em> skill enters the package only when a second
+          project needs it,
+          never on the hope that one someday might. The rule gates entry, not
+          authorship: a practice every project already runs comes in even where
+          only one project had written it down.
         </p>
         <div id="drawing-layers"></div>
         <details class="technical" open>
@@ -368,7 +408,9 @@
               no option &mdash; checkouts never leave the default branch (documentation
               work uses an unprovisioned worktree), questionnaires only when the user may
               be away, browser verification for any work that could affect user-facing
-              behavior, the reference-privacy rule everywhere and not toggleable, the
+              behavior, the reference-privacy rule everywhere and not toggleable
+              (names allowed in conversation and subagent charters only,
+              never in anything repository-visible), the
               leaner one-question rule, the responsive bar&rsquo;s stack-neutral core with
               framework-coupled lines injected from project content, and the quality
               bar&rsquo;s design-system clause restored. Backwards compatibility is a
@@ -408,7 +450,11 @@
               this way before the package, so the switch is a migration behavior
               change for all of them. Reviewing the draft is deliberate: the loop
               reads the pull request&rsquo;s description and discussion alongside
-              the diff, which a bare diff review never sees. Small diffs are not exempt from the pipeline; they simply
+              the diff, which a bare diff review never sees. The loop&rsquo;s
+              angles include a conventions-compliance pass &mdash; the change
+              judged against the project&rsquo;s own committed conventions and
+              doctrine &mdash; absorbing what one project ran as a separate
+              step. Small diffs are not exempt from the pipeline; they simply
               overlap it. Paid auto-reviewers are the consuming repository&rsquo;s
               concern: configure them to ignore drafts.
             </p>
@@ -459,14 +505,22 @@
             <p>
               The Definition of Done itself is generated from one composition, the
               same way a skill is. The package contributes the core criteria &mdash;
-              gates green, no leftover comments, the review loop, browser
+              gates green, no leftover comments, the review loop run against the
+              branch&rsquo;s committed diff, browser
               verification, the responsive bar, the coverage register, the closing
               self-improvement pass &mdash; each carrying the project&rsquo;s facts
-              as parameters: its gate commands, its register paths. Two more
+              as parameters: its gate commands, its register paths. A core
+              criterion weaves in only where its subject exists: browser
+              verification and the responsive bar bind a project whose
+              configuration declares a user-facing web surface, the coverage
+              register binds where there are routes to cover &mdash; so a
+              command-line project&rsquo;s composition, consumer zero included,
+              simply has no line for them. Two more
               criteria are first-class core citizens switched by their own
               configuration: the demo-seed criterion &mdash; every new or changed
-              user-facing surface ships its seed section and its coverage entry in
-              the same change, or is declared unseedable with a written reason,
+              user-facing surface ships its seed section and its entry in the
+              committed seed manifest in
+              the same change, or is declared unseedable there with a written reason,
               with the seed single-shot and fail-loud behind an empty-database
               preflight &mdash; and the machine-surface parity criterion, on
               whenever the configuration declares a machine surface. The demo-seed
@@ -474,8 +528,12 @@
               denominator of surfaces is <em>derived</em> from the stack&rsquo;s
               own route enumeration, never maintained by hand, so a surface
               nobody covered fails the gate outright instead of depending on
-              review-time honesty. The deriving checker is stack-layer code; a
-              future stack that cannot enumerate its surfaces carries the
+              review-time honesty. The deriving checker is stack-layer code
+              &mdash; and for the packaged stack it is new code, not a port:
+              the strongest form was reached on a stack the package does not
+              ship, and the packaged stack&rsquo;s existing route enumeration is
+              the raw material, not the finished checker. A
+              stack that cannot enumerate its surfaces carries the
               review-time caveat in its criterion text instead &mdash; honestly,
               as the weaker gate it is. Beyond the
               core, a project injects whole criteria of its own from its content
@@ -520,13 +578,17 @@
               fresh.
             </p>
             <p>
-              The route-coverage register, no option &mdash; one rule with a
+              The coverage register, no option &mdash; one rule with a
               brownfield on-ramp: a new surface and the spec that reaches it land in
-              the same change, and the register of unreached surfaces stays empty.
+              the same change, and the coverage register &mdash; the shrink-only
+              list of unreached surfaces &mdash; stays empty.
               When the coverage gate is installed into a project that already has
               unreached surfaces, the install seeds the register with them; it only
-              ever shrinks, and once empty it is held empty forever. &ldquo;No spec
-              yet&rdquo; is never a rationale for exclusion.
+              ever shrinks, and once empty it is held empty forever. A surface
+              that genuinely cannot be reached by a spec is <em>excused</em>
+              instead, on a separate committed list that admits an entry only
+              with a one-line written rationale &mdash; and &ldquo;no spec
+              yet&rdquo; is never a rationale.
             </p>
             <p>
               Specs never assert one-shot flash messages, no option: their delivery
@@ -592,7 +654,9 @@
               The skill roster ships in two tiers: the core &mdash; every practice
               skill, from orchestration and subagents through shaping, meeting
               requests, releases, and demo videos &mdash; comes with the workflow
-              whole, because every project we run uses all of it; only the
+              whole, because every project we run practices all of it &mdash;
+              today each repository carries only the guides it wrote itself, and
+              the install brings the rest; only the
               stack-coupled skills form a separate layer, keyed by the stack the
               configuration declares. The layer machinery itself stays composable for
               the layers still to come &mdash; performance optimization,
@@ -642,14 +706,21 @@
               expands the Definition of Done carries a calibration review in that
               same change &mdash; a gate added without re-deriving what a unit of
               work now costs is an incomplete change, because every calibration
-              just silently went stale. Calibration updates are lessons about the
+              just silently went stale. When the expanding change is a package
+              release &mdash; a new core criterion arriving from upstream &mdash;
+              the release&rsquo;s migration notes carry the calibration-review
+              instruction, and the agent executing the upgrade discharges it in
+              the project, so the discipline survives the one expansion path
+              that happens in a different repository. Calibration updates are lessons about the
               project itself, so they travel as pull requests on the project;
               installing into an existing project seeds the calibration file from
               whatever calibration text the project already carries.
             </p>
             <p>
               That precedent generalizes into a uniform contract: <em>every</em>
-              generated practice skill has a project-content slot. The
+              generated practice skill has a project-content slot, and the
+              doctrine layer has one of its own &mdash; the file whose project
+              facts the generated instructions weave in. The
               configuration names a content directory with one file per skill,
               and generation weaves that file into the skill as a project-specifics
               section at a defined anchor &mdash; empirical observations, local
@@ -682,7 +753,10 @@
               known residual hazards &mdash; the things only this project could
               know &mdash; stay in the content file, and the generic text is
               written so the project section slots in naturally beside it.
-              Facts about one machine get no structure of their own &mdash;
+              Machine-local <em>values</em> &mdash; a personal recordings path
+              &mdash; live in the personal gitignored local file the relevant
+              skill documents; machine-bound <em>prose</em>, by contrast, gets
+              no structure of its own &mdash;
               deliberately: the cases found in the wild dissolve into
               conditional discipline in the package&rsquo;s text (&ldquo;when
               the host behaves like this, do that&rdquo;), applied by observing
@@ -699,8 +773,10 @@
               library&rsquo;s own; the same source system is the same letter
               everywhere. A base decides where merging starts, never what was
               ruled: everything one variant carries and the others simply lack
-              merges in mechanically, the grafts named below are the
-              load-bearing ones, and wherever a variant disagrees with a ruling
+              merges in mechanically; where variants disagree with each other
+              about the same rule, the leaner text wins unless the longer one
+              demonstrably changes behavior; the grafts named below are the
+              load-bearing ones; and wherever a variant disagrees with a ruling
               in these notes, the ruling wins. For the doctrine file, variant C
               is the base &mdash; the most evolved of the three &mdash; taking
               the union of every non-conflicting rule from A and B: notably
@@ -726,8 +802,11 @@
               <li>
                 <strong>subagents</strong> &mdash; base B (the watchdog, the
                 stopping protocol, the richest dynamic-workflows section,
-                sizing-is-design-work, and the calibration frame), plus variant
-                C&rsquo;s five workflow rules and variant A&rsquo;s design-tier
+                sizing-is-design-work, and the calibration frame), plus the two
+                workflow rules variant C alone carries &mdash; dedupe findings
+                before spawning verifiers, and the spawn working-directory
+                artifact &mdash; C&rsquo;s sharper phrasings of the isolation
+                and backtick traps, and variant A&rsquo;s design-tier
                 paragraph.
               </li>
               <li>
@@ -756,9 +835,10 @@
               </li>
               <li>
                 <strong>agent-browser</strong> &mdash; base B, decisively (its
-                failure-mode list is a superset and it alone carries the
+                failure-mode list is the longest and it alone carries the
                 leak-and-teardown doctrine), plus variant A&rsquo;s
-                absolute-state-path and debounced-fill rules, with the
+                absolute-state-path and debounced-fill rules and variant
+                C&rsquo;s implicit-form-submission failure mode, with the
                 synthetic-event and clearing rules phrased stack-neutrally the
                 way variant C phrases them.
               </li>
@@ -773,6 +853,13 @@
                 hand-maintained criteria list retired in favor of the derived
                 composition; <strong>release, meeting requests, and demo
                 videos</strong> &mdash; variant B&rsquo;s, the only copies.
+              </li>
+              <li>
+                <strong>skill management</strong> &mdash; the one guide still
+                identical everywhere, taken as is &mdash; and the roster&rsquo;s
+                one rename: skill names name the practice, never a role, so the
+                file the projects carry under a role name ships as
+                <code>skill-management</code>. No other skill renames.
               </li>
             </ul>
           </div>
@@ -796,7 +883,11 @@
               shipped hooks&rsquo; wiring &mdash; and leaves every other key
               untouched, so a project&rsquo;s own keys and its own hook
               registrations ride in the same file, and the workflow&rsquo;s
-              assumptions travel to every teammate through git. The status-line
+              assumptions travel to every teammate through git. The permission
+              default is the one permissions key the tool manages; everything
+              else under permissions &mdash; allowlists, personal grants &mdash;
+              stays in the personal, ignored local settings file where it lives
+              today. The status-line
               script is generated and gitignored like every other generated
               file. Nothing ever
               writes to a user&rsquo;s global configuration; personal permission
@@ -826,10 +917,12 @@
               resources and never touches the branch. The provisioning logic is
               unit-tested once, in the package &mdash; projects stop carrying their
               own copies of the scripts and of the tests that guard them. The
-              unified code starts from variant A&rsquo;s implementation &mdash;
-              the copy the references library preserves together with its test
-              suite, which sets the testing bar &mdash; and absorbs variant
-              C&rsquo;s multi-repository matrix and variant B&rsquo;s port
+              unified code starts from variant A&rsquo;s implementation, and
+              both TypeScript copies come with test suites of comparable
+              weight: A&rsquo;s suite is the structural base, B&rsquo;s cases
+              merge in, and the unified suite meets the higher of the two bars
+              &mdash; while the behavior absorbed is variant C&rsquo;s
+              multi-repository matrix and variant B&rsquo;s port
               blocks.
             </p>
             <p>
@@ -839,7 +932,9 @@
               seeding only the databases created in that same run, so a re-run never
               overwrites a lane&rsquo;s data; skip flags for provisioning and for
               seeding; probing before starting shared services the machine may
-              already run; and a teardown that refuses a dirty tree unless forced
+              already run; a cache-store index allocated per lane and flushed at
+              allocation, so no lane inherits another&rsquo;s leftovers; and a
+              teardown that refuses a dirty tree unless forced
               and drops the lane&rsquo;s whole derived-database family &mdash; the
               derived-name patterns live in the same table, so nothing derived is
               ever orphaned. Template-database caching is a core capability keyed
@@ -876,10 +971,18 @@
               the create hook&rsquo;s one code path &mdash; provisioning
               harness-created worktrees &mdash; was recorded failing every spawn
               in the project that exercised it, forcing a doctrine workaround
-              the guard now replaces at the root. Wiring entries for shipped
+              the guard now replaces at the root. The fourth hook the
+              references library carries &mdash; explicit-working-directory
+              enforcement &mdash; is not shipped either: it stays a
+              project-owned hook in the workspace whose shape demands it, and
+              the generated doctrine&rsquo;s working-directory rule is written
+              without the enforcement pointer, so no project inherits a
+              reference to a script it does not have. Wiring entries for shipped
               hooks are managed keys in the settings file, written to guard for
               the script&rsquo;s absence so a fresh clone that has not yet run
-              the install still works; a project wires hooks of its own in the
+              the install still works &mdash; and every managed key that points
+              at a generated path carries the same absence guard, the status
+              line included; a project wires hooks of its own in the
               same file, in the keys the manager never touches.
             </p>
             <p>
@@ -897,16 +1000,33 @@
               version-agnostic &mdash; tiers are named by family alias, never
               by a dated model identifier, so the doctrine survives model
               releases untouched. One rule from that guidance is retired rather
-              than packaged: the standing model-substitution rule one project
-              carried was written for a one-time availability event that has
-              since passed, and doctrine that memorializes an incident is
-              legacy, not discipline.
+              than packaged: the standing model-substitution rule all three
+              variants carry was written for a one-time availability event that
+              has since passed, and doctrine that memorializes an incident is
+              legacy, not discipline &mdash; the retirement is a three-way
+              deletion.
             </p>
             <p>
-              The tool&rsquo;s footprint stops at those two managed files, and
+              The tool&rsquo;s footprint stops at those two managed files and
+              that one managed entry, and
               its commands are its own: provisioning and the other deterministic
               operations run as subcommands of the package&rsquo;s binary,
-              referenced by the generated doctrine directly. The script manifest
+              referenced by the generated doctrine directly. Two of those
+              commands split adoption from upkeep. The <em>install</em> runs
+              once, interactively, at adoption: it writes the configuration
+              scaffold and the sync wiring, creates and seeds the committed
+              artifacts the workflow reads &mdash; the shaping folder, the
+              meeting-requests data folder, the calibration file and the
+              registers seeded from whatever the project already carries
+              &mdash; builds the shaping corpus, asking for the one commercial
+              book and falling back to our distilled account when none is
+              given, and finishes by running sync and doctor. <em>Sync</em> is
+              the non-interactive counterpart the prepare script runs forever
+              after: it regenerates, never scaffolds, and never touches
+              committed content &mdash; the corpus it weaves from is whatever
+              the machine&rsquo;s cache holds, rebuilt on demand by its own
+              subcommand, with doctor reporting a cache that is missing or
+              stale. The script manifest
               carries exactly one managed entry &mdash; the sync wiring: the
               project&rsquo;s own prepare script runs the tool&rsquo;s
               <em>sync</em> on every install, so a fresh clone materializes the
@@ -915,8 +1035,11 @@
               next install. It is the project&rsquo;s own script deliberately:
               the package manager the projects pin blocks a dependency&rsquo;s
               lifecycle scripts by default, and a sync that silently does not
-              run is worse than none. Sync is idempotent &mdash; regenerate
-              every output, run the two managed-file scripts, run doctor in
+              run is worse than none. A repository with no root package
+              manifest at all gains a minimal one at adoption, so the same
+              wiring carries sync there too. Sync is idempotent &mdash; regenerate
+              every output, run the two managed-file scripts, re-assert the
+              sync wiring itself, run doctor in
               warn mode. Beyond that one entry, no script entries are managed
               or required &mdash; the scripts the projects carry for this today
               are deleted, not adopted. Continuous-integration workflows are project-owned
@@ -938,8 +1061,9 @@
               demo-seeded) is generated doctrine; the <em>checking code</em> that
               enforces it is package-generated in the stack layer, since walking a
               route tree is stack-specific; and the <em>lists</em> the check reads
-              &mdash; excused surfaces with written rationales, the shrink-only
-              pending register, the seed manifest &mdash; are committed, project-owned
+              &mdash; the excused-surfaces list, the shrink-only
+              coverage register, the seed manifest, the machine-surface
+              exception register &mdash; are committed, project-owned
               files the configuration points at, because they are facts about the
               project that must survive regeneration. A project on a stack the
               package does not ship keeps its own playbook and its own checker
@@ -963,7 +1087,7 @@
               exceptions</em> &mdash; insert is the only write the application ever
               performs, deletion is an event &mdash; or <em>mutable when not
               derivable</em>, where in-place updates and explicit transactional
-              deletes stay legitimate. Everything the two architectures agree on
+              deletes stay legitimate. Everything that is not stance-specific
               ships unconditionally as the shared core: identity versus event tables,
               no nullable columns, no derivable columns, the state-derivation
               patterns, the lock discipline and commit-order rule for absolute-set
@@ -1009,7 +1133,9 @@
               the split only if it is ever promoted into the package. The
               standard a machine surface is held to is <em>capability
               parity with the product</em>, written down in a committed parity
-              standard; where a project declares a machine surface, the generated
+              standard &mdash; a project-owned document the configuration points
+              at, scaffolded with the exception register by the install when a
+              machine surface is declared; where a project declares one, the generated
               review skills audit changes to it against that standard by outcome
               fitness, never by endpoint existence &mdash; a surface can have every
               endpoint and still fail the person using it.
@@ -1035,13 +1161,18 @@
             <p>
               The stack layer&rsquo;s roster is bounded by the same rule that
               bounds the layers themselves: a skill enters the package at its
-              second consumer, never its first. The skills exactly one project
-              grew &mdash; an outbound-integration telemetry standard, spreadsheet
+              second consumer, never its first. The skills a single project
+              grew &mdash; among them an outbound-integration telemetry standard,
+              spreadsheet
               import/export doors, a host-specific deploy pipeline, a billing
-              registry, an internal architecture map, an in-app user manual, a
+              registry, an internal architecture practice, an in-app user manual, a
               mobile-shell verification counterpart &mdash; all stay project-owned
               committed skills, untouched by generation, which the shared-folder
-              model already accommodates. However portable one of them looks, its
+              model already accommodates. (Two projects keep architecture skills
+              of their own, but they are not the same skill twice &mdash; one is
+              a practice for maintaining an architecture document, the other is
+              the system map itself &mdash; so neither is the other&rsquo;s
+              second consumer.) However portable one of them looks, its
               portability is a hypothesis until a second project actually adopts
               it; that adoption is the event that moves it into the package, and
               packaging ahead of it would be the premature convergence the
@@ -1138,19 +1269,24 @@
         <p>
           And this repository is the first consumer: the workflow&rsquo;s own home
           installs the package, configures it, and works under the very rules it ships.
-          The project&rsquo;s final stage then migrates our three active projects onto
+          The project&rsquo;s last build stage then migrates our three active projects onto
           the package &mdash; the install replacing everything each of them grew by
           hand. That migration is the framing&rsquo;s outcome test run for real: three
           different stacks, three different configurations, no capability lost &mdash;
           and it doubles as the quality assurance pass, because any gap between what
           the package generates and what a project relied on surfaces there, before
-          anyone else adopts it.
+          anyone else adopts it. The migration&rsquo;s per-project details &mdash;
+          each project&rsquo;s configuration values and the behavior deltas it
+          accepts &mdash; live in a plan the user keeps locally, outside this
+          repository, because those details are exactly what the privacy rule
+          keeps out; the build asks the user for it when the migration begins.
         </p>
 
         <h3>Walkthrough</h3>
         <p>
-          Replay the framing's story — the same person, the same moment — with this in
-          place. Step by step, in their words, so the reader can check it against how the
+          Replay the framing&rsquo;s story &mdash; the same person, the same moment
+          &mdash; with this in
+          place. Step by step, so the reader can check it against how the
           work really goes.
         </p>
         <ol class="walkthrough">
@@ -1158,7 +1294,8 @@
             <p>
               An agent in one project trips over something &mdash; say, that one-line
               shell mistake &mdash; and the lesson is learned. Two things happen at
-              once. The project fixes itself: a pull request lands the lesson in the
+              once. The project fixes itself: a pull request &mdash; a proposed
+              change, reviewed before it merges &mdash; lands the lesson in the
               project&rsquo;s own content, so the problem is solved today. And the
               lesson is filed as a detailed issue on the package&rsquo;s home: the
               full scenario that taught it, anonymized, with suggested changes
@@ -1201,7 +1338,7 @@
         </p>
         <dl class="time-bombs">
           <dt>
-            The package is public, but the shaping practice leans on books and talks that
+            The package is public, but the shaping practice leans on books and posts that
             belong to their authors.
           </dt>
           <dd>
@@ -1209,7 +1346,8 @@
             The package distributes machinery, never texts. Freely published sources are
             fetched from their authors&rsquo; own sites on the user&rsquo;s machine; the
             one commercial book is built only from the user&rsquo;s own copy, with our
-            own distilled account as the fallback; every built corpus is gitignored; and
+            own distilled account as the fallback; every built corpus lives only on that
+            machine, never saved into the project&rsquo;s recorded history; and
             the repository&rsquo;s history was recreated clean, with open-sourcing set to
             publish from a fresh repository.
           </dd>
@@ -1231,7 +1369,7 @@
           <dd>
             <span class="solution-label">How we defuse it</span>
             Upgrades are agent work. The package ships a skill about itself, and every
-            version with breaking changes or new configuration arrives with migration
+            version arrives with migration
             instructions written for an agent to execute.
           </dd>
           <dt>
@@ -1240,9 +1378,10 @@
           </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            Generated output is gitignored and rebuilt at will, so a hand-edit cannot be
-            committed and cannot survive; the only two doors for change are the
-            project&rsquo;s configuration and the package&rsquo;s source.
+            Generated output is never saved into the project&rsquo;s history &mdash; it
+            cannot be committed, only rebuilt &mdash; so a hand-edit cannot survive; the
+            only doors for change are what the project commits (its configuration and
+            its own content) and the package&rsquo;s source.
           </dd>
           <dt>
             The unified instructions bloat: merging every project&rsquo;s hard-won rules
@@ -1250,9 +1389,10 @@
           </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            Where variants differ, the leaner one wins unless the longer one demonstrably
-            changes behavior &mdash; and a rule that exists only to compensate for a
-            degraded orchestrator is bloat, not refinement, and is dropped.
+            Rules only one project learned merge in &mdash; unless a rule exists only to
+            compensate for a degraded orchestrator, which is bloat, not refinement, and
+            is dropped. Where variants disagree about the same rule, the leaner text
+            wins unless the longer one demonstrably changes behavior.
           </dd>
         </dl>
 
@@ -1273,7 +1413,8 @@
             while it is private.
           </li>
           <li>
-            The growth-frameworks material and the talk and interview transcripts are out
+            The growth-frameworks material some of our shaping corpora carried, and the
+            talk and interview transcripts, are out
             of the workflow entirely.
           </li>
           <li>
@@ -1309,7 +1450,7 @@ Done means, in order:
 
 1. This repository is consumer number zero, held to the adopter&rsquo;s bar its own README states: it gains its own CI pipeline running both test tiers as the required checks on main, with comprehensive coverage behind them; then it installs the package it ships, its configuration is committed, and the hand-maintained copies the install replaces are deleted.
 
-2. The final stage migrates our three active projects onto the package. Ask the user for the local migration plan document; its per-project details never enter this repository. That migration is the framing&rsquo;s outcome test run for real &mdash; three different stacks, three different configurations, no capability lost &mdash; and it doubles as the quality-assurance pass: any gap between what the package generates and what a project relied on must surface and be closed there.
+2. The last build stage migrates our three active projects onto the package. Ask the user for the local migration plan document; its per-project details never enter this repository. That migration is the framing&rsquo;s outcome test run for real &mdash; three different stacks, three different configurations, no capability lost &mdash; and it doubles as the quality-assurance pass: any gap between what the package generates and what a project relied on must surface and be closed there.
 
 3. The closing audit: audit the complete implementation against the document, section by section &mdash; every element, every contract, every time bomb&rsquo;s defusal, every no-go &mdash; and fix every shortfall before calling the goal met. The audit is part of this goal, never a follow-up.
 
@@ -1375,8 +1516,8 @@ Done means, in order:
         ShapingDrawing.figure({
           drawing: s,
           callouts: [
-            'The only two doors for change: the project’s configuration and the package’s source. Two of the three inputs are the project’s own, committed files.',
-            'Nothing on this side is ever written by hand — gitignored, disposable, rebuilt at will.'
+            'The doors for change: what the project commits — its configuration and its own content — and the package’s source. Three inputs, two owners.',
+            'Nothing on this side is ever written by hand — never saved into the project’s history, disposable, rebuilt at will.'
           ],
           caption: 'Where a project’s instructions come from once the package is installed.'
         }).mount('#drawing-generation')
@@ -1419,7 +1560,7 @@ Done means, in order:
         ShapingDrawing.figure({
           drawing: s,
           callouts: [
-            'A lesson learned in one project travels as a detailed, anonymized issue on the package’s home; what survives shaping is written once into the package’s source — never into that project’s own copy.',
+            'A lesson travels twice at once: a local pull request fixes the project’s own content today, and a detailed, anonymized issue carries it to the package’s home — where what survives shaping is written once into the shared source, never as a private fork of it.',
             'A new version of the package is released.',
             'In every project, an agent upgrades and regenerates; the lesson now exists everywhere — including in projects that join later.'
           ],
