@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
@@ -8,6 +9,12 @@ import { corpusBuiltBy, corpusCacheRoot } from '../corpus/cache.js'
 import { deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
+import {
+  provisionLane,
+  sessionEndCleansUpProcesses,
+  sweepLaneProcesses,
+  teardownLane,
+} from '../provisioning/index.js'
 import { degrade, sync } from '../sync/sync.js'
 
 const require = createRequire(import.meta.url)
@@ -124,6 +131,61 @@ export function buildProgram(): Command {
     })
 
   program
+    .command('provision')
+    .description(
+      "Set up an isolated worktree lane from the configuration's resource table: worktrees for every declared repository, ports, databases, cache-store index, dependencies, and seed data. Idempotent — re-running keeps the lane's allocation and never reseeds existing databases.",
+    )
+    .argument('<lane>', 'the lane name; also names the worktree directories')
+    .option(
+      '--branch <branch>',
+      'branch the worktrees check out (default worktree/<lane>)',
+    )
+    .option(
+      '--base <ref>',
+      "base reference for a new branch (default origin's HEAD branch)",
+    )
+    .option('--skip-provision', 'create the worktrees only')
+    .option('--skip-seed', 'provision without seeding')
+    .option('--fresh-seed', "re-anchor the seed's demo data to today")
+    .action(
+      async (
+        lane: string,
+        options: {
+          branch?: string
+          base?: string
+          skipProvision?: boolean
+          skipSeed?: boolean
+          freshSeed?: boolean
+        },
+      ) => {
+        try {
+          const config = await loadConfig(process.cwd())
+          await provisionLane(process.cwd(), config.provisioning, lane, options)
+        } catch (error) {
+          console.error((error as Error).message)
+          process.exitCode = 1
+        }
+      },
+    )
+
+  program
+    .command('teardown')
+    .description(
+      "Remove a provisioned lane: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
+    )
+    .argument('<lane>', 'the lane to remove')
+    .option('--force', 'remove the lane even when a worktree has uncommitted changes')
+    .action(async (lane: string, options: { force?: boolean }) => {
+      try {
+        const config = await loadConfig(process.cwd())
+        await teardownLane(process.cwd(), config.provisioning, lane, options)
+      } catch (error) {
+        console.error((error as Error).message)
+        process.exitCode = 1
+      }
+    })
+
+  program
     .command('sweep')
     .description(
       'Sweep leftover workflow processes: automated browsers, or the processes of torn-down provisioning lanes.',
@@ -136,13 +198,18 @@ export function buildProgram(): Command {
       '--kill',
       'with --browsers: kill each survivor by its exact pid, then re-list',
     )
-    .option('--lane-processes', 'sweep processes belonging to provisioning lanes')
+    .option(
+      '--lane-processes',
+      'terminate processes running from inside worktree lanes, each by its exact pid after listing',
+    )
+    .option('--lane <lane>', "with --lane-processes: only that lane's processes")
     .option('--hook', 'with --lane-processes: run quietly as the session-end hook')
     .action(
-      (options: {
+      async (options: {
         browsers?: boolean
         kill?: boolean
         laneProcesses?: boolean
+        lane?: string
         hook?: boolean
       }) => {
         if (options.browsers) {
@@ -156,9 +223,31 @@ export function buildProgram(): Command {
           return
         }
         if (options.laneProcesses) {
-          // Lane-process sweeping lands with provisioning; until then there are
-          // no lanes to sweep, and the session-end hook must stay silent.
-          if (!options.hook) console.log('No provisioned lanes to sweep.')
+          if (options.hook) {
+            // The session-end hook pipes its JSON payload through; only the
+            // reasons that mean "this machine's session is truly over" sweep,
+            // and nothing may ever block session end.
+            try {
+              if (!sessionEndCleansUpProcesses(sessionEndReason())) return
+              const config = await loadConfig(process.cwd())
+              sweepLaneProcesses(process.cwd(), config.provisioning)
+            } catch {
+              // Silent by contract.
+            }
+            return
+          }
+          try {
+            const config = await loadConfig(process.cwd())
+            const swept = sweepLaneProcesses(
+              process.cwd(),
+              config.provisioning,
+              options.lane === undefined ? {} : { lane: options.lane },
+            )
+            if (swept.length === 0) console.log('No lane processes to sweep.')
+          } catch (error) {
+            console.error((error as Error).message)
+            process.exitCode = 1
+          }
           return
         }
         console.error('Specify what to sweep: --browsers or --lane-processes.')
@@ -167,4 +256,15 @@ export function buildProgram(): Command {
     )
 
   return program
+}
+
+/** The session-end reason from the hook payload on stdin, if one is piped. */
+function sessionEndReason(): string | undefined {
+  if (process.stdin.isTTY) return undefined
+  try {
+    const payload = JSON.parse(readFileSync(0, 'utf8')) as { reason?: unknown }
+    return typeof payload.reason === 'string' ? payload.reason : undefined
+  } catch {
+    return undefined
+  }
 }
