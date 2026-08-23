@@ -682,6 +682,26 @@
               same file, in the keys the manager never touches.
             </p>
             <p>
+              The tool&rsquo;s footprint stops at those two managed files, and
+              its commands are its own: provisioning and the other deterministic
+              operations run as subcommands of the package&rsquo;s binary,
+              referenced by the generated doctrine directly, so no entry in a
+              project&rsquo;s script manifest is managed or required &mdash; the
+              scripts the projects carry for this today are deleted, not
+              adopted. Continuous-integration workflows are project-owned
+              machinery, never generated: a workflow file must be committed to
+              run, so a generated one would be hand-edited the day its plumbing
+              needed a tweak. The package states a <em>CI contract</em> instead
+              &mdash; for each enabled criterion, the jobs a project&rsquo;s
+              pipeline must provide: the end-to-end job the workflow treats as
+              the acceptance gate, the gate jobs, the seed-manifest job when
+              demo-seed is on &mdash; in the readiness documentation and the
+              generated doctrine&rsquo;s project facts; the criteria bind
+              outcomes, never files. Lint exclusions for the workflow&rsquo;s
+              folders are adoption plumbing the project commits itself, on the
+              same footing as the rest of its gate configuration.
+            </p>
+            <p>
               Enforcement gates split three ways, no option: the <em>rule</em> (every
               surface reachable by a spec, every capability mirrored, every surface
               demo-seeded) is generated doctrine; the <em>checking code</em> that
