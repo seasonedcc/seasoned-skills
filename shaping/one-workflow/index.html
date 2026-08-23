@@ -778,6 +778,26 @@
               same file, in the keys the manager never touches.
             </p>
             <p>
+              One more deterministic piece ships with the subagents skill: the
+              transcript watchdog, a script materialized at the skill&rsquo;s
+              own generated path that sweeps a running workflow&rsquo;s agent
+              transcripts and alarms the moment one crosses the context
+              threshold. It stays because nothing replaces it &mdash; the
+              harness has no mid-flight warning for a subagent growing past the
+              point where its judgment can be trusted, so the watchdog is what
+              catches a runaway lane while stopping it still saves the work.
+              Its threshold and sweep cadence are package-versioned constants:
+              tuning them is a release, not an edit, and every project alarms
+              at the same line. The skill&rsquo;s model guidance stays
+              version-agnostic &mdash; tiers are named by family alias, never
+              by a dated model identifier, so the doctrine survives model
+              releases untouched. One rule from that guidance is retired rather
+              than packaged: the standing model-substitution rule one project
+              carried was written for a one-time availability event that has
+              since passed, and doctrine that memorializes an incident is
+              legacy, not discipline.
+            </p>
+            <p>
               The tool&rsquo;s footprint stops at those two managed files, and
               its commands are its own: provisioning and the other deterministic
               operations run as subcommands of the package&rsquo;s binary,
