@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CLI surface > matches the pinned command surface 1`] = `
+{
+  "commands": [
+    {
+      "description": "Regenerate every generated file from the configuration and project content. Idempotent; fails loud, degrading the project to the repair kit when inputs are broken.",
+      "name": "sync",
+    },
+    {
+      "description": "Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default), the committed artifacts, and the empty content files — finishing with a sync and a doctor report. Never overwrites what exists.",
+      "name": "install",
+    },
+    {
+      "description": "Check this machine for the binaries the configured workflow depends on. Advisory: reports and points at installs, never blocks.",
+      "name": "doctor",
+    },
+    {
+      "description": "Build the shaping corpus into this machine's cache: fetch the freely published sources from their authors' sites, vendor the one commercial book from your own compiled copy when given, and verify the result. The built corpus lives only on this machine.",
+      "name": "corpus",
+    },
+    {
+      "description": "Set up an isolated worktree lane from the configuration's resource table: worktrees for every declared repository, ports, databases, cache-store index, dependencies, and seed data. Idempotent — re-running keeps the lane's allocation and never reseeds existing databases.",
+      "name": "provision",
+    },
+    {
+      "description": "Remove a provisioned lane: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
+      "name": "teardown",
+    },
+    {
+      "description": "Sweep leftover workflow processes: automated browsers, or the processes of torn-down provisioning lanes.",
+      "name": "sweep",
+    },
+  ],
+  "name": "seasoned-skills",
+}
+`;

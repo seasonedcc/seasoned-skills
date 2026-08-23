@@ -1,0 +1,11 @@
+# Built by setup.sh, never committed
+.venv/
+models/
+__pycache__/
+
+# Left behind by `uvx ruff check`, which is worth running here even though ruff
+# is not this repo's toolchain
+.ruff_cache/
+
+# Narration and footage are derived from the screenplays under demo-videos/
+out/

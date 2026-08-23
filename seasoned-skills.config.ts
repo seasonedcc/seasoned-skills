@@ -1,0 +1,25 @@
+import { defineConfig } from 'seasoned-skills'
+
+export default defineConfig({
+  projectName: 'seasoned-skills',
+  contentDir: 'workflow-content',
+  mergeStrategy: 'merge-commit',
+  // Agents never merge to the base branch during a goal unless the project opts in.
+  agentMergesDuringGoal: false,
+  outOfScopeFindings: 'bank',
+  release: {
+    target: 'published-package',
+    packages: [{ name: 'seasoned-skills', publishCommand: 'pnpm publish' }],
+  },
+  gates: {
+    lint: 'pnpm check',
+    typecheck: 'pnpm tsc',
+    unit: 'pnpm test:unit',
+    full: ['pnpm test'],
+  },
+  calibrationFile: 'workflow-content/calibrations.md',
+  // Whole criteria the project injects beyond the core, each backed by its own gate.
+  additionalCriteria: [],
+  // Quick-mode disqualifiers added to the package's base list.
+  quickDisqualifiers: [],
+})

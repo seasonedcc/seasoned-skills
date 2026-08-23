@@ -1,0 +1,1 @@
+This repository squash-merges pull requests, so a pushed branch syncs by merging `main` into it, and pushed commits are never rewritten — the branch's intermediate history vanishes at the squash, so merge commits cost nothing.

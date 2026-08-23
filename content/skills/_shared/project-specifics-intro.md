@@ -1,0 +1,1 @@
+This section carries the project's own knowledge about this practice — empirical observations and local protocols the generic flow above cannot know. Where it declares a protocol for a specific class of work, it supersedes the flow above for that class: the project's word wins.
