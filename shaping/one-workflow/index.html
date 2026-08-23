@@ -499,6 +499,34 @@
               installing into an existing project seeds the calibration file from
               whatever calibration text the project already carries.
             </p>
+            <p>
+              That precedent generalizes into a uniform contract: <em>every</em>
+              generated practice skill has a project-content slot. The
+              configuration names a content directory with one file per skill,
+              and generation weaves that file into the skill as a project-specifics
+              section at a defined anchor &mdash; empirical observations, local
+              protocols, whatever the project has learned that is true of itself
+              and not of the workflow. The structured slots already ruled &mdash;
+              the design-system guidelines, the calibration file, the stack-off
+              testing stub &mdash; are specializations of this contract, not
+              exceptions to it. The weave reaches the skill&rsquo;s front matter
+              too: the one-line description that decides when a skill activates
+              carries the project&rsquo;s own trigger vocabulary alongside the
+              package&rsquo;s, because a description written only in the
+              package&rsquo;s words silently de-activates the skill for the
+              phrases the project actually uses. Each generated skill states
+              where its lessons go: a project-empirical lesson about a generated
+              skill lands in that skill&rsquo;s content file through a pull
+              request on the project &mdash; the skill never instructs an agent to
+              edit the skill itself, because the generated text is rebuilt on
+              every upgrade. And when a fragment of project content turns out to
+              be true of every project, that is a package demand like any other:
+              it travels as an issue, gets shaped, and moves into the
+              package&rsquo;s generic text, leaving the content file thinner.
+              Machine-local facts &mdash; true of one machine, not of the project
+              &mdash; go in a gitignored local companion to the content file,
+              woven identically, on the same pattern as local settings files.
+            </p>
           </div>
         </details>
         <details class="technical" open>
