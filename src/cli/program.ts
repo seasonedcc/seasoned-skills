@@ -3,6 +3,8 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import { loadConfig } from '../config/load.js'
+import { corpusBuiltBy, corpusCacheRoot } from '../corpus/cache.js'
+import { buildCorpus } from '../corpus/build.js'
 import { deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
@@ -84,6 +86,38 @@ export function buildProgram(): Command {
         console.log(
           'Doctor could not derive its checklist without a loadable configuration.',
         )
+      }
+      const builtBy = corpusBuiltBy(corpusCacheRoot())
+      if (builtBy === undefined) {
+        console.log(
+          'Shaping corpus cache: missing — run `seasoned-skills corpus` to build it; until then the generated shaping skill carries no references.',
+        )
+      } else if (builtBy !== version) {
+        console.log(
+          `Shaping corpus cache: stale (built by ${builtBy}, this package is ${version}) — run \`seasoned-skills corpus\` to rebuild.`,
+        )
+      } else {
+        console.log('Shaping corpus cache: present and current.')
+      }
+    })
+
+  program
+    .command('corpus')
+    .description(
+      "Build the shaping corpus into this machine's cache: fetch the freely published sources from their authors' sites, vendor the one commercial book from your own compiled copy when given, and verify the result. The built corpus lives only on this machine.",
+    )
+    .option(
+      '--book <path>',
+      "path to your own compiled copy of the book (a folder of numbered markdown chapters with images); without it the workflow's distilled account stands in",
+    )
+    .option('--force', 're-download sources that are already present')
+    .action((options: { book?: string; force?: boolean }) => {
+      try {
+        buildCorpus(corpusCacheRoot(), options)
+        console.log(`Corpus built at ${corpusCacheRoot()}. Run \`seasoned-skills sync\` in each project to weave it in.`)
+      } catch (error) {
+        console.error((error as Error).message)
+        process.exitCode = 1
       }
     })
 

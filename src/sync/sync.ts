@@ -2,6 +2,7 @@ import { rmdirSync, rmSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { loadConfig } from '../config/load.js'
 import type { SeasonedSkillsConfig } from '../config/types.js'
+import { corpusCacheRoot, materializeCorpus } from '../corpus/cache.js'
 import { ensureIgnored } from '../footprint/gitignore.js'
 import { ensureSyncScript } from '../footprint/scripts.js'
 import { applyManagedSettings } from '../footprint/settings.js'
@@ -34,7 +35,15 @@ export interface SyncResult {
   config: SeasonedSkillsConfig
 }
 
-export async function sync(projectRoot: string): Promise<SyncResult> {
+export interface SyncOptions {
+  /** Overrides the machine corpus cache — tests point this at nothing. */
+  corpusCache?: string
+}
+
+export async function sync(
+  projectRoot: string,
+  options: SyncOptions = {},
+): Promise<SyncResult> {
   const config = await loadConfig(projectRoot)
   const { content, missing } = loadProjectContent(
     projectRoot,
@@ -55,6 +64,9 @@ export async function sync(projectRoot: string): Promise<SyncResult> {
     composeDoctrine(context),
     ...composeSkills(context),
     ...materializeRuntime(),
+    // The shaping references weave from whatever the machine's cache holds;
+    // an absent cache generates no references, and doctor reports it.
+    ...materializeCorpus(options.corpusCache ?? corpusCacheRoot()),
   ]
   const paths = files.map((file) => file.path)
 

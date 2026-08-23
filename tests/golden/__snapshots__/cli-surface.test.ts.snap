@@ -16,6 +16,10 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "doctor",
     },
     {
+      "description": "Build the shaping corpus into this machine's cache: fetch the freely published sources from their authors' sites, vendor the one commercial book from your own compiled copy when given, and verify the result. The built corpus lives only on this machine.",
+      "name": "corpus",
+    },
+    {
       "description": "Sweep leftover workflow processes: automated browsers, or the processes of torn-down provisioning lanes.",
       "name": "sweep",
     },

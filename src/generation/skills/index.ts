@@ -25,6 +25,7 @@ import { composeRequestsFromMeetings } from './requests-from-meetings.js'
 import { composeReviewFixes } from './review-fixes.js'
 import { composeSeasonedSkills } from './seasoned-skills.js'
 import { composeSelfImprovement } from './self-improvement.js'
+import { composeShaping } from './shaping.js'
 import { composeSkillManagement } from './skill-management.js'
 import { composeSubagents } from './subagents.js'
 import { composeTesting } from './testing.js'
@@ -72,6 +73,7 @@ const ROSTER: RosterEntry[] = [
     enabled: always,
     compose: composeRequestsFromMeetings,
   },
+  { name: 'shaping', enabled: always, compose: composeShaping },
   { name: 'demo-videos', enabled: always, compose: composeDemoVideos },
   { name: 'design-system', enabled: web, compose: composeDesignSystem },
   { name: 'agent-browser', enabled: web, compose: composeAgentBrowser },
