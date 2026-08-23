@@ -1,0 +1,5 @@
+# The narration rig runs Chatterbox Multilingual V3 and Whisper on the Mac GPU
+# through mlx-audio, which carries the maintained Apple Silicon port of both.
+# Pinned exactly: a narration file has to sound the same next year.
+mlx-audio[stt,tts]==0.5.0
+soundfile==0.14.0
