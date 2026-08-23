@@ -189,12 +189,68 @@ export interface ProvisioningConfig {
   templateCaching?: boolean
   /** Allocates a cache-store index per lane, flushed at allocation. */
   cacheStoreIndex?: boolean
+  /**
+   * Prefix every lane-owned database name carries; the teardown guard refuses
+   * to drop anything outside it. Defaults to `<project-directory>_wt_`.
+   */
+  databasePrefix?: string
+  /**
+   * Env file, relative to the primary (first) repository's worktree, that
+   * carries the managed allocation block. Defaults to `.env`.
+   */
+  envFile?: string
+  /**
+   * How many consecutive ports a named port holds (e.g. one per E2E worker:
+   * the head port plus one per extra worker). Ports not listed hold one.
+   * Allocation hands out and reserves whole blocks.
+   */
+  portBlocks?: Record<string, number>
+  /**
+   * Env keys that receive the lane's cache-store URL (base URL plus the
+   * lane's index). Defaults to `['REDIS_URL']`.
+   */
+  cacheStoreEnvKeys?: string[]
+  /**
+   * Paths, relative to the primary worktree, whose contents fingerprint the
+   * migrations for template caching. Required when templateCaching is on.
+   */
+  migrationSources?: string[]
+  /** Paths, relative to the primary worktree, whose contents fingerprint the seed. */
+  seedSources?: string[]
+  /**
+   * IANA timezone anchoring the seed date stored in template fingerprints,
+   * so demo data re-anchors on the team's calendar day. Defaults to the
+   * machine's timezone.
+   */
+  seedDateTimezone?: string
+  /**
+   * Command run from the main checkout to start declared services that are
+   * not already listening; the not-running service names are appended.
+   * Defaults to `docker compose up -d`.
+   */
+  serviceStartCommand?: string
+  /**
+   * Command names the lane-process sweep enumerates (lsof by working
+   * directory under the worktrees roots). Defaults to common dev-server
+   * commands; interactive shells are never listed.
+   */
+  laneProcessCommands?: string[]
 }
 
 export interface DatabaseResource {
   name: string
   /** Patterns for databases derived from this one, dropped with it at teardown. */
   derivedPatterns?: string[]
+  /**
+   * Env key that receives this database's lane URL in the managed block.
+   * Defaults to `<NAME>_DATABASE_URL`.
+   */
+  envKey?: string
+  /**
+   * Whether this database receives the seed (and, under template caching,
+   * whether its template is built with the seed baked in).
+   */
+  seeded?: boolean
 }
 
 export interface RepositoryResource {
@@ -203,6 +259,12 @@ export interface RepositoryResource {
   provisionSteps?: string[]
   /** The command that seeds this repository's databases, run only for databases created in the same run. */
   seedCommand?: string
+  /**
+   * Command that migrates a database, run with that database's env key
+   * pointing at the target. Required on the primary repository when the lane
+   * owns databases.
+   */
+  migrateCommand?: string
 }
 
 export interface CriterionInjection {
