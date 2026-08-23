@@ -203,7 +203,9 @@
               what it assumes of the codebase and what to put in place before
               installing &mdash; and the configuration lets a project keep a
               criterion off until its machinery exists, with the shrink-only
-              registers as the brownfield on-ramp once it does.
+              registers as the brownfield on-ramp once it does. The same section
+              covers the machine: the binaries and services the enabled workflow
+              needs, the same list the doctor subcommand checks mechanically.
             </p>
           </div>
         </details>
@@ -642,10 +644,17 @@
               script is generated and gitignored like every other generated
               file. Nothing ever
               writes to a user&rsquo;s global configuration; personal permission
-              lists and machine-local preferences stay personal. A fresh machine
-              needs nothing beyond installing the package in a project &mdash; the
+              lists and machine-local preferences stay personal. The
               workflow&rsquo;s assumptions travel with the project, not with the
-              machine. The status-line script itself &mdash; our own tool, previously
+              machine &mdash; and what the machine itself must provide is
+              declared, not assumed: the tool ships a <em>doctor</em> subcommand
+              that derives its checklist from the configuration &mdash; every
+              enabled layer, criterion, and skill declares the binaries and
+              services it depends on, and project content declares its extras as
+              project facts &mdash; then checks presence and versions and prints
+              what is missing with install pointers. The install runs it, and it
+              runs on demand, so a missing tool surfaces before the workflow
+              trips over it mid-session. The status-line script itself &mdash; our own tool, previously
               maintained on its own &mdash; is absorbed into the package outright, so
               one upgrade updates it everywhere it is materialized.
             </p>
