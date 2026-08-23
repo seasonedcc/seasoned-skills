@@ -42,7 +42,7 @@ describe('sync', () => {
 
   it('materializes the whole workflow and manages the footprint', async () => {
     writeFileSync(join(root, 'package.json'), '{"name":"consumer"}\n')
-    const result = await sync(root)
+    const result = await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
     expect(result.generated).toContain('CLAUDE.md')
     expect(readFileSync(join(root, 'CLAUDE.md'), 'utf8')).toContain('# seasoned-skills')
     expect(existsSync(join(root, '.claude/skills/quick/SKILL.md'))).toBe(true)
@@ -65,7 +65,7 @@ describe('sync', () => {
   })
 
   it('is idempotent and deletes what a change stops generating', async () => {
-    await sync(root)
+    await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
     const first = readManifest(root)
 
     // Simulate a file a previous version generated that this one does not.
@@ -79,7 +79,7 @@ describe('sync', () => {
     execFileSync('mkdir', ['-p', join(root, '.claude/skills/retired-skill')])
     writeFileSync(join(root, stale), 'stale')
 
-    await sync(root)
+    await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
     expect(readManifest(root)).toEqual(first)
     expect(existsSync(join(root, stale))).toBe(false)
   })
@@ -87,16 +87,16 @@ describe('sync', () => {
   it('fails loud listing every missing content file at once', async () => {
     rmSync(join(root, 'workflow-content/quick.md'))
     rmSync(join(root, 'workflow-content/release.md'))
-    const error = await sync(root).catch((e: unknown) => e)
+    const error = await sync(root, { corpusCache: join(root, 'no-corpus-cache') }).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(SyncInputError)
     expect((error as SyncInputError).message).toContain('workflow-content/quick.md')
     expect((error as SyncInputError).message).toContain('workflow-content/release.md')
   })
 
   it('degrades to the repair kit and a standing-order doctrine file', async () => {
-    await sync(root)
+    await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
     rmSync(join(root, 'workflow-content/quick.md'))
-    const error = (await sync(root).catch((e: unknown) => e)) as Error
+    const error = (await sync(root, { corpusCache: join(root, 'no-corpus-cache') }).catch((e: unknown) => e)) as Error
     degrade(root, error)
 
     expect(existsSync(join(root, '.claude/skills/quick'))).toBe(false)
