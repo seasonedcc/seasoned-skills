@@ -13,6 +13,7 @@ describe('fillTokens', () => {
   })
 
   it('leaves single braces in code samples alone', () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the braces are the content under test
     const code = 'echo "${PIPESTATUS[0]}" { a: 1 }'
     expect(fillTokens(code, {})).toBe(code)
   })
