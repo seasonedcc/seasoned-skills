@@ -13,6 +13,8 @@ describe('materializeRuntime', () => {
     expect(paths).toContain('.claude/hooks/isolation-guard.sh')
     expect(paths).toContain('.claude/hooks/session-end-sweep.sh')
     expect(paths).toContain('.claude/skills/subagents/scripts/watchdog.py')
+    expect(paths).toContain('.claude/skills/requests-from-meetings/scripts/verify.py')
+    expect(paths).toContain('requests-from-meetings/assets/style.css')
     expect(paths).toContain('shaping/assets/document.css')
     expect(paths).toContain('shaping/assets/drawing/fonts/OFL.txt')
   })
