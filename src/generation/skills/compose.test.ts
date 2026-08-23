@@ -48,6 +48,38 @@ describe('composeSkill', () => {
   })
 })
 
+describe('composeSkill reserved sections', () => {
+  const body = [
+    'General notes.',
+    '',
+    '## Progressive disclosure facts',
+    '',
+    'Level facts here.',
+  ].join('\n')
+
+  it('extracts a reserved section out of the specifics into its token', () => {
+    // The exemplar fragment carries no marker for the token, so the extracted
+    // text goes unused; what the test observes is the extraction itself — the
+    // reserved section leaves the project-specifics weave.
+    const context = makeContext({ body })
+    const { contents } = composeSkill('skill-management', context, {
+      reservedSections: [{ title: 'Progressive disclosure facts', token: 'facts' }],
+    })
+    expect(contents).toContain('## Project specifics')
+    expect(contents).toContain('General notes.')
+    expect(contents).not.toContain('Level facts here.')
+  })
+
+  it('throws when a required reserved section is absent', () => {
+    const context = makeContext({ body })
+    expect(() =>
+      composeSkill('skill-management', context, {
+        reservedSections: [{ title: 'Time-zone model', token: 'tz', required: true }],
+      }),
+    ).toThrow('missing its required "Time-zone model" section')
+  })
+})
+
 describe('parseSkillFragment', () => {
   const raw = [
     '---',
