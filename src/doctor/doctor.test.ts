@@ -18,12 +18,34 @@ describe('doctor', () => {
     expect(binaries).toEqual(['git', 'gh', 'jq', 'python3'])
   })
 
-  it('adds agent-browser only where a web surface exists', () => {
+  it('adds agent-browser and ffmpeg only where a web surface exists', () => {
     const web = {
       ...base,
       webSurface: { coverageRegister: 'coverage.md', excusedSurfaces: [] },
     } as unknown as SeasonedSkillsConfig
-    expect(deriveChecks(web).map((check) => check.binary)).toContain('agent-browser')
+    const binaries = deriveChecks(web).map((check) => check.binary)
+    expect(binaries).toContain('agent-browser')
+    expect(binaries).toContain('ffmpeg')
+  })
+
+  it('derives service and cache-store checks from the provisioning table', () => {
+    const provisioned = {
+      ...base,
+      provisioning: { services: ['postgres'], cacheStoreIndex: true },
+    } as unknown as SeasonedSkillsConfig
+    const binaries = deriveChecks(provisioned).map((check) => check.binary)
+    expect(binaries).toContain('docker')
+    expect(binaries).toContain('redis-cli')
+  })
+
+  it('derives the service check from a custom start command', () => {
+    const provisioned = {
+      ...base,
+      provisioning: { services: ['postgres'], serviceStartCommand: 'podman compose up' },
+    } as unknown as SeasonedSkillsConfig
+    const binaries = deriveChecks(provisioned).map((check) => check.binary)
+    expect(binaries).toContain('podman')
+    expect(binaries).not.toContain('redis-cli')
   })
 
   it('reports a missing binary with its reason and install pointer', () => {

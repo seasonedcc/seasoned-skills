@@ -52,6 +52,30 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       reason: 'browser verification and the browser sweep drive the agent-browser CLI',
       hint: 'npm install -g agent-browser',
     })
+    checks.push({
+      binary: 'ffmpeg',
+      reason: 'the demo-video rig assembles its recordings with ffmpeg',
+      hint: 'brew install ffmpeg',
+    })
+  }
+  if (config.provisioning?.services?.length) {
+    const [starter] = (config.provisioning.serviceStartCommand ?? 'docker compose up -d')
+      .trim()
+      .split(/\s+/)
+    if (starter) {
+      checks.push({
+        binary: starter,
+        reason: `provisioning starts absent shared services with \`${starter}\``,
+        hint: 'install it, or declare provisioning.serviceStartCommand',
+      })
+    }
+  }
+  if (config.provisioning?.cacheStoreIndex) {
+    checks.push({
+      binary: 'redis-cli',
+      reason: 'provisioning flushes recycled lane cache-store indexes with redis-cli',
+      hint: 'brew install redis',
+    })
   }
   return checks
 }
