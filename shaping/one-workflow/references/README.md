@@ -21,7 +21,10 @@ not always the layer its source system kept it in.
 - `doctrine/` — three variants of the standing instruction file every session reads
   first (the doctrine layer's raw material).
 - `skills/<name>/variant-<x>/` — the practice skills, one folder per source variant,
-  each carrying its `SKILL.md` and any `references/` material it ships with.
+  each carrying its `SKILL.md` and any `references/` material it ships with. The
+  release skill alone carries a fourth variant, `variant-d`: the shared release
+  practice of our own published npm packages, copied from its most evolved copy.
+  That source is public, so unlike the three systems it keeps its identity openly.
 - `stack/<name>/variant-<x>/` — the stack-layer skills for the packaged stack.
 - `code/` — the supporting tools:
   - `worktree-provisioning/` — three implementations (two TypeScript, one shell) to be

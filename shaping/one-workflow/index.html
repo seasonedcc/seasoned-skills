@@ -876,8 +876,13 @@
                 variant C&rsquo;s files, the only copies;
                 <strong>quick</strong> &mdash; variant A&rsquo;s, its
                 hand-maintained criteria list retired in favor of the derived
-                composition; <strong>release, meeting requests, and demo
-                videos</strong> &mdash; variant B&rsquo;s, the only copies.
+                composition; <strong>meeting requests and demo
+                videos</strong> &mdash; variant B&rsquo;s, the only copies;
+                <strong>release</strong> &mdash; two sources merged under the
+                release-target option ruled below: variant B&rsquo;s
+                deployed-product release, and a fourth variant, D, copied from
+                the shared release practice of our own published packages
+                &mdash; a public source, so it keeps its identity openly.
               </li>
               <li>
                 <strong>skill management</strong> &mdash; the one guide still
@@ -887,6 +892,35 @@
                 <code>skill-management</code>. No other skill renames.
               </li>
             </ul>
+            <p>
+              The release skill carries the workflow&rsquo;s one
+              <em>release-target</em> option, two tested values, because what a
+              release <em>is</em> differs durably by what the project ships. A
+              deployed product releases the way variant B does: curated notes
+              grouped by shaping project and solved meeting requests, the badge
+              stamping, the pre-release audit pull request, and the publish
+              that triggers the deploy. A published package releases the way
+              our own npm packages already do, variant D&rsquo;s flow: reconcile
+              the prerelease mode, reuse a contributor&rsquo;s pending
+              changesets, otherwise decide each package&rsquo;s bump from a
+              per-package walk of the diff since its last tag, apply the
+              version, run the gates, commit to the default branch, and end
+              with one GitHub release per bumped package, its notes written
+              from a deep read of every merged pull request in the span, never
+              from titles alone. The two modes share their spine &mdash; study
+              the span deeply, trace every sentence of the notes to a merged
+              change, treat the publish as the deliberate final act &mdash;
+              and the mode&rsquo;s project facts (the package list, tag
+              prefixes, the publish command) are injected from project content
+              like every other fact. One rule binds the package mode with no
+              option: <strong>npm publish never runs from continuous
+              integration</strong> &mdash; no publish token lives in CI to
+              leak. The agent prepares everything up to the publish; the user
+              runs the publish locally, with the one-time password as the
+              gate. Consumer zero releases itself this way, and our other
+              published packages adopt the same process as the workflow is
+              installed into them.
+            </p>
           </div>
         </details>
         <details class="technical" open>
