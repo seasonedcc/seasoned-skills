@@ -124,6 +124,8 @@ export interface GateCommands {
   /** Fast checks a builder runs in its own foreground. */
   lint?: string
   typecheck?: string
+  /** The unit-test suite counted among the fast gates. */
+  unit?: string
   /** Runs the specs related to a change locally, chosen by blast radius. */
   relatedSpecs?: string
   /**

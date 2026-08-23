@@ -1,0 +1,5 @@
+## Definition of Done
+
+Quick iterations: when the user explicitly invokes `/quick`, the reduced Definition of Done in the `quick` skill replaces this list for that task. Quick mode is never self-selected and never suggested — only the user's `/quick` turns it on, and its rules live in the skill.
+
+Documentation-only changes: when every file in the diff is prose the application never loads — docs, skills content, README, the workflow's own content files — the checklist collapses to: an unprovisioned worktree, the fast gates as the only local step, no leftover comments, a single review pass over the committed diff — fix what it surfaces — and a PR with CI green. Every other criterion below exists for files the application loads, so none of them can apply; skip them outright, no written justification needed.{{docs-only-project-facts}} The self-improvement criterion still stands, though for a diff this small "nothing to codify" is the usual outcome — and a self-improvement PR never triggers a self-improvement pass of its own. The moment the diff also touches code, scripts, or any other configuration, the full list applies.
