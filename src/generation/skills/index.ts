@@ -5,11 +5,13 @@ import { composeAuthorization } from './authorization.js'
 import { composeBackgroundJobs } from './background-jobs.js'
 import { composeBusinessFolder } from './business-folder.js'
 import { composeComposableFunctions } from './composable-functions.js'
+import { composeDatabaseDesign } from './database-design.js'
 import { composeDemoVideos } from './demo-videos.js'
 import { composeDesignSystem } from './design-system.js'
 import { composeEnvVars } from './env-vars.js'
 import { composeFormattingDatetimes } from './formatting-datetimes.js'
 import { composeFrameworkFolder } from './framework-folder.js'
+import { composeKysely } from './kysely.js'
 import { composeMainSync } from './main-sync.js'
 import { composeMcpServer } from './mcp-server.js'
 import { composeNestedRoutes } from './nested-routes.js'
@@ -82,6 +84,8 @@ const ROSTER: RosterEntry[] = [
     compose: composeComposableFunctions,
   },
   { name: 'type-safety', enabled: stack, compose: composeTypeSafety },
+  { name: 'database-design', enabled: stack, compose: composeDatabaseDesign },
+  { name: 'kysely', enabled: stack, compose: composeKysely },
   { name: 'framework-folder', enabled: stack, compose: composeFrameworkFolder },
   { name: 'env-vars', enabled: stack, compose: composeEnvVars },
   { name: 'nested-routes', enabled: stack, compose: composeNestedRoutes },
