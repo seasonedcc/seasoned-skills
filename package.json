@@ -54,13 +54,17 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
+    "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
   "dependencies": {
     "commander": "^15.0.0",
-    "jiti": "^2.7.0"
+    "jiti": "^2.7.0",
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
   }
 }
