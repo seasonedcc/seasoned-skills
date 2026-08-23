@@ -20,6 +20,14 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "corpus",
     },
     {
+      "description": "Set up an isolated worktree lane from the configuration's resource table: worktrees for every declared repository, ports, databases, cache-store index, dependencies, and seed data. Idempotent — re-running keeps the lane's allocation and never reseeds existing databases.",
+      "name": "provision",
+    },
+    {
+      "description": "Remove a provisioned lane: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
+      "name": "teardown",
+    },
+    {
       "description": "Sweep leftover workflow processes: automated browsers, or the processes of torn-down provisioning lanes.",
       "name": "sweep",
     },
