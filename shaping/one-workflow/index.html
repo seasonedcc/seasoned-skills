@@ -657,6 +657,31 @@
               own copies of the scripts and of the tests that guard them.
             </p>
             <p>
+              That one implementation absorbs the richest behavior any project
+              reached, configuration-driven, with no extension points: per-repository
+              provision steps and seed commands declared in the resource table;
+              seeding only the databases created in that same run, so a re-run never
+              overwrites a lane&rsquo;s data; skip flags for provisioning and for
+              seeding; probing before starting shared services the machine may
+              already run; and a teardown that refuses a dirty tree unless forced
+              and drops the lane&rsquo;s whole derived-database family &mdash; the
+              derived-name patterns live in the same table, so nothing derived is
+              ever orphaned. Template-database caching is a core capability keyed
+              by configuration: the expensive migrate-and-seed result is kept as a
+              template database whose fingerprint &mdash; content hashes of the
+              migration and seed sources, plus the date the seed ran &mdash; is
+              stored on the database itself, and a lane copies the template in
+              about a second; a changed source or a stale seed date rebuilds the
+              template transparently, and a flag forces the demo data to re-anchor
+              to today. The worktrees skill gains the user-driven-lane discipline
+              as generic doctrine: a lane handed to the user is the user&rsquo;s
+              &mdash; the delegated routine is fetch and fast-forward, stopping on
+              divergence; sync dependencies; migrate; restart the server by the
+              process id the lane records; verify it answers &mdash; and anything
+              beyond that routine that would change database state asks first,
+              because the lane&rsquo;s data is the user&rsquo;s working state.
+            </p>
+            <p>
               Hooks, settled per hook. The package ships exactly three. The stash
               blocker: the stash stack is shared between the main checkout and
               every worktree, so one lane&rsquo;s stash can silently destroy
