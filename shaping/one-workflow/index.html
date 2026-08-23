@@ -626,8 +626,15 @@
               off, the permission mode defaulting to auto, the status line with its
               model-demotion alarm &mdash; are
               materialized per project by the command-line tool as deterministic
-              code: generated project-level settings and a generated status-line
-              script, gitignored like every other generated file. Nothing ever
+              code. The settings file itself is committed and project-owned,
+              managed surgically: the tool enforces the workflow&rsquo;s keys
+              &mdash; the runtime values above, the skill-listing budget, the
+              shipped hooks&rsquo; wiring &mdash; and leaves every other key
+              untouched, so a project&rsquo;s own keys and its own hook
+              registrations ride in the same file, and the workflow&rsquo;s
+              assumptions travel to every teammate through git. The status-line
+              script is generated and gitignored like every other generated
+              file. Nothing ever
               writes to a user&rsquo;s global configuration; personal permission
               lists and machine-local preferences stay personal. A fresh machine
               needs nothing beyond installing the package in a project &mdash; the
@@ -648,6 +655,31 @@
               resources and never touches the branch. The provisioning logic is
               unit-tested once, in the package &mdash; projects stop carrying their
               own copies of the scripts and of the tests that guard them.
+            </p>
+            <p>
+              Hooks, settled per hook. The package ships exactly three. The stash
+              blocker: the stash stack is shared between the main checkout and
+              every worktree, so one lane&rsquo;s stash can silently destroy
+              another&rsquo;s uncommitted work &mdash; the rule lives as
+              enforcement, with no prose twin. The session-end sweep, already
+              named, killing orphaned lane processes by exact id. And a guard
+              that blocks the harness&rsquo;s own worktree-isolation option with
+              guidance instead of letting it half-work: a harness-created
+              worktree is unprovisioned, so an agent spawned into one believes
+              it has a lane and runs against resources it does not own &mdash;
+              the guard redirects to the provisioning command for a real lane,
+              or a plain <code>git worktree add</code> for deliberately
+              unprovisioned work like read-only review. The worktree
+              create-and-remove hooks two projects carried are <em>not</em>
+              shipped: every project&rsquo;s real practice is script-only, and
+              the create hook&rsquo;s one code path &mdash; provisioning
+              harness-created worktrees &mdash; was recorded failing every spawn
+              in the project that exercised it, forcing a doctrine workaround
+              the guard now replaces at the root. Wiring entries for shipped
+              hooks are managed keys in the settings file, written to guard for
+              the script&rsquo;s absence so a fresh clone that has not yet run
+              the install still works; a project wires hooks of its own in the
+              same file, in the keys the manager never touches.
             </p>
             <p>
               Enforcement gates split three ways, no option: the <em>rule</em> (every
