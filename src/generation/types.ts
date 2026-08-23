@@ -3,7 +3,8 @@ import type { SeasonedSkillsConfig } from '../config/types.js'
 /** One file the generation produces, path relative to the project root. */
 export interface GeneratedFile {
   path: string
-  contents: string
+  /** Woven text, or raw bytes for verbatim-materialized assets (fonts, audio). */
+  contents: string | Uint8Array
   /** Set for scripts that must be executable when materialized. */
   executable?: boolean
 }
