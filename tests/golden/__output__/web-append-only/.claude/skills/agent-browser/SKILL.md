@@ -31,7 +31,7 @@ agent-browser close --session lane-7
 
 A session left open keeps its Chrome processes and the agent-browser daemon alive for days, and they accumulate across runs until they exhaust the machine's memory. Long before that they poison unrelated test runs with timeouts. There is no cap on how many browser sessions may run at once — verified teardown, not rationing, is what keeps the machine healthy.
 
-When a browser process must die outside `agent-browser close` — a leaked session, a wedged daemon — go through the workflow's browser sweep tool, which lists survivors and kills each one by its exact process id. Never kill by pattern: `pkill -f` and its relatives fire at processes nobody inspected, and a pattern that reads as narrowly scoped — a lane name, a server filename, a browser name — routinely matches unrelated long-running processes on the machine.
+When a browser process must die outside `agent-browser close` — a leaked session, a wedged daemon — go through the workflow's browser sweep — `seasoned-skills sweep --browsers`, with `--kill` to act — which lists survivors and kills each one by its exact process id. Never kill by pattern: `pkill -f` and its relatives fire at processes nobody inspected, and a pattern that reads as narrowly scoped — a lane name, a server filename, a browser name — routinely matches unrelated long-running processes on the machine.
 
 ## Snapshot-First Pattern
 

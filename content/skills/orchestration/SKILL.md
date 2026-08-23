@@ -96,8 +96,8 @@ A charter is the task prompt a subagent receives. Requirements:
 - Every agent that drives a browser ends with its browser session closed, and the orchestrator verifies it — a successful `close`, or an agent's report that it closed its session, is not evidence that the processes died; only a process listing is. After each browser agent completes, and again between waves, sweep to zero with the shipped command:
 
   ```bash
-  seasoned-skills sweep          # list survivors with their ages; exits 1 if any are alive
-  seasoned-skills sweep --kill   # kill each survivor by its exact pid, then re-list to prove it
+  seasoned-skills sweep --browsers          # list survivors with their ages; exits 1 if any are alive
+  seasoned-skills sweep --browsers --kill   # kill each survivor by its exact pid, then re-list to prove it
   ```
 
 - A gate that turns flaky while browser work is in flight is a leak suspect before it is a product bug.

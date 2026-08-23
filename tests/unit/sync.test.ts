@@ -41,6 +41,7 @@ describe('sync', () => {
   })
 
   it('materializes the whole workflow and manages the footprint', async () => {
+    writeFileSync(join(root, 'package.json'), '{"name":"consumer"}\n')
     const result = await sync(root)
     expect(result.generated).toContain('CLAUDE.md')
     expect(readFileSync(join(root, 'CLAUDE.md'), 'utf8')).toContain('# seasoned-skills')
@@ -56,6 +57,9 @@ describe('sync', () => {
     const settings = JSON.parse(readFileSync(join(root, '.claude/settings.json'), 'utf8'))
     expect(settings.skillListingBudgetFraction).toBe(0.02)
     expect(settings.permissions.defaultMode).toBe('auto')
+
+    const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+    expect(manifest.scripts.prepare).toBe('seasoned-skills sync')
 
     expect(readManifest(root).length).toBeGreaterThan(20)
   })
@@ -95,7 +99,7 @@ describe('sync', () => {
     const error = (await sync(root).catch((e: unknown) => e)) as Error
     degrade(root, error)
 
-    expect(existsSync(join(root, '.claude/skills/quick/SKILL.md'))).toBe(false)
+    expect(existsSync(join(root, '.claude/skills/quick'))).toBe(false)
     expect(existsSync(join(root, '.claude/skills/seasoned-skills/SKILL.md'))).toBe(true)
     const doctrine = readFileSync(join(root, 'CLAUDE.md'), 'utf8')
     expect(doctrine).toContain('could not be generated')

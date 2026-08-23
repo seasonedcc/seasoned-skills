@@ -1,7 +1,9 @@
-import { rmSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { rmdirSync, rmSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 import { loadConfig } from '../config/load.js'
+import type { SeasonedSkillsConfig } from '../config/types.js'
 import { ensureIgnored } from '../footprint/gitignore.js'
+import { ensureSyncScript } from '../footprint/scripts.js'
 import { applyManagedSettings } from '../footprint/settings.js'
 import { loadProjectContent } from '../generation/content.js'
 import { composeDoctrine } from '../generation/doctrine.js'
@@ -29,6 +31,7 @@ export class SyncInputError extends Error {
 
 export interface SyncResult {
   generated: string[]
+  config: SeasonedSkillsConfig
 }
 
 export async function sync(projectRoot: string): Promise<SyncResult> {
@@ -60,8 +63,9 @@ export async function sync(projectRoot: string): Promise<SyncResult> {
   writeManifest(projectRoot, paths)
   ensureIgnored(projectRoot, ignoreEntries(paths))
   applyManagedSettings(projectRoot)
+  ensureSyncScript(projectRoot)
 
-  return { generated: paths }
+  return { generated: paths, config }
 }
 
 /**
@@ -112,6 +116,18 @@ function deleteStalePaths(
     if (keep.has(path)) continue
     if (!isManagedPath(path)) continue
     rmSync(join(projectRoot, path), { force: true })
+    pruneEmptyParents(projectRoot, path)
+  }
+}
+
+/** A deleted file's directory chain is removed too, once nothing is left in it. */
+function pruneEmptyParents(projectRoot: string, path: string): void {
+  for (let dir = dirname(path); dir !== '.' && dir !== '/'; dir = dirname(dir)) {
+    try {
+      rmdirSync(join(projectRoot, dir))
+    } catch {
+      return // Not empty (or already gone) — stop climbing.
+    }
   }
 }
 
