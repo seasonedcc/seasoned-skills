@@ -1,5 +1,6 @@
 import { basename } from 'node:path'
 import { createInterface } from 'node:readline/promises'
+import type { Readable, Writable } from 'node:stream'
 import type { InstallAnswers } from './install.js'
 
 /**
@@ -10,8 +11,14 @@ import type { InstallAnswers } from './install.js'
  * model) are asked here too, so the first sync never fails on an empty
  * required section.
  */
-export async function collectAnswers(projectRoot: string): Promise<InstallAnswers> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout })
+export async function collectAnswers(
+  projectRoot: string,
+  streams: { input?: Readable; output?: Writable } = {},
+): Promise<InstallAnswers> {
+  const rl = createInterface({
+    input: streams.input ?? process.stdin,
+    output: streams.output ?? process.stdout,
+  })
   const ask = async (question: string, fallback?: string): Promise<string> => {
     const suffix = fallback === undefined ? '' : ` [${fallback}]`
     const answer = (await rl.question(`${question}${suffix} `)).trim()
@@ -25,7 +32,9 @@ export async function collectAnswers(projectRoot: string): Promise<InstallAnswer
   ): Promise<T> => {
     const answer = await ask(`${question} (${choices.join(' | ')})`, choices[0])
     if ((choices as readonly string[]).includes(answer)) return answer as T
-    console.log(`Answer must be one of: ${choices.join(', ')}`)
+    ;(streams.output ?? process.stdout).write(
+      `Answer must be one of: ${choices.join(', ')}\n`,
+    )
     return askChoice(question, choices)
   }
   const askYesNo = async (question: string): Promise<boolean> =>
