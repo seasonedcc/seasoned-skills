@@ -278,8 +278,9 @@
               into the package alongside provisioning&rsquo;s. Each
               video&rsquo;s screenplay folder is committed project content;
               rendered output never is. The model weights the narrator runs on
-              are never in the npm package: a once-per-machine setup fetches
-              them &mdash; about three gigabytes &mdash; into a local,
+              are never in the npm package, and the adoption install never
+              fetches them either: a once-per-machine setup step of its own
+              fetches them &mdash; about three gigabytes &mdash; into a local,
               gitignored cache, with the narration voice pinned by checksum so
               every machine speaks with the same voice, and the toolchain,
               pinned like the transcription one, declared to doctor. The
@@ -317,7 +318,9 @@
               sweeps. Golden-output generation tests cover the weaving: synthetic
               fixture configurations mirror the tested combinations &mdash; one per
               active project&rsquo;s shape, carrying no project identity, plus
-              this repository&rsquo;s own &mdash;
+              this repository&rsquo;s own, the project shapes drafted from the
+              references library&rsquo;s variants and trued up against the real
+              configurations when the migration stage begins &mdash;
               with the full generated tree snapshotted, and every tested value of
               every option covered by at least one fixture. This makes the
               option-discipline rule executable rather than aspirational, and it
@@ -411,7 +414,10 @@
               behavior, the reference-privacy rule everywhere and not toggleable
               (names allowed in conversation and subagent charters only,
               never in anything repository-visible), the
-              leaner one-question rule, the responsive bar&rsquo;s stack-neutral core with
+              leaner one-question rule (what that ruling drops is exactly one
+              thing, the multi-select batching elaboration one variant grew as a patch
+              for degraded orchestrator behavior; the question-discipline sentences
+              around it do not conflict and merge in), the responsive bar&rsquo;s stack-neutral core with
               framework-coupled lines injected from project content, and the quality
               bar&rsquo;s design-system clause restored. Backwards compatibility is a
               confidence judgment, never a blanket ban: the generated rule reads
@@ -463,8 +469,9 @@
               charter ends at commit &mdash; or commit and push &mdash; and stops
               there, with only the fast, cheap checks (lint, type-checking the
               affected files) run in the builder&rsquo;s own foreground. The
-              orchestrator runs the full gates itself as its own background shells and
-              owns push, pull request, and merge. This is a structural fix, not an
+              orchestrator runs the full gates itself as its own background shells,
+              owns pull request and merge outright, and owns push whenever the
+              charter stopped at commit. This is a structural fix, not an
               exhortation: instructing builders to run a long suite in the foreground
               does not survive contact with builders, who background the command and
               end their turn stalled.
@@ -777,7 +784,11 @@
               about the same rule, the leaner text wins unless the longer one
               demonstrably changes behavior; the grafts named below are the
               load-bearing ones; and wherever a variant disagrees with a ruling
-              in these notes, the ruling wins. For the doctrine file, variant C
+              in these notes, the ruling wins. One core skill appears in no
+              table because it has nothing to merge: the shaping skill&rsquo;s
+              single source is this repository&rsquo;s own committed copy, and
+              its corpus fetch list is the one that skill&rsquo;s own reference
+              index already names. For the doctrine file, variant C
               is the base &mdash; the most evolved of the three &mdash; taking
               the union of every non-conflicting rule from A and B: notably
               A&rsquo;s Definition-of-Done frame with its documentation-only
@@ -901,7 +912,9 @@
               project facts &mdash; then checks presence and versions and prints
               what is missing with install pointers. The install runs it, and it
               runs on demand, so a missing tool surfaces before the workflow
-              trips over it mid-session. The status-line script itself &mdash; our own tool, previously
+              trips over it mid-session. It is advisory everywhere &mdash; it
+              never blocks an install or a sync; enforcement lives in the gates
+              that need the tools, which fail loudly on their own. The status-line script itself &mdash; our own tool, previously
               maintained on its own &mdash; is absorbed into the package outright, so
               one upgrade updates it everywhere it is materialized.
             </p>
