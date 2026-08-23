@@ -172,11 +172,13 @@ function resolveProvisioning(
   }
   const envFile = provisioning.envFile ?? DEFAULT_ENV_FILE
   const cacheStoreIndex = provisioning.cacheStoreIndex ?? false
+  const cacheStoreEnvKeys = provisioning.cacheStoreEnvKeys ?? DEFAULT_CACHE_STORE_ENV_KEYS
   const envFiles = resolveEnvFiles(provisioning.envFiles, {
     envFile,
     databases,
     portBases,
     cacheStoreIndex,
+    cacheStoreEnvKeys,
   })
   return {
     databases,
@@ -186,7 +188,7 @@ function resolveProvisioning(
     repositories,
     templateCaching,
     cacheStoreIndex,
-    cacheStoreEnvKeys: provisioning.cacheStoreEnvKeys ?? DEFAULT_CACHE_STORE_ENV_KEYS,
+    cacheStoreEnvKeys,
     databasePrefix,
     envFile,
     envFiles,
@@ -232,9 +234,10 @@ function resolveEnvFiles(
     databases: ResolvedDatabase[]
     portBases: Record<string, number>
     cacheStoreIndex: boolean
+    cacheStoreEnvKeys: string[]
   },
 ): ResolvedEnvFile[] {
-  const { envFile, databases, portBases, cacheStoreIndex } = context
+  const { envFile, databases, portBases, cacheStoreIndex, cacheStoreEnvKeys } = context
   if (declared === undefined) {
     return [
       {
@@ -273,7 +276,7 @@ function resolveEnvFiles(
           `envFiles entry "${file.path}" uses env key "${envKey}"; keys must be SCREAMING_SNAKE_CASE`,
         )
       }
-      if (!(portName in portBases)) {
+      if (!Object.hasOwn(portBases, portName)) {
         throw new Error(
           `envFiles entry "${file.path}" maps ${envKey} to port "${portName}" but portBases does not declare it`,
         )
@@ -287,6 +290,7 @@ function resolveEnvFiles(
       }
     }
     const writtenKeys = [
+      ...(file.cacheStore && cacheStoreIndex ? cacheStoreEnvKeys : []),
       ...fileDatabases.map((database) => database.envKey),
       ...Object.keys(file.ports ?? {}),
       ...Object.keys(file.extra ?? {}),
@@ -687,28 +691,50 @@ function laneEnvValuesForFile(
 }
 
 /**
+ * Every declared file's slice of the allocation merged into one record, in
+ * declaration order, the first file winning on a colliding key — the
+ * environment provisioning steps run under. For the synthesized single-file
+ * case this equals `laneEnvValues`.
+ */
+function mergedLaneEnvValues(
+  allocation: LaneAllocation,
+  resolved: ResolvedProvisioning,
+  slug: string,
+) {
+  const merged: Record<string, string> = {}
+  for (const file of resolved.envFiles) {
+    for (const [key, value] of Object.entries(
+      laneEnvValuesForFile(allocation, resolved, file, slug),
+    )) {
+      if (!(key in merged)) merged[key] = value
+    }
+  }
+  return merged
+}
+
+/**
  * Read a lane's allocation back from its env files — one contents entry per
- * declared file, in declaration order, null where a file is absent. The FIRST
- * file's managed block is the sentinel: without it the lane is fresh. With
- * it, the allocation is merged from every marked file using that file's own
- * key→port mapping; a later file may be missing (the caller re-writes it from
- * the merged allocation), but a value recorded nowhere — or recorded twice
- * with a disagreement — is a hand-edit the implementation refuses to guess
- * about.
+ * declared file, in declaration order, null where a file is absent. A managed
+ * block in ANY file is the sentinel: with none, the lane is fresh. With one,
+ * the allocation is merged from every marked file using that file's own
+ * key→port mapping; a file may be missing its block (the caller re-writes it
+ * from the merged allocation), but a value recorded nowhere — or recorded
+ * twice with a disagreement — is a hand-edit the implementation refuses to
+ * guess about.
  */
 function parseLaneAllocationFromFiles(
   contentsByFile: readonly (string | null | undefined)[],
   resolved: ResolvedProvisioning,
 ): LaneAllocation | null {
-  if (!contentsByFile[0]?.includes(ENV_MARKER)) return null
+  if (!contentsByFile.some((contents) => contents?.includes(ENV_MARKER))) return null
   const complain = (what: string): never => {
     throw new Error(
-      `the managed env block is present but ${what} is missing; fix or delete the block and re-run`,
+      `the managed env block is present but ${what} is missing; fix or delete the managed blocks and re-run`,
     )
   }
   const disagree = (what: string): never => {
     throw new Error(
-      `the managed env blocks disagree about ${what}; fix or delete the blocks and re-run`,
+      `the managed env blocks disagree about ${what}; fix or delete the managed blocks and re-run`,
     )
   }
   const ports: PortPlan = {}
@@ -1057,6 +1083,7 @@ export {
   laneEnvValuesForFile,
   laneProcessesFromLsofOutput,
   laneSlug,
+  mergedLaneEnvValues,
   PORT_OFFSET_RANGE,
   parseLaneAllocation,
   parseLaneAllocationFromFiles,

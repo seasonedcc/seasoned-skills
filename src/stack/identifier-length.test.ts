@@ -15,6 +15,13 @@ describe('identifier length audit', () => {
     )
   })
 
+  it('keeps system schemas out and audits only enum types', () => {
+    expect(IDENTIFIER_LENGTH_AUDIT_SQL).toContain(
+      "nspname !~ '^pg_' and nspname <> 'information_schema'",
+    )
+    expect(IDENTIFIER_LENGTH_AUDIT_SQL).toContain("typtype = 'e'")
+  })
+
   it('reports nothing for a clean schema', () => {
     expect(identifierLengthFailures([])).toEqual([])
   })

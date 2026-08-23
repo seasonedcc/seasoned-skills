@@ -9,14 +9,16 @@ import {
 const routes = [
   { file: 'routes/home.tsx' },
   {
-    file: 'routes/care/layout.tsx',
+    file: 'routes/projects/layout.tsx',
     children: [
-      { file: 'routes/care/index.ts', index: true },
-      { path: 'plan', file: 'routes/care/plan.tsx' },
+      { file: 'routes/projects/index.ts', index: true },
+      { path: 'board', file: 'routes/projects/board.tsx' },
       {
         path: 'settings',
-        file: 'routes/care/settings/layout.tsx',
-        children: [{ path: 'personal-data', file: 'routes/care/settings/personal.tsx' }],
+        file: 'routes/projects/settings/layout.tsx',
+        children: [
+          { path: 'notifications', file: 'routes/projects/settings/notifications.tsx' },
+        ],
       },
     ],
   },
@@ -25,18 +27,33 @@ const routes = [
 
 describe('surface enumeration', () => {
   it('derives ids from module paths without extensions', () => {
-    expect(routeId('routes/care/plan.tsx')).toBe('routes/care/plan')
-    expect(routeId('routes/care/index.ts')).toBe('routes/care/index')
+    expect(routeId('routes/projects/board.tsx')).toBe('routes/projects/board')
+    expect(routeId('routes/projects/index.ts')).toBe('routes/projects/index')
+  })
+
+  it('keeps dotted flat-route ids intact and stays idempotent', () => {
+    expect(routeId('routes/concerts.trending.tsx')).toBe('routes/concerts.trending')
+    expect(routeId('routes/concerts.trending')).toBe('routes/concerts.trending')
+  })
+
+  it('strips a leading ./ from the module path', () => {
+    expect(routeId('./routes/x.tsx')).toBe('routes/x')
   })
 
   it('lists leaf surfaces and skips layouts', () => {
     expect(enumerateSurfaces(routes)).toEqual([
-      'routes/care/index',
-      'routes/care/plan',
-      'routes/care/settings/personal',
       'routes/home',
       'routes/internal/tools',
+      'routes/projects/board',
+      'routes/projects/index',
+      'routes/projects/settings/notifications',
     ])
+  })
+
+  it('treats an entry with an empty children list as a layout', () => {
+    expect(
+      enumerateSurfaces([{ file: 'routes/projects/layout.tsx', children: [] }]),
+    ).toEqual([])
   })
 })
 
@@ -44,14 +61,15 @@ describe('seed coverage derivation', () => {
   it('reports every surface no claim covers', () => {
     const report = seedCoverage({
       routes,
-      claims: ['routes/home', 'routes/care/plan'],
+      claims: ['routes/home', 'routes/projects/board'],
       excludedPrefixes: ['routes/internal/'],
     })
     expect(report.unclaimed).toEqual([
-      'routes/care/index',
-      'routes/care/settings/personal',
+      'routes/projects/index',
+      'routes/projects/settings/notifications',
     ])
     expect(report.unknownClaims).toEqual([])
+    expect(report.staleExcludedPrefixes).toEqual([])
   })
 
   it('normalizes claims carrying extensions', () => {
@@ -68,6 +86,33 @@ describe('seed coverage derivation', () => {
       claims: ['routes/home', 'routes/retired/page'],
     })
     expect(report.unknownClaims).toEqual(['routes/retired/page'])
+  })
+
+  it('excludes at path boundaries, never by raw string prefix', () => {
+    const report = seedCoverage({
+      routes: [
+        { file: 'routes/internal.tsx' },
+        { file: 'routes/internal/tools.tsx' },
+        { file: 'routes/internals-dashboard.tsx' },
+      ],
+      claims: [],
+      excludedPrefixes: ['routes/internal'],
+    })
+    expect(report.unclaimed).toEqual(['routes/internals-dashboard'])
+    expect(report.staleExcludedPrefixes).toEqual([])
+  })
+
+  it('reports an excluded prefix matching no route as stale', () => {
+    const report = seedCoverage({
+      routes: [{ file: 'routes/home.tsx' }],
+      claims: ['routes/home'],
+      excludedPrefixes: ['routes/internol'],
+    })
+    expect(report.staleExcludedPrefixes).toEqual(['routes/internol'])
+    const failures = seedCoverageFailures(report)
+    expect(failures).toHaveLength(1)
+    expect(failures[0]).toContain('routes/internol')
+    expect(failures[0]).toContain('matches no route')
   })
 
   it('holds an empty route config to an empty manifest', () => {

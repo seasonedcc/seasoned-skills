@@ -22,24 +22,25 @@ export const IDENTIFIER_LENGTH_AUDIT_SQL = `
     select 'relation' as kind, relname as name
       from pg_class
       join pg_namespace on pg_namespace.oid = pg_class.relnamespace
-     where nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+     where nspname !~ '^pg_' and nspname <> 'information_schema'
     union all
     select 'constraint' as kind, conname as name
       from pg_constraint
       join pg_namespace on pg_namespace.oid = pg_constraint.connamespace
-     where nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+     where nspname !~ '^pg_' and nspname <> 'information_schema'
     union all
     select 'column' as kind, attname as name
       from pg_attribute
       join pg_class on pg_class.oid = pg_attribute.attrelid
       join pg_namespace on pg_namespace.oid = pg_class.relnamespace
-     where nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+     where nspname !~ '^pg_' and nspname <> 'information_schema'
        and attnum > 0 and not attisdropped
     union all
     select 'type' as kind, typname as name
       from pg_type
       join pg_namespace on pg_namespace.oid = pg_type.typnamespace
-     where nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
+     where nspname !~ '^pg_' and nspname <> 'information_schema'
+       and typtype = 'e'
   ) identifiers
   where octet_length(name) >= ${IDENTIFIER_BYTE_LIMIT}
   order by kind, name

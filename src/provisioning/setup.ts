@@ -8,9 +8,9 @@ import {
   ENV_MARKER,
   type LaneAllocation,
   laneDatabaseName,
-  laneEnvValues,
   laneEnvValuesForFile,
   laneSlug,
+  mergedLaneEnvValues,
   parseLaneAllocationFromFiles,
   type ResolvedDatabase,
   type ResolvedEnvFile,
@@ -196,15 +196,6 @@ function readMainEnvFiles(primaryRepositoryPath: string, resolved: ResolvedProvi
   })
 }
 
-/** The first value any main env file carries for a key, in declaration order. */
-function firstMainValue(mainFiles: MainEnvFile[], key: string | undefined) {
-  if (key === undefined) return undefined
-  for (const { values } of mainFiles) {
-    if (values[key] !== undefined) return values[key]
-  }
-  return undefined
-}
-
 /** Main env values merged across the declared files; the first file wins. */
 function mergedMainEnvValues(mainFiles: MainEnvFile[]) {
   const merged: Record<string, string> = {}
@@ -237,8 +228,8 @@ function siblingLaneEnvFileContents(
 /**
  * The main checkout's URL a lane database is derived from: read under the
  * database's env key from the files that carry that database — the same key
- * name may point at a different database in another file — with the primary
- * database's key as fallback.
+ * name may point at a different database in another file — falling back to
+ * the primary database's key within those same files.
  */
 function mainDatabaseUrl(
   mainFiles: MainEnvFile[],
@@ -248,10 +239,12 @@ function mainDatabaseUrl(
   const carrying = mainFiles.filter(({ file }) =>
     file.databases.some((candidate) => candidate.name === database.name),
   )
+  const primaryKey = resolved.databases[0]?.envKey
   const url =
     carrying.map(({ values }) => values[database.envKey]).find(Boolean) ??
-    firstMainValue(mainFiles, database.envKey) ??
-    firstMainValue(mainFiles, resolved.databases[0]?.envKey)
+    (primaryKey === undefined
+      ? undefined
+      : carrying.map(({ values }) => values[primaryKey]).find(Boolean))
   if (!url) {
     const where = carrying[0]?.file.path ?? resolved.envFile
     throw new Error(
@@ -293,9 +286,7 @@ async function allocateLane({
     const primaryKey = resolved.cacheStoreEnvKeys[0]
     const cacheFile = mainFiles.find(({ file }) => file.cacheStore)
     const mainCacheUrl =
-      primaryKey === undefined
-        ? undefined
-        : (cacheFile?.values[primaryKey] ?? firstMainValue(mainFiles, primaryKey))
+      primaryKey === undefined ? undefined : cacheFile?.values[primaryKey]
     if (!mainCacheUrl) {
       throw new Error(
         `the main checkout's ${cacheFile?.file.path ?? resolved.envFile} carries no ${primaryKey ?? 'cache-store URL'}; cacheStoreIndex needs it`,
@@ -459,8 +450,8 @@ async function provisionLane(
   if (existing) {
     log('env file already carries the managed block; keeping the existing allocation')
     allocation = existing
-    // Partial state: a later declared file without the block is re-written
-    // from the same allocation.
+    // Partial state: a declared file without the block is re-written from
+    // the allocation the marked files still record.
     const missing = new Set(
       resolved.envFiles
         .filter((_, index) => !laneFileContents[index]?.includes(ENV_MARKER))
@@ -502,7 +493,7 @@ async function provisionLane(
     flushCacheStore(allocation.cacheStoreUrl)
   }
 
-  const stepEnv = laneEnvValues(allocation, resolved)
+  const stepEnv = mergedLaneEnvValues(allocation, resolved, slug)
   for (const worktree of worktrees) {
     for (const step of worktree.repository.provisionSteps ?? []) {
       runStep(step, { cwd: worktree.worktreePath, env: stepEnv })
@@ -592,7 +583,12 @@ async function provisionLane(
         hasSeedCommand: Boolean(seedCommand),
       })
       if (refusal === null && seedCommand) {
-        runStep(seedCommand, { cwd: primary.worktreePath, env: stepEnv })
+        const seedEnv = { ...stepEnv }
+        for (const database of seededDatabases) {
+          const url = allocation.databaseUrls[database.name]
+          if (url !== undefined) seedEnv[database.envKey] = url
+        }
+        runStep(seedCommand, { cwd: primary.worktreePath, env: seedEnv })
         seed = 'seeded (reseed by tearing the lane down and setting it up again)'
       } else {
         log(`skipping the seed: ${refusal}`)

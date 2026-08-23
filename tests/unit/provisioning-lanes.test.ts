@@ -163,6 +163,26 @@ describe('lane setup and teardown without databases', () => {
     expect(teardown.droppedDatabases).toEqual([])
     expect(existsSync(worktree)).toBe(false)
   })
+
+  it('restores a deleted later env file from the allocation the marked files record', async () => {
+    const config = {
+      portBases: { app: 4900 },
+      envFiles: [
+        { path: '.env', ports: { APP_PORT: 'app' } },
+        { path: '.env.extra', extra: { LANE: '{slug}' } },
+      ],
+    }
+    const result = await provisionLane(repo, config, 'restore-lane')
+    const worktree = join(root, 'project-worktrees/restore-lane')
+    const extraPath = join(worktree, '.env.extra')
+    const original = readFileSync(extraPath, 'utf8')
+    expect(original).toContain('LANE=restore_lane')
+    rmSync(extraPath)
+
+    const again = await provisionLane(repo, config, 'restore-lane')
+    expect(again.ports).toEqual(result.ports)
+    expect(readFileSync(extraPath, 'utf8')).toBe(original)
+  })
 })
 
 describe('template fingerprints on the database comment', () => {
