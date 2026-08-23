@@ -1053,7 +1053,21 @@
               wiring carries sync there too. Sync is idempotent &mdash; regenerate
               every output, run the two managed-file scripts, re-assert the
               sync wiring itself, run doctor in
-              warn mode. Beyond that one entry, no script entries are managed
+              warn mode. And sync fails loud: the content files the
+              configuration names are mandatory, so an absent one &mdash; a new
+              skill&rsquo;s stub an upgrade never created &mdash; fails the sync
+              rather than weaving an empty section. A failed sync leaves no
+              half-generated workflow behind to run sessions on stale doctrine:
+              it deletes every generated file except the package&rsquo;s own
+              skill, and generates in their place a minimal instructions file
+              carrying the full error report and one standing order &mdash;
+              tell the user the workflow cannot run, and propose the fixes the
+              errors point at, with the surviving package skill as the repair
+              kit. The failure surfaces at the right gate on its own: an
+              upgrade lands as a pull request, that pull request&rsquo;s
+              continuous integration runs the package-manager install, the
+              install runs sync, and the omission turns the pull request red
+              before it can ever reach a teammate&rsquo;s clone. Beyond that one entry, no script entries are managed
               or required &mdash; the scripts the projects carry for this today
               are deleted, not adopted. Continuous-integration workflows are project-owned
               machinery, never generated: a workflow file must be committed to
