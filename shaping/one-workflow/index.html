@@ -181,10 +181,14 @@
               never owns it. A project keeps its own committed skills alongside the
               generated ones and its own additions to the agent settings. The tool
               manages exactly two footprints surgically: in the ignore file, a script
-              checks that every path the package generates is ignored and adds only
-              the missing entries, never removing or reordering anything the project
-              put there; in the settings file, the tool enforces the values of the
-              keys the workflow depends on and leaves every other key untouched.
+              verifies that every path the package generates is <em>effectively</em>
+              ignored &mdash; by asking git itself, never by grepping for a pattern,
+              because a repository may ignore by whitelist and a present-looking
+              entry can still not take effect &mdash; and adds only the entries
+              needed to make it so, never removing or reordering anything the
+              project put there; in the settings file, the tool enforces the values
+              of the keys the workflow depends on and leaves every other key
+              untouched.
               Check-and-edit, idempotent, in both files.
             </p>
             <p>
