@@ -41,3 +41,8 @@ not always the layer its source system kept it in.
   - `demo-videos/` — the demo-video machinery: the recording rig and its tests,
     the narration engine, the transcription and setup flows, and the pinned
     narrator voice sample with its license and provenance notes.
+  - `corpus-machinery/` — the shaping-corpus build scripts: download and parse
+    for the freely published sources, the vendoring script for the one
+    commercial book (it takes the book already compiled to markdown), and the
+    index writer/verifier. The scripts for the excluded talk and interview
+    material are deliberately not preserved.
