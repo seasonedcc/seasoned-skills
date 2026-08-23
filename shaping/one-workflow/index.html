@@ -187,6 +187,20 @@
               keys the workflow depends on and leaves every other key untouched.
               Check-and-edit, idempotent, in both files.
             </p>
+            <p>
+              Installing assumes a codebase that is ready for the workflow, and
+              the package&rsquo;s README says so before it says anything about
+              installing. The workflow&rsquo;s criteria lean on machinery the
+              package does not create: an end-to-end suite whose surfaces can be
+              enumerated, the seed pipeline the demo-seed criterion asserts,
+              gates a continuous-integration run can execute, a repository
+              worktrees can be cut from. The README walks an adopting user
+              through the prerequisites &mdash; for each criterion and layer,
+              what it assumes of the codebase and what to put in place before
+              installing &mdash; and the configuration lets a project keep a
+              criterion off until its machinery exists, with the shrink-only
+              registers as the brownfield on-ramp once it does.
+            </p>
           </div>
         </details>
         <details class="technical" open>
@@ -702,7 +716,11 @@
               fails the gate &mdash; the same three-way split as every enforced rule:
               doctrine generated, checker per stack (package-generated where the
               package ships the stack, project content otherwise), register
-              committed. The standard a machine surface is held to is <em>capability
+              committed. The split binds the machinery the package ships; a
+              checker a project owns outright, backing a criterion the project
+              injected, organizes itself as the project sees fit, and answers to
+              the split only if it is ever promoted into the package. The
+              standard a machine surface is held to is <em>capability
               parity with the product</em>, written down in a committed parity
               standard; where a project declares a machine surface, the generated
               review skills audit changes to it against that standard by outcome
