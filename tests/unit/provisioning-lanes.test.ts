@@ -108,6 +108,61 @@ describe('lane setup and teardown without databases', () => {
     const result = await teardownLane(repo, undefined, 'never-existed')
     expect(result.removedWorktrees).toEqual([])
   })
+
+  it('provisions declared env files, each carrying its own slice of the allocation', async () => {
+    writeFileSync(
+      join(repo, '.env'),
+      'SESSION_SECRET=s\nAPP_URL=http://localhost:4700/app\nAPP_PORT=4700\n',
+    )
+    const config = {
+      portBases: { app: 4700, testApp: 4800 },
+      envFiles: [
+        {
+          path: '.env',
+          ports: { APP_PORT: 'app' },
+          extra: { TELEMETRY_ENABLED: 'false' },
+        },
+        {
+          path: 'apps/web/.env.test',
+          ports: { APP_PORT: 'testApp' },
+          extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}' },
+        },
+      ],
+    }
+    const result = await provisionLane(repo, config, 'two-env-files')
+    const worktree = join(root, 'project-worktrees/two-env-files')
+    const appPort = result.ports.app as number
+    const testAppPort = result.ports.testApp as number
+    expect(testAppPort).not.toBe(appPort)
+
+    // The dev file seeds from the main checkout's file, repoints its own
+    // localhost URLs, and records the dev slice of the allocation.
+    const devEnv = readFileSync(join(worktree, '.env'), 'utf8')
+    expect(devEnv).toContain('managed by seasoned-skills worktree provisioning')
+    expect(devEnv).toContain('SESSION_SECRET=s')
+    expect(devEnv).toContain(`APP_URL=http://localhost:${appPort}/app`)
+    expect(devEnv).toContain(`APP_PORT=${appPort}`)
+    expect(devEnv).toContain('TELEMETRY_ENABLED=false')
+    expect(devEnv).not.toContain('STORAGE_BUCKET')
+
+    // The nested test file (no main counterpart) records the SAME key name
+    // pointing at the test allocation, plus the slug-derived extra value.
+    const testEnv = readFileSync(join(worktree, 'apps/web/.env.test'), 'utf8')
+    expect(testEnv).toContain('managed by seasoned-skills worktree provisioning')
+    expect(testEnv).toContain(`APP_PORT=${testAppPort}`)
+    expect(testEnv).toContain('STORAGE_BUCKET=uploads-two-env-files')
+    expect(testEnv).not.toContain('TELEMETRY_ENABLED')
+
+    // Idempotent: the recorded allocation is parsed back from the files.
+    const again = await provisionLane(repo, config, 'two-env-files')
+    expect(again.ports).toEqual(result.ports)
+    expect(readFileSync(join(worktree, '.env'), 'utf8')).toBe(devEnv)
+
+    const teardown = await teardownLane(repo, config, 'two-env-files', { force: true })
+    expect(teardown.removedWorktrees).toEqual([worktree])
+    expect(teardown.droppedDatabases).toEqual([])
+    expect(existsSync(worktree)).toBe(false)
+  })
 })
 
 describe('template fingerprints on the database comment', () => {

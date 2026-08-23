@@ -9,7 +9,9 @@ import {
   laneDatabaseFamily,
   laneDatabaseName,
   laneSlug,
-  portsClaimedByEnv,
+  portsClaimedByEnvFile,
+  type ResolvedDatabase,
+  type ResolvedEnvFile,
   readEnvValues,
   resolveProvisioning,
   withDatabaseName,
@@ -50,6 +52,30 @@ type TeardownResult = {
 function readEnvFileValues(path: string) {
   if (!existsSync(path)) return {}
   return readEnvValues(readFileSync(path, 'utf8'))
+}
+
+/** Every declared env file with its recorded values at a given root. */
+function readLaneEnvFiles(root: string, envFiles: ResolvedEnvFile[]) {
+  return envFiles.map((file) => ({
+    file,
+    values: readEnvFileValues(join(root, file.path)),
+  }))
+}
+
+type LaneEnvFileValues = ReturnType<typeof readLaneEnvFiles>
+
+/**
+ * A database's recorded lane URL, read under its env key from the files that
+ * carry that database — the same key name may point at a different database
+ * in another file.
+ */
+function recordedDatabaseUrl(laneFiles: LaneEnvFileValues, database: ResolvedDatabase) {
+  return laneFiles
+    .filter(({ file }) =>
+      file.databases.some((candidate) => candidate.name === database.name),
+    )
+    .map(({ values }) => values[database.envKey])
+    .find(Boolean)
 }
 
 function isRegisteredWorktree(repositoryPath: string, worktreePath: string) {
@@ -145,29 +171,44 @@ async function teardownLane(
     }
   }
 
-  const envValues = readEnvFileValues(join(primary.worktreePath, resolved.envFile))
+  // Ports and recorded URLs come from every declared env file, each read
+  // with its own key→port mapping — the same key name in two files claims
+  // both values.
+  const laneFiles = readLaneEnvFiles(primary.worktreePath, resolved.envFiles)
   const laneWorktreePaths = worktrees.map((worktree) => worktree.worktreePath)
   const killedProcessIds = killLanePortListeners(
-    portsClaimedByEnv(envValues, resolved.portBases, resolved.portBlocks),
+    laneFiles.flatMap(({ file, values }) =>
+      portsClaimedByEnvFile(values, file, resolved.portBlocks),
+    ),
     laneWorktreePaths,
   )
 
   const cacheKey = resolved.cacheStoreEnvKeys[0]
-  const cacheUrl = cacheKey === undefined ? undefined : envValues[cacheKey]
+  const cacheUrl =
+    cacheKey === undefined
+      ? undefined
+      : (laneFiles
+          .filter(({ file }) => file.cacheStore)
+          .map(({ values }) => values[cacheKey])
+          .find(Boolean) ?? laneFiles.map(({ values }) => values[cacheKey]).find(Boolean))
   if (resolved.cacheStoreIndex && cacheUrl && isFlushableCacheStoreUrl(cacheUrl)) {
     flushCacheStore(cacheUrl)
   }
 
   const droppedDatabases: string[] = []
   if (resolved.databases.length > 0) {
-    const mainEnvValues = readEnvFileValues(
-      join(primary.repositoryPath, resolved.envFile),
-    )
-    const primaryKey = resolved.databases[0]?.envKey
+    const mainFiles = readLaneEnvFiles(primary.repositoryPath, resolved.envFiles)
+    const primaryDatabase = resolved.databases[0]
     const adminUrl =
-      (primaryKey === undefined ? undefined : envValues[primaryKey]) ??
-      (primaryKey === undefined ? undefined : mainEnvValues[primaryKey]) ??
-      Object.values(envValues).find((value) => value.startsWith('postgres'))
+      (primaryDatabase === undefined
+        ? undefined
+        : recordedDatabaseUrl(laneFiles, primaryDatabase)) ??
+      (primaryDatabase === undefined
+        ? undefined
+        : recordedDatabaseUrl(mainFiles, primaryDatabase)) ??
+      laneFiles
+        .flatMap(({ values }) => Object.values(values))
+        .find((value) => value.startsWith('postgres'))
     if (adminUrl) {
       const laneDatabases = resolved.databases.map((database) => ({
         baseName: laneDatabaseName(resolved.databasePrefix, slug, database.name),
@@ -181,10 +222,10 @@ async function teardownLane(
       })
       const family = new Set([
         ...laneDatabaseFamily(existingNames, laneDatabases),
-        // Names the env file records, in case a hand-tuned allocation strayed
+        // Names the env files record, in case a hand-tuned allocation strayed
         // from the derived names — still guarded by the lane-owned prefix.
         ...resolved.databases
-          .map((database) => envValues[database.envKey])
+          .map((database) => recordedDatabaseUrl(laneFiles, database))
           .filter((url): url is string => Boolean(url))
           .map(databaseNameFromUrl)
           .filter((name) => isLaneOwnedDatabaseName(resolved.databasePrefix, name)),

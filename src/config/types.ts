@@ -200,6 +200,15 @@ export interface ProvisioningConfig {
    */
   envFile?: string
   /**
+   * The lane's env files, when the single `envFile` is not enough — e.g. a
+   * second file for the test environment that reuses the same env key names
+   * for different allocations. When declared, this fully replaces the
+   * single-file behavior (`envFile` is ignored): each entry seeds from the
+   * main checkout's file at the same relative path and carries its own slice
+   * of the managed allocation block.
+   */
+  envFiles?: EnvFileResource[]
+  /**
    * How many consecutive ports a named port holds (e.g. one per E2E worker:
    * the head port plus one per extra worker). Ports not listed hold one.
    * Allocation hands out and reserves whole blocks.
@@ -235,6 +244,19 @@ export interface ProvisioningConfig {
    * commands; interactive shells are never listed.
    */
   laneProcessCommands?: string[]
+}
+
+export interface EnvFileResource {
+  /** Path relative to the primary repository's worktree (e.g. 'apps/web/.env.test'). */
+  path: string
+  /** Names of declared database resources whose lane URLs this file carries (each written under its database's envKey). */
+  databases?: string[]
+  /** Managed port entries: env key → declared port name (e.g. { PORT: 'testPort', MAILDEV_PORT: 'testMaildevPort' }). */
+  ports?: Record<string, string>
+  /** Whether this file carries the lane's cache-store URL entries (cacheStoreEnvKeys). Default false. */
+  cacheStore?: boolean
+  /** Extra managed entries. Values may contain the tokens {slug} (the lane slug) and {slug-dashed} (the slug with underscores replaced by dashes). */
+  extra?: Record<string, string>
 }
 
 export interface DatabaseResource {
