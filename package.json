@@ -50,14 +50,17 @@
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:golden": "vitest run --project golden",
-    "tsc": "tsc --noEmit"
+    "tsc": "tsc --noEmit",
+    "prepare": "pnpm build && seasoned-skills sync"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
+    "@changesets/cli": "^3.0.1",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "seasoned-skills": "link:.",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },

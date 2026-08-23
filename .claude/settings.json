@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "claude-fable-5[1m]",
+  "effortLevel": "high",
+  "alwaysThinkingEnabled": true,
+  "autoCompactEnabled": false,
+  "autoMemoryEnabled": false,
+  "skillListingBudgetFraction": 0.02,
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/statusline.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/statusline.sh; exit 0"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-git-stash.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-git-stash.sh; exit 0",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/isolation-guard.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/isolation-guard.sh; exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end-sweep.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end-sweep.sh; exit 0",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
