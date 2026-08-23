@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShapingDrawing — every capability</title>
+<link rel="stylesheet" href="drawing.css">
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: #1b1b1b;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 62rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  header { border-bottom: 2px solid #1b1b1b; padding-bottom: 1.25rem; margin-bottom: 2.5rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .4rem; letter-spacing: -.01em; }
+  header p { margin: 0; max-width: 46rem; opacity: .72; }
+  code { overflow-wrap: anywhere; }
+  section { margin: 0 0 4rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .35rem; letter-spacing: .02em; }
+  h2 span { font-weight: 400; opacity: .45; margin-right: .55rem; font-variant-numeric: tabular-nums; }
+  section > p { margin: 0 0 1.25rem; max-width: 46rem; opacity: .72; font-size: .95rem; }
+  .stage { border: 1px solid #e4e4e0; border-radius: 6px; padding: 1rem; background: #fff; }
+  .stage .shaping-figure { margin: 0; }
+  .shaping-callout-list { font-size: .95rem; }
+  @media print {
+    body { background: #fff; }
+    main { padding: 0; max-width: none; }
+    section { break-inside: avoid; page-break-inside: avoid; }
+    .stage { border-color: #ddd; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ShapingDrawing</h1>
+    <p>
+      Every capability of the drawing library, rendered from the scenes in <code>demo.js</code>.
+      The same scenes are the determinism fixture: <code>scripts/check_drawing_determinism.mjs</code>
+      builds each one twice and byte-compares the SVG.
+    </p>
+  </header>
+  <div id="scenes"></div>
+</main>
+
+<script src="shaping-drawing.js"></script>
+<script src="demo.js"></script>
+<script>
+  var host = document.getElementById('scenes')
+  ShapingDemo.scenes.forEach(function (scene, index) {
+    var section = document.createElement('section')
+    section.id = scene.id
+
+    var heading = document.createElement('h2')
+    var number = document.createElement('span')
+    number.textContent = String(index + 1).padStart(2, '0')
+    heading.appendChild(number)
+    heading.appendChild(document.createTextNode(scene.title))
+    section.appendChild(heading)
+
+    var note = document.createElement('p')
+    note.textContent = scene.note
+    section.appendChild(note)
+
+    var stage = document.createElement('div')
+    stage.className = 'stage shaping-drawing-frame'
+    section.appendChild(stage)
+
+    host.appendChild(section)
+    scene.build().mount(stage)
+  })
+</script>
+</body>
+</html>
