@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Regenerate the ShapingDrawing font metrics</title>
+<style>
+  body { font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 2rem; max-width: 52rem; }
+  pre { white-space: pre-wrap; word-break: break-all; background: #f6f6f4; padding: 1rem; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Font metrics</h1>
+<p>
+  Open this file in a browser after replacing the vendored woff2. It measures the advance width of
+  every character from space to tilde at each weight the library bakes, with kerning off, and prints
+  the result. Paste it into the <code>METRICS</code> constant near the top of
+  <code>shaping-drawing.js</code> — one entry per weight, advances as a comma-separated string in
+  1/1000 em.
+</p>
+<pre id="out">measuring…</pre>
+<script>
+  var EM = 1000
+  var WEIGHTS = [400, 500, 600, 700, 800]
+  var face = new FontFace('Metrics Probe', "url('ShantellSans-Latin-VariableWeight.woff2')", { weight: '300 800' })
+  var context = document.createElement('canvas').getContext('2d')
+
+  function measure() {
+    var lines = []
+    WEIGHTS.forEach(function (weight) {
+      context.font = weight + ' ' + EM + 'px "Metrics Probe"'
+      context.fontKerning = 'none'
+      var advances = []
+      for (var code = 32; code <= 126; code++) {
+        advances.push(Math.round(context.measureText(String.fromCharCode(code)).width * 10) / 10)
+      }
+      var round = function (value) { return Math.round(value * 10) / 10 }
+      lines.push(
+        '      ' + weight + ": { advances: '" + advances.join(',') + "', capHeight: " +
+        round(context.measureText('H').actualBoundingBoxAscent) + ', ascent: ' +
+        round(context.measureText('Hbdfhklt').fontBoundingBoxAscent) + ', descent: ' +
+        round(context.measureText('gjpqy').fontBoundingBoxDescent) + ', xHeight: ' +
+        round(context.measureText('x').actualBoundingBoxAscent) + ' }'
+      )
+    })
+    document.getElementById('out').textContent = lines.join(',\n')
+  }
+
+  face.load().then(function (loaded) {
+    document.fonts.add(loaded)
+    return document.fonts.ready
+  }).then(measure).catch(function (error) {
+    document.getElementById('out').textContent = 'could not load the font: ' + error.message
+  })
+</script>
+</body>
+</html>
