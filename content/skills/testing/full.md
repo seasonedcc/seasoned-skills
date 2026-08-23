@@ -315,6 +315,17 @@ new home. A change that moves writes moves the specs that drive them, in the sam
 change. Filtered local runs drop the gate to reporting, so only the unfiltered CI run
 says whether a rehomed route is covered.
 
+### The seed-coverage denominator
+
+The demo-seed criterion's denominator is derived the same way, never maintained by
+hand. The package exports the deriving checker: the seed-manifest suite feeds the
+app's route config and the manifest's claimed surfaces through `seedCoverage`
+(imported from `seasoned-skills`, alongside `seedCoverageFailures`) and asserts an
+empty failure list — every leaf route is claimed (seeded, or declared unseedable
+with a written reason), no claim points at a route that no longer exists, and
+deliberately out-of-demo prefixes are excluded explicitly. A surface nobody covered
+fails the suite outright instead of depending on review-time honesty.
+
 ### The seed
 
 The seed is a thin orchestrator over one module per journey in `tests/seed/flows/`. The
