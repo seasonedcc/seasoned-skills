@@ -187,10 +187,10 @@ async function teardownLane(
   const cacheUrl =
     cacheKey === undefined
       ? undefined
-      : (laneFiles
+      : laneFiles
           .filter(({ file }) => file.cacheStore)
           .map(({ values }) => values[cacheKey])
-          .find(Boolean) ?? laneFiles.map(({ values }) => values[cacheKey]).find(Boolean))
+          .find(Boolean)
   if (resolved.cacheStoreIndex && cacheUrl && isFlushableCacheStoreUrl(cacheUrl)) {
     flushCacheStore(cacheUrl)
   }

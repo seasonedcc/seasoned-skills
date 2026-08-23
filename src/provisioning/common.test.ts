@@ -32,6 +32,7 @@ import {
   portsClaimedByEnv,
   portsClaimedByEnvFile,
   portsHeldBy,
+  type ResolvedEnvFile,
   readEnvValues,
   replaceSlugTokens,
   repointLocalhostUrls,
@@ -1388,6 +1389,18 @@ describe('resolveProvisioning envFiles', () => {
       ),
     ).toThrow(/writes env key "PORT" more than once/)
   })
+
+  it('rejects a cacheStore file whose other entries collide with the cache env keys', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          cacheStoreIndex: true,
+          envFiles: [{ path: '.env', cacheStore: true, extra: { REDIS_URL: 'x' } }],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/writes env key "REDIS_URL" more than once/)
+  })
 })
 
 describe('replaceSlugTokens', () => {
@@ -1442,6 +1455,13 @@ describe('laneEnvValuesForFile', () => {
       ),
     ).toThrow(/no port for "testPort"/)
   })
+
+  it('renders the synthesized single file identically to laneEnvValues', () => {
+    const [synthesized] = resolvedFixture.envFiles as [ResolvedEnvFile]
+    expect(
+      laneEnvValuesForFile(allocationFixture, resolvedFixture, synthesized, 'task_a'),
+    ).toEqual(laneEnvValues(allocationFixture, resolvedFixture))
+  })
 })
 
 describe('parseLaneAllocationFromFiles', () => {
@@ -1458,19 +1478,41 @@ describe('parseLaneAllocationFromFiles', () => {
     )
   })
 
-  it('treats a lane whose FIRST file lacks the marker as unallocated', () => {
+  it('treats a lane with no marker in any file as unallocated', () => {
+    expect(parseLaneAllocationFromFiles([null, null], twoFileResolved)).toBeNull()
     expect(
+      parseLaneAllocationFromFiles(['PORT=4187\n', 'PORT=5187\n'], twoFileResolved),
+    ).toBeNull()
+  })
+
+  it('parses from a later marked file when every value is recoverable', () => {
+    const resolved = resolveProvisioning(
+      {
+        portBases: { port: 4100 },
+        envFiles: [
+          { path: '.env', ports: { PORT: 'port' } },
+          { path: '.env.test', ports: { PORT: 'port' }, extra: { FOO: 'bar' } },
+        ],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    const second = [ENV_MARKER, 'PORT=4187'].join('\n')
+    expect(parseLaneAllocationFromFiles([null, second], resolved)).toEqual({
+      ports: { port: 4187 },
+      databaseUrls: {},
+    })
+  })
+
+  it('complains when only a later file is marked and a value is unrecoverable', () => {
+    expect(() =>
       parseLaneAllocationFromFiles([null, contentsByFile[1]], twoFileResolved),
-    ).toBeNull()
-    expect(
-      parseLaneAllocationFromFiles(['PORT=4187\n', contentsByFile[1]], twoFileResolved),
-    ).toBeNull()
+    ).toThrow(/fix or delete the managed blocks and re-run/)
   })
 
   it('complains when a missing later file leaves a value recorded nowhere', () => {
     expect(() =>
       parseLaneAllocationFromFiles([contentsByFile[0], null], twoFileResolved),
-    ).toThrow(/fix or delete the block and re-run/)
+    ).toThrow(/fix or delete the managed blocks and re-run/)
   })
 
   it('tolerates a missing later file whose values are recorded elsewhere', () => {
@@ -1506,6 +1548,49 @@ describe('parseLaneAllocationFromFiles', () => {
     const second = [ENV_MARKER, 'PORT=4188'].join('\n')
     expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
       /disagree about the port "port"/,
+    )
+  })
+
+  it('complains when two files disagree about a database URL', () => {
+    const resolved = resolveProvisioning(
+      {
+        databases: [{ name: 'development', envKey: 'DATABASE_URL' }],
+        repositories: [{ path: '.', migrateCommand: 'make migrate' }],
+        envFiles: [
+          { path: '.env', databases: ['development'] },
+          { path: '.env.test', databases: ['development'] },
+        ],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    const first = [
+      ENV_MARKER,
+      'DATABASE_URL=postgresql://localhost:5432/app_wt_a_development',
+    ].join('\n')
+    const second = [
+      ENV_MARKER,
+      'DATABASE_URL=postgresql://localhost:5432/app_wt_b_development',
+    ].join('\n')
+    expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
+      /disagree about the URL for database "development"/,
+    )
+  })
+
+  it('complains when two files disagree about the cache-store URL', () => {
+    const resolved = resolveProvisioning(
+      {
+        cacheStoreIndex: true,
+        envFiles: [
+          { path: '.env', cacheStore: true },
+          { path: '.env.worker', cacheStore: true },
+        ],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    const first = [ENV_MARKER, 'REDIS_URL=redis://localhost:6379/3'].join('\n')
+    const second = [ENV_MARKER, 'REDIS_URL=redis://localhost:6379/4'].join('\n')
+    expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
+      /disagree about the cache-store URL/,
     )
   })
 
