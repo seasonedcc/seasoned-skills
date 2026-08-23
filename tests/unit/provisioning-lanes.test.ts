@@ -21,6 +21,8 @@ import {
 function initRepo(path: string) {
   mkdirSync(path, { recursive: true })
   execFileSync('git', ['init', '--quiet', '--initial-branch=main'], { cwd: path })
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: path })
+  execFileSync('git', ['config', 'user.name', 'Test'], { cwd: path })
   execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
     cwd: path,
   })

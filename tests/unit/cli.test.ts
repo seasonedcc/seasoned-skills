@@ -40,6 +40,8 @@ describe('the CLI program', () => {
 
   function scaffoldProject() {
     execFileSync('git', ['init', '--quiet'], { cwd: root })
+    execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root })
+    execFileSync('git', ['config', 'user.name', 'Test'], { cwd: root })
     const packageEntry = fileURLToPath(new URL('../../src/index.ts', import.meta.url))
     const config = readFileSync(join(fixture, 'seasoned-skills.config.ts'), 'utf8')
     writeFileSync(
