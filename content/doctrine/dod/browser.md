@@ -1,0 +1,1 @@
+A task is not done if you haven't tested it end to end with `agent-browser`, took screenshots, and validated its design as well as its functionality. When the change touches a family of parallel implementations, exercise every member — siblings that share a rendering path can diverge in what they store, and a representative proves only itself.
