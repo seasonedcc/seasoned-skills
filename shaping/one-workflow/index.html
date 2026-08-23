@@ -312,10 +312,14 @@
               for review only after the full pre-merge pipeline completes: builder
               claims verified, full gates green, the adversarial review done, and a
               ruling on every confirmed finding. The adversarial review is the
-              package&rsquo;s own pull-request-review loop &mdash; the review family
-              ships with the core, so every project runs the same loop, and it
-              supersedes the harness&rsquo;s built-in code review in the Definition
-              of Done. Small diffs are not exempt from the pipeline; they simply
+              package&rsquo;s own pull-request-review loop, run against the draft
+              pull request &mdash; the review family ships with the core, so every
+              project runs the same loop, and it supersedes the code-review loop in
+              the Definition of Done everywhere: no project&rsquo;s pipeline ran
+              this way before the package, so the switch is a migration behavior
+              change for all of them. Reviewing the draft is deliberate: the loop
+              reads the pull request&rsquo;s description and discussion alongside
+              the diff, which a bare diff review never sees. Small diffs are not exempt from the pipeline; they simply
               overlap it. Paid auto-reviewers are the consuming repository&rsquo;s
               concern: configure them to ignore drafts.
             </p>
