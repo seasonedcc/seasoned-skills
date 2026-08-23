@@ -747,10 +747,20 @@
               The tool&rsquo;s footprint stops at those two managed files, and
               its commands are its own: provisioning and the other deterministic
               operations run as subcommands of the package&rsquo;s binary,
-              referenced by the generated doctrine directly, so no entry in a
-              project&rsquo;s script manifest is managed or required &mdash; the
-              scripts the projects carry for this today are deleted, not
-              adopted. Continuous-integration workflows are project-owned
+              referenced by the generated doctrine directly. The script manifest
+              carries exactly one managed entry &mdash; the sync wiring: the
+              project&rsquo;s own prepare script runs the tool&rsquo;s
+              <em>sync</em> on every install, so a fresh clone materializes the
+              whole workflow with the package-manager command the project
+              already runs, and a version bump regenerates everything on the
+              next install. It is the project&rsquo;s own script deliberately:
+              the package manager the projects pin blocks a dependency&rsquo;s
+              lifecycle scripts by default, and a sync that silently does not
+              run is worse than none. Sync is idempotent &mdash; regenerate
+              every output, run the two managed-file scripts, run doctor in
+              warn mode. Beyond that one entry, no script entries are managed
+              or required &mdash; the scripts the projects carry for this today
+              are deleted, not adopted. Continuous-integration workflows are project-owned
               machinery, never generated: a workflow file must be committed to
               run, so a generated one would be hand-edited the day its plumbing
               needed a tweak. The package states a <em>CI contract</em> instead
