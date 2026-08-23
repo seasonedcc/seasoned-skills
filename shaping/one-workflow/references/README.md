@@ -35,3 +35,6 @@ not always the layer its source system kept it in.
     meeting-requests skill.
   - `statusline/` — the status-line script the package absorbs, with its
     model-demotion alarm.
+  - `demo-videos/` — the demo-video machinery: the recording rig and its tests,
+    the narration engine, the transcription and setup flows, and the pinned
+    narrator voice sample with its license and provenance notes.
