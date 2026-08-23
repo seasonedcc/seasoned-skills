@@ -41,6 +41,16 @@ export function materializeRuntime(): GeneratedFile[] {
       path: '.claude/skills/subagents/scripts/watchdog.py',
       contents: runtimeFile('watchdog.py'),
     },
+    {
+      path: '.claude/skills/requests-from-meetings/scripts/verify.py',
+      contents: runtimeFile('requests/verify.py'),
+    },
+    // The shared stylesheet committed meeting pages load by relative path;
+    // generated and gitignored inside the otherwise-committed data folder.
+    {
+      path: 'requests-from-meetings/assets/style.css',
+      contents: runtimeFile('requests/style.css'),
+    },
     ...runtimeTree('shaping-assets', 'shaping/assets'),
   ]
   return files

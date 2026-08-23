@@ -137,7 +137,8 @@ function isManagedPath(path: string): boolean {
   return (
     path === 'CLAUDE.md' ||
     path.startsWith('.claude/') ||
-    path.startsWith('shaping/assets/')
+    path.startsWith('shaping/assets/') ||
+    path === 'requests-from-meetings/assets/style.css'
   )
 }
 

@@ -19,8 +19,8 @@ relative link resolves — anchors to ids in this document, cross-meeting links 
 sibling file that carries the id, everything else to a file that exists.
 
 Usage:
-    python3 requests-from-meetings/verify.py 2026-08-05-software-review
-    python3 requests-from-meetings/verify.py --all
+    python3 .claude/skills/requests-from-meetings/scripts/verify.py 2026-08-05-software-review
+    python3 .claude/skills/requests-from-meetings/scripts/verify.py --all
 
 Exit codes: 0 clean, 1 verification failures, 2 setup error (missing config,
 missing transcript, a transcript whose sha256 no longer matches its
@@ -37,7 +37,10 @@ import unicodedata
 from bisect import bisect_right
 from pathlib import Path
 
-MEETINGS_DIR = Path(__file__).resolve().parent
+# This script is generated at .claude/skills/requests-from-meetings/scripts/,
+# four levels below the project root; the committed data folder it verifies
+# lives at the root as requests-from-meetings/.
+MEETINGS_DIR = Path(__file__).resolve().parents[4] / "requests-from-meetings"
 CONFIG_PATH = MEETINGS_DIR / "config.local.json"
 ROLLUP_PATH = MEETINGS_DIR / "index.html"
 
