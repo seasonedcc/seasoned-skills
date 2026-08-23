@@ -8,9 +8,12 @@ import { composeComposableFunctions } from './composable-functions.js'
 import { composeDemoVideos } from './demo-videos.js'
 import { composeDesignSystem } from './design-system.js'
 import { composeEnvVars } from './env-vars.js'
+import { composeFormattingDatetimes } from './formatting-datetimes.js'
 import { composeFrameworkFolder } from './framework-folder.js'
 import { composeMainSync } from './main-sync.js'
+import { composeMcpServer } from './mcp-server.js'
 import { composeNestedRoutes } from './nested-routes.js'
+import { composeOptimisticUi } from './optimistic-ui.js'
 import { composeOrchestration } from './orchestration.js'
 import { composePostReview } from './post-review.js'
 import { composePrReview } from './pr-review.js'
@@ -18,6 +21,7 @@ import { composeQuick } from './quick.js'
 import { composeRelease } from './release.js'
 import { composeRequestsFromMeetings } from './requests-from-meetings.js'
 import { composeReviewFixes } from './review-fixes.js'
+import { composeSeasonedSkills } from './seasoned-skills.js'
 import { composeSelfImprovement } from './self-improvement.js'
 import { composeSkillManagement } from './skill-management.js'
 import { composeSubagents } from './subagents.js'
@@ -28,6 +32,8 @@ import { composeWorktrees } from './worktrees.js'
 interface RosterEntry {
   name: string
   enabled: (config: SeasonedSkillsConfig) => boolean
+  /** Set when the skill composes without a content file (the repair kit). */
+  optionalContent?: boolean
   compose: (context: GenerationContext) => GeneratedFile[]
 }
 
@@ -79,6 +85,23 @@ const ROSTER: RosterEntry[] = [
   { name: 'framework-folder', enabled: stack, compose: composeFrameworkFolder },
   { name: 'env-vars', enabled: stack, compose: composeEnvVars },
   { name: 'nested-routes', enabled: stack, compose: composeNestedRoutes },
+  { name: 'formatting-datetimes', enabled: stack, compose: composeFormattingDatetimes },
+  { name: 'optimistic-ui', enabled: stack, compose: composeOptimisticUi },
+  {
+    name: 'mcp-server',
+    enabled: (config) =>
+      config.stack !== undefined && config.machineSurface !== undefined,
+    compose: composeMcpServer,
+  },
+  // The package's own skill is the repair kit a degraded project keeps: its
+  // content file is optional, because sync must regenerate it even when
+  // missing content files are the failure being reported.
+  {
+    name: 'seasoned-skills',
+    enabled: always,
+    optionalContent: true,
+    compose: composeSeasonedSkills,
+  },
 ]
 
 export function composeSkills(context: GenerationContext): GeneratedFile[] {
@@ -91,6 +114,8 @@ export function composeSkills(context: GenerationContext): GeneratedFile[] {
 export function requiredContentNames(config: SeasonedSkillsConfig): string[] {
   return [
     'doctrine',
-    ...ROSTER.filter((entry) => entry.enabled(config)).map((e) => e.name),
+    ...ROSTER.filter((entry) => entry.enabled(config) && !entry.optionalContent).map(
+      (e) => e.name,
+    ),
   ]
 }

@@ -4,7 +4,7 @@ The application schema is 100% append-only (load the database-design skill for t
 
 `.onConflict((oc) => oc.doNothing())` is fine: it makes inserts idempotent without mutating anything.
 
-### Append instead of check-then-branch
+## Append instead of check-then-branch
 
 The mutable-schema instinct is "check whether a row exists, then insert or update". In an append-only schema there is nothing to branch on: every action appends its event row, and the latest event wins at read time.
 
