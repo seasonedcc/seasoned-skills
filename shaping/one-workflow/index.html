@@ -299,6 +299,21 @@
               the world. Reaching 1.0 is a milestone the package earns, not a
               formality.
             </p>
+            <p>
+              Consumer zero holds itself to the adopter&rsquo;s bar. Before the
+              workflow is installed into this repository, the repository puts
+              in place everything its own README demands of an adopting
+              codebase, in the form that applies to a command-line package with
+              its stack layer off: a continuous-integration pipeline of its own
+              whose jobs run both test tiers and stand as the required checks
+              the default branch&rsquo;s protection enforces, test coverage
+              comprehensive enough that the workflow&rsquo;s gates gate
+              something real, and the machine prerequisites the doctor
+              subcommand checks. Building that machinery is part of this
+              project, not an assumption &mdash; a package whose own home
+              failed its README&rsquo;s checklist would be shipping advice it
+              does not follow.
+            </p>
           </div>
         </details>
         <div id="drawing-generation"></div>
@@ -1290,7 +1305,7 @@ Work branches from main.
 
 Done means, in order:
 
-1. This repository is consumer number zero: it installs the package it ships, its configuration is committed, and the hand-maintained copies the install replaces are deleted.
+1. This repository is consumer number zero, held to the adopter&rsquo;s bar its own README states: it gains its own CI pipeline running both test tiers as the required checks on main, with comprehensive coverage behind them; then it installs the package it ships, its configuration is committed, and the hand-maintained copies the install replaces are deleted.
 
 2. The final stage migrates our three active projects onto the package. Ask the user for the local migration plan document; its per-project details never enter this repository. That migration is the framing&rsquo;s outcome test run for real &mdash; three different stacks, three different configurations, no capability lost &mdash; and it doubles as the quality-assurance pass: any gap between what the package generates and what a project relied on must surface and be closed there.
 
