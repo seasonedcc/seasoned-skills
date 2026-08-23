@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import { loadConfig } from '../config/load.js'
 import { deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
+import { applyInstall, planInstall } from '../install/install.js'
+import { collectAnswers } from '../install/interactive.js'
 import { degrade, sync } from '../sync/sync.js'
 
 const require = createRequire(import.meta.url)
@@ -42,6 +44,28 @@ export function buildProgram(): Command {
         console.error(
           '\nThe generated workflow has been removed down to the repair kit. Fix the inputs above and run `seasoned-skills sync` again.',
         )
+        process.exitCode = 1
+      }
+    })
+
+  program
+    .command('install')
+    .description(
+      'Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default), the committed artifacts, and the empty content files — finishing with a sync and a doctor report. Never overwrites what exists.',
+    )
+    .action(async () => {
+      const root = process.cwd()
+      try {
+        const answers = await collectAnswers(root)
+        const plan = planInstall(root, answers)
+        applyInstall(root, plan)
+        for (const file of plan.files) console.log(`created ${file.path}`)
+        for (const path of plan.skipped) console.log(`kept existing ${path}`)
+        const result = await sync(root)
+        console.log(`Generated ${result.generated.length} files.`)
+        console.log(renderReport(runChecks(deriveChecks(result.config))))
+      } catch (error) {
+        console.error((error as Error).message)
         process.exitCode = 1
       }
     })
