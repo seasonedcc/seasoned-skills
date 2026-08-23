@@ -7,7 +7,15 @@ import { writeGeneratedFiles } from './write.js'
 
 describe('materializeRuntime', () => {
   it('maps every runtime asset to its generated path', () => {
-    const paths = materializeRuntime().map((file) => file.path)
+    const files = materializeRuntime()
+    const paths = files.map((file) => file.path)
+    expect(paths).toContain('.claude/skills/demo-videos/scripts/rig/run.ts')
+    expect(paths).toContain('.claude/skills/demo-videos/scripts/voices/emily.wav')
+    expect(paths).toContain('.claude/skills/demo-videos/scripts/.gitignore')
+    const setup = files.find(
+      (file) => file.path === '.claude/skills/demo-videos/scripts/setup.sh',
+    )
+    expect(setup?.executable).toBe(true)
     expect(paths).toContain('.claude/statusline.sh')
     expect(paths).toContain('.claude/hooks/block-git-stash.sh')
     expect(paths).toContain('.claude/hooks/isolation-guard.sh')

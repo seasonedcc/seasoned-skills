@@ -52,19 +52,33 @@ export function materializeRuntime(): GeneratedFile[] {
       contents: runtimeFile('requests/style.css'),
     },
     ...runtimeTree('shaping-assets', 'shaping/assets'),
+    // The demo rig computes the consuming project's root relative to this
+    // exact location — the layout is load-bearing.
+    ...runtimeTree('demo-videos', '.claude/skills/demo-videos/scripts', (relative) =>
+      relative.endsWith('.sh'),
+    ),
   ]
   return files
 }
 
 /** Maps a whole runtime directory onto a generated path, byte for byte. */
-export function runtimeTree(sourceDir: string, targetDir: string): GeneratedFile[] {
+export function runtimeTree(
+  sourceDir: string,
+  targetDir: string,
+  executable?: (relative: string) => boolean,
+): GeneratedFile[] {
   const root = join(runtimeRoot, sourceDir)
   return readdirSync(root, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => {
       const absolute = join(entry.parentPath, entry.name)
       const relative = absolute.slice(root.length + 1)
-      return { path: join(targetDir, relative), contents: readFileSync(absolute) }
+      const file: GeneratedFile = {
+        path: join(targetDir, relative),
+        contents: readFileSync(absolute),
+      }
+      if (executable?.(relative)) file.executable = true
+      return file
     })
     .sort((a, b) => a.path.localeCompare(b.path))
 }
