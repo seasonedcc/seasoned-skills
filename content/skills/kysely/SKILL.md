@@ -146,38 +146,14 @@ Migration files must only import from `kysely` and Node.js built-ins. Never impo
 
 ## Proving migrations and regenerating types
 
-- **Never hand-merge `app/db/types.d.ts`.** After any rebase or conflict, take either side, then regenerate it from a freshly migrated database (`pnpm run db:migrate`) and diff: expect byte-identical or a clean additions-only result. When two open PRs both carry migrations, the one merging second must re-rebase and regenerate after the first lands — git happily auto-merges a semantically wrong types file.
+- **Never hand-merge the generated database types file (`types.d.ts`).** After any rebase or conflict, take either side, then regenerate it from a freshly migrated database (`pnpm run db:migrate`) and diff: expect byte-identical or a clean additions-only result. When two open PRs both carry migrations, the one merging second must re-rebase and regenerate after the first lands — git happily auto-merges a semantically wrong types file.
 - **`db:rollback` reverts the most-recently-EXECUTED migration on that database, not the highest-timestamped file.** After a rebase, migrations can have run out of filename order, so a rollback may hit someone else's migration. To prove a specific migration's `down()`, use a throwaway database where you control exactly what has run.
 - **Prove `down()` against dirtied data, not only a pristine round-trip.** Run the feature (or its tests) so the database holds data only the new schema can represent, then roll back. If the old schema genuinely cannot hold that data, `down()` must fail with a descriptive pre-check error, never a raw constraint violation.
-- Postgres silently truncates identifiers past 63 bytes, and the CamelCasePlugin expands compiled index and constraint names — dozens already exceed 63 bytes across main's migrations. That is harmless here: the truncation is deterministic and collision-free, every `down()` drops whole tables rather than any index by name, and no code references a compiled index name. The check that matters is that names stay **unique** after truncation to 63 bytes; never churn a clear, descriptive name merely to fit under the limit.
+- **Names in the source always equal names in the database.** Postgres silently truncates identifiers past 63 bytes, and the CamelCasePlugin expands compiled index and constraint names — so every declared identifier, including every compiled index and constraint name, must fit the engine's 63-byte limit. A deterministic check enforces this and fails the gate on any identifier the engine would silently truncate: a truncated name is a divergence between source and database that the first future by-name reference (a reindex, a drop, a conflict clause) trips over. Descriptive names still win — the limit is a naming exercise, not information loss.
 
 ## Minimize database roundtrips
 
 Compose operations into a single query instead of mixing JS runtime code with multiple database roundtrips. Use returning clauses, subqueries, and CTEs to keep logic in SQL.
-
-### Append instead of check-then-branch
-
-The mutable-schema instinct is "check whether a row exists, then insert or update". In an append-only schema there is nothing to branch on: every action appends its event row, and the latest event wins at read time.
-
-Instead of:
-```typescript
-const existing = await db().selectFrom('invitations').where('email', '=', email).executeTakeFirst()
-if (existing) {
-  // mutate the existing row's role
-} else {
-  // insert a new row
-}
-```
-
-Do:
-```typescript
-await db()
-  .insertInto('invitations')
-  .values({ email, role })
-  .executeTakeFirstOrThrow()
-```
-
-The invitation's current role is derived from the latest invitation event for that email. When an insert must be idempotent (webhooks, retried jobs), add a unique constraint on the natural key and `.onConflict((oc) => oc.doNothing())`.
 
 ### Use `.returning()` instead of separate SELECT after write
 
