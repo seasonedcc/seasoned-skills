@@ -651,9 +651,9 @@
               product bug &mdash; lives in the orchestration skill, because the
               orchestrator rarely loads the browser skill. The never-pattern-kill
               rule is embodied, not repeated: the package ships two sweep tools
-              &mdash; a browser sweep, and a lane-process orphan sweep that lists and
-              kills processes by lane, wired to run at session end and runnable by
-              hand &mdash; and both kill only by exact process id, so every kill
+              &mdash; a browser sweep run by hand, and a lane-process orphan sweep
+              that lists and kills processes by lane, the only one wired to run at
+              session end and also runnable by hand &mdash; and both kill only by exact process id, so every kill
               passes through a tool that enforces the rule. Lane teardown also kills
               whatever listens on the lane&rsquo;s ports, so a worker stack orphaned
               by a killed run cannot outlive its lane.
@@ -802,7 +802,13 @@
               its corpus fetch list is the one that skill&rsquo;s own reference
               index already names, minus what the no-gos exclude &mdash; the
               talk and interview transcripts that index carries today never
-              enter the shipped list. For the doctrine file, variant C
+              enter the shipped list. The corpus machinery itself travels: the
+              download, parse, vendoring, and index-verification scripts of the
+              standalone skill repository this one absorbs are preserved in the
+              references library&rsquo;s code folder, so the fetch list lives
+              in committed code rather than in any built corpus &mdash; only
+              the scripts for the excluded talk and interview material stay
+              deliberately behind. For the doctrine file, variant C
               is the base &mdash; the most evolved of the three &mdash; taking
               the union of every non-conflicting rule from A and B: notably
               A&rsquo;s Definition-of-Done frame with its documentation-only
@@ -1079,13 +1085,27 @@
               scaffold and the sync wiring, creates and seeds the committed
               artifacts the workflow reads &mdash; the shaping folder, the
               meeting-requests data folder, the calibration file and the
-              registers seeded from whatever the project already carries
-              &mdash; builds the shaping corpus, asking for the one commercial
-              book and falling back to our distilled account when none is
-              given &mdash; an account that does not exist yet: writing it, in
-              our own words and never reproducing the book&rsquo;s text, is part
-              of this project&rsquo;s build &mdash; and finishes by running sync
-              and doctor. <em>Sync</em> is
+              registers seeded from whatever the project already carries,
+              while the per-skill and doctrine content files scaffold empty
+              (project content accretes through the project&rsquo;s own pull
+              requests; for our own projects the migration, not the install,
+              fills them) &mdash; builds the shaping corpus, asking for the one
+              commercial book and falling back to our distilled account when
+              none is given, and finishes by running sync and doctor. The
+              user&rsquo;s own copy of the book means the book already compiled
+              to the corpus&rsquo;s shape &mdash; a folder of numbered markdown
+              chapters with their images, exactly what the vendoring script
+              preserved in the references takes; compiling an ebook into that
+              shape stays outside the workflow. The distilled account does not
+              exist yet: writing it, in our own words and never reproducing
+              the book&rsquo;s text, is part of this project&rsquo;s build,
+              done when every reference the generated shaping skill makes to
+              the book&rsquo;s method resolves to a section of the account,
+              taught at the depth those citations lean on. And the
+              configuration scaffold the install writes states every option
+              explicitly: an option the rulings give no default is a
+              declaration the install asks for &mdash; nothing defaults
+              silently. <em>Sync</em> is
               the non-interactive counterpart the prepare script runs forever
               after: it regenerates, never scaffolds, and never touches
               committed content &mdash; the corpus it weaves from is whatever
