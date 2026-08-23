@@ -179,7 +179,9 @@
             <p>
               The package shares the agent-configuration folder with the project; it
               never owns it. A project keeps its own committed skills alongside the
-              generated ones and its own additions to the agent settings. The tool
+              generated ones &mdash; skills it wrote and skills it vendors from
+              third parties, pinned by its own lock machinery &mdash; and its own
+              additions to the agent settings. The tool
               manages exactly two footprints surgically: in the ignore file, a script
               verifies that every path the package generates is <em>effectively</em>
               ignored &mdash; by asking git itself, never by grepping for a pattern,
@@ -414,8 +416,12 @@
               reconciliation. A repository that squash-merges syncs every pushed
               branch by merging the base in and never rewrites pushed commits &mdash;
               the branch&rsquo;s intermediate history vanishes at the squash, so merge
-              commits cost nothing. Each mode weaves in only its own discipline; no
-              project carries both.
+              commits cost nothing. Each mode weaves in only its own
+              pushed-branch discipline &mdash; but rebasing a branch <em>nothing
+              else references yet</em> is legitimate in both modes, so that
+              discipline, with its pre-rebase conflict-surface check, weaves in
+              everywhere; what the modes never mix is how a pushed branch syncs
+              and lands.
             </p>
             <p>
               Long-lived processes, no option: every process a lane needs beyond a
