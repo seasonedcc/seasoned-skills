@@ -1,2 +1,5 @@
 .DS_Store
 .claude/skills/shaping/references/
+node_modules/
+dist/
+coverage/

@@ -1,0 +1,66 @@
+{
+  "name": "seasoned-skills",
+  "version": "0.0.0",
+  "description": "The Seasoned workflow — doctrine, practice skills, and deterministic code — installed with one command and kept current by upgrading a version.",
+  "keywords": [
+    "agents",
+    "claude",
+    "cli",
+    "skills",
+    "workflow"
+  ],
+  "homepage": "https://github.com/seasonedcc/seasoned-skills#readme",
+  "bugs": {
+    "url": "https://github.com/seasonedcc/seasoned-skills/issues"
+  },
+  "license": "MIT",
+  "author": "Seasoned (https://seasoned.cc)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seasonedcc/seasoned-skills.git"
+  },
+  "type": "module",
+  "bin": {
+    "seasoned-skills": "./dist/cli/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "content",
+    "runtime"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:golden": "vitest run --project golden",
+    "tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.10",
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "jiti": "^2.7.0"
+  }
+}
