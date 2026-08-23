@@ -607,9 +607,15 @@
               known residual hazards &mdash; the things only this project could
               know &mdash; stay in the content file, and the generic text is
               written so the project section slots in naturally beside it.
-              Machine-local facts &mdash; true of one machine, not of the project
-              &mdash; go in a gitignored local companion to the content file,
-              woven identically, on the same pattern as local settings files.
+              Facts about one machine get no structure of their own &mdash;
+              deliberately: the cases found in the wild dissolve into
+              conditional discipline in the package&rsquo;s text (&ldquo;when
+              the host behaves like this, do that&rdquo;), applied by observing
+              the host at hand, and a parallel tree of per-machine content files
+              would buy that one case at the price of complexity and drift. If
+              a genuinely machine-bound instruction ever needs a durable home,
+              that is a package demand like any other &mdash; an issue, shaped
+              when it is real.
             </p>
           </div>
         </details>
