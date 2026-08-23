@@ -3,8 +3,8 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import { loadConfig } from '../config/load.js'
-import { corpusBuiltBy, corpusCacheRoot } from '../corpus/cache.js'
 import { buildCorpus } from '../corpus/build.js'
+import { corpusBuiltBy, corpusCacheRoot } from '../corpus/cache.js'
 import { deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
@@ -114,7 +114,9 @@ export function buildProgram(): Command {
     .action((options: { book?: string; force?: boolean }) => {
       try {
         buildCorpus(corpusCacheRoot(), options)
-        console.log(`Corpus built at ${corpusCacheRoot()}. Run \`seasoned-skills sync\` in each project to weave it in.`)
+        console.log(
+          `Corpus built at ${corpusCacheRoot()}. Run \`seasoned-skills sync\` in each project to weave it in.`,
+        )
       } catch (error) {
         console.error((error as Error).message)
         process.exitCode = 1
