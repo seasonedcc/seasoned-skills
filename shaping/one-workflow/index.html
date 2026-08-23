@@ -229,6 +229,27 @@
               The registry of documents is the folder itself, derived by
               scanning &mdash; nothing to maintain, nothing to drift.
             </p>
+            <p>
+              The meeting-requests practice splits the same way. Its data folder
+              &mdash; the meeting records, the source assets and their manifest,
+              the stakeholders file &mdash; is committed project content,
+              scaffolded by the install and owned by the project forever. The
+              machinery that today lives inside that folder moves out: the
+              verbatim-quote verifier is generated into the gitignored tree like
+              every other script, and the stylesheet the committed meeting pages
+              load follows the document-assets rule &mdash; generated,
+              gitignored, evolving append-only under the same
+              keep-old-pages-rendering contract. The manifest&rsquo;s schema is
+              package-owned surface, versioned with the verifier that reads it;
+              the manifest&rsquo;s contents are project data. Where the
+              recordings live is a fact about a machine, never about the
+              project, so it has no committed configuration at all &mdash; only
+              the personal, gitignored local file, the same species as personal
+              settings, which the skill documents and asks for when missing.
+              The transcription toolchain the practice depends on is pinned by
+              the package and checked by doctor, so a transcript comes out the
+              same on every machine.
+            </p>
           </div>
         </details>
         <details class="technical" open>
