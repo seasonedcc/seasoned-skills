@@ -207,6 +207,28 @@
               covers the machine: the binaries and services the enabled workflow
               needs, the same list the doctor subcommand checks mechanically.
             </p>
+            <p>
+              The shaping practice&rsquo;s scaffolding follows the same rules as
+              everything else, with no special files. The install creates the
+              shaping folder, and the document assets &mdash; the stylesheet,
+              the document script, the drawing library that committed documents
+              load by relative path &mdash; are generated and gitignored like
+              every other generated file: reading a document from a fresh clone
+              means installing first, the same requirement the rest of the
+              workflow already carries. Because committed documents outlive
+              package versions, the assets are a compatibility surface: an
+              upgrade must keep every previously committed document rendering
+              correctly &mdash; the class vocabulary and drawing interface
+              evolve append-only, and the package&rsquo;s generation tests
+              render an old fixture document against the new assets to pin it.
+              Standing project principles &mdash; the rulings that bind every
+              session in a repository &mdash; are regular injection, not a
+              hardcoded file with a hardcoded name: the shaping skill reads
+              them from its own project-content section, and the
+              meeting-requests skill does the same with its house doctrine.
+              The registry of documents is the folder itself, derived by
+              scanning &mdash; nothing to maintain, nothing to drift.
+            </p>
           </div>
         </details>
         <details class="technical" open>
