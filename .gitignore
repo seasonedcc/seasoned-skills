@@ -1,2 +1,31 @@
 .DS_Store
 .claude/skills/shaping/references/
+node_modules/
+dist/
+coverage/
+# >>> seasoned-skills (managed block, do not edit) >>>
+.claude/hooks/block-git-stash.sh
+.claude/hooks/isolation-guard.sh
+.claude/hooks/session-end-sweep.sh
+.claude/seasoned-skills-manifest.json
+.claude/skills/demo-videos/
+.claude/skills/main-sync/
+.claude/skills/orchestration/
+.claude/skills/post-review/
+.claude/skills/pr-review/
+.claude/skills/quick/
+.claude/skills/release/
+.claude/skills/requests-from-meetings/
+.claude/skills/review-fixes/
+.claude/skills/seasoned-skills/
+.claude/skills/self-improvement/
+.claude/skills/shaping/
+.claude/skills/skill-management/
+.claude/skills/subagents/
+.claude/skills/testing/
+.claude/skills/worktrees/
+.claude/statusline.sh
+CLAUDE.md
+requests-from-meetings/assets/style.css
+shaping/assets/
+# <<< seasoned-skills <<<
