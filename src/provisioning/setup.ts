@@ -144,13 +144,30 @@ function ensureWorktree({
     )
   }
   mkdirSync(dirname(worktreePath), { recursive: true })
-  if (
-    gitSucceeds(['rev-parse', '--verify', '--quiet', `refs/heads/${branchName}`], {
-      cwd: repositoryPath,
-    })
-  ) {
+  const localBranchExists = gitSucceeds(
+    ['rev-parse', '--verify', '--quiet', `refs/heads/${branchName}`],
+    { cwd: repositoryPath },
+  )
+  const originBranch = `origin/${branchName}`
+  const originBranchExists = gitSucceeds(
+    ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${branchName}`],
+    { cwd: repositoryPath },
+  )
+  if (localBranchExists) {
+    if (originBranchExists && localBranchIsStrictlyBehind(repositoryPath, branchName)) {
+      git(['branch', '--force', branchName, originBranch], { cwd: repositoryPath })
+      log(`fast-forwarded stale local branch ${branchName} to ${originBranch}`)
+    }
     git(['worktree', 'add', worktreePath, branchName], { cwd: repositoryPath })
     log(`created worktree at ${worktreePath} on existing branch ${branchName}`)
+    return
+  }
+  if (originBranchExists) {
+    git(['branch', '--no-track', branchName, originBranch], { cwd: repositoryPath })
+    git(['worktree', 'add', worktreePath, branchName], { cwd: repositoryPath })
+    log(
+      `created worktree at ${worktreePath} on branch ${branchName} adopted from ${originBranch}`,
+    )
     return
   }
   git(['worktree', 'add', '-b', branchName, worktreePath, baseReference], {
@@ -159,6 +176,19 @@ function ensureWorktree({
   log(
     `created worktree at ${worktreePath} on new branch ${branchName} from ${baseReference}`,
   )
+}
+
+function localBranchIsStrictlyBehind(repositoryPath: string, branchName: string) {
+  const localTip = git(['rev-parse', `refs/heads/${branchName}`], {
+    cwd: repositoryPath,
+  })
+  const originTip = git(['rev-parse', `refs/remotes/origin/${branchName}`], {
+    cwd: repositoryPath,
+  })
+  if (localTip === originTip) return false
+  return gitSucceeds(['merge-base', '--is-ancestor', localTip, originTip], {
+    cwd: repositoryPath,
+  })
 }
 
 function worktreesRoot(repositoryPath: string) {
