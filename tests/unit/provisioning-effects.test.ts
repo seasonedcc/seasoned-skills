@@ -236,7 +236,8 @@ describe('killLanePortListeners', () => {
     rmSync(root, { recursive: true, force: true })
   })
 
-  // Spawning two node children can take a while on a loaded machine.
+  // A node child can take seconds to reach its first output while the rest of
+  // the suite churns through processes, so the two start side by side.
   it('kills only listeners running from inside the lane worktrees', {
     timeout: 30_000,
   }, async () => {
@@ -244,8 +245,10 @@ describe('killLanePortListeners', () => {
     const elsewhere = join(root, 'elsewhere')
     mkdirSync(lane, { recursive: true })
     mkdirSync(elsewhere, { recursive: true })
-    const inside = await spawnListener(lane)
-    const stranger = await spawnListener(elsewhere)
+    const [inside, stranger] = await Promise.all([
+      spawnListener(lane),
+      spawnListener(elsewhere),
+    ])
     try {
       const killed = killLanePortListeners([inside.port, stranger.port], [lane])
       expect(killed).toEqual([inside.child.pid])

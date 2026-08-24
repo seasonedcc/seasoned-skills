@@ -108,7 +108,9 @@ describe('the CLI program', () => {
       cwd: root,
     })
 
-    await run('provision', 'my-lane', '--repo', '.', '--repo', '../engine')
+    // The undeclared path comes first: a collector that kept only the last
+    // value would carry "." alone and never reach this error.
+    await run('provision', 'my-lane', '--repo', '../engine', '--repo', '.')
 
     expect(process.exitCode).toBe(1)
     expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(

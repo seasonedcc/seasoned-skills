@@ -17,6 +17,7 @@ import {
   resolveProvisioning,
 } from '../../src/provisioning/common.js'
 import { provisionLane, teardownLane } from '../../src/provisioning/index.js'
+import * as runtime from '../../src/provisioning/runtime.js'
 import { provisionLaneDatabases } from '../../src/provisioning/setup.js'
 import {
   readTemplateFingerprint,
@@ -351,6 +352,179 @@ describe('the repositories a lane covers', () => {
     expect(alone.ports.app).toBeGreaterThanOrEqual(5700)
   })
 
+  it('pools the ports of every covered repository, equal bases and all', async () => {
+    const sameBases = {
+      repositories: [
+        { path: '.', portBases: { app: 5800 } },
+        { path: '../engine', portBases: { engine: 5800 } },
+      ],
+    }
+
+    const result = await provisionLane(project, sameBases, 'pooled-lane', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    expect(result.ports.app).toBeGreaterThanOrEqual(5800)
+    expect(result.ports.engine).not.toBe(result.ports.app)
+  })
+
+  it("seeds each covered repository's env file from its own main checkout", async () => {
+    writeFileSync(join(project, '.env'), 'PROJECT_SECRET=project-only\n')
+    writeFileSync(join(engine, '.env'), 'ENGINE_SECRET=engine-only\n')
+
+    await provisionLane(project, workspace, 'own-env', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    const projectEnv = readFileSync(join(root, 'project-worktrees/own-env/.env'), 'utf8')
+    const engineEnv = readFileSync(join(root, 'engine-worktrees/own-env/.env'), 'utf8')
+    expect(projectEnv).toContain('PROJECT_SECRET=project-only')
+    expect(projectEnv).not.toContain('ENGINE_SECRET')
+    expect(engineEnv).toContain('ENGINE_SECRET=engine-only')
+    expect(engineEnv).not.toContain('PROJECT_SECRET')
+  })
+
+  it('gives the lane one cache-store index, recorded by every repository asking for one', async () => {
+    // Nothing listens on this port: the flush degrades to a warning.
+    const cacheStoreUrl = 'redis://localhost:6399'
+    writeFileSync(join(project, '.env'), `REDIS_URL=${cacheStoreUrl}\n`)
+    writeFileSync(join(engine, '.env'), `REDIS_URL=${cacheStoreUrl}\n`)
+    const cached = {
+      repositories: [
+        { path: '.', cacheStoreIndex: true },
+        { path: '../engine', cacheStoreIndex: true },
+      ],
+    }
+
+    const result = await provisionLane(project, cached, 'cache-lane', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    const laneUrl = result.repositories[0]?.cacheStoreUrl
+    expect(laneUrl).toMatch(/^redis:\/\/localhost:6399\/([1-9]|1[0-4])$/)
+    expect(result.repositories[1]?.cacheStoreUrl).toBe(laneUrl)
+    expect(
+      readFileSync(join(root, 'project-worktrees/cache-lane/.env'), 'utf8'),
+    ).toContain(`REDIS_URL=${laneUrl}`)
+    expect(
+      readFileSync(join(root, 'engine-worktrees/cache-lane/.env'), 'utf8'),
+    ).toContain(`REDIS_URL=${laneUrl}`)
+  })
+
+  it("starts shared services from the main checkout, on the whole table's env", async () => {
+    // The URL lives in a repository this run does not cover, and the start
+    // command reports the directory it ran from.
+    writeFileSync(join(project, '.env'), 'CACHE_URL=redis://localhost:6399\n')
+    const shared = {
+      ...workspace,
+      services: ['cache'],
+      serviceStartCommand: 'pwd > started-from.txt; echo starting',
+    }
+
+    await provisionLane(project, shared, 'service-lane', {
+      repositoryPaths: ['../engine'],
+    })
+
+    expect(readFileSync(join(project, 'started-from.txt'), 'utf8')).toBe(`${project}\n`)
+    expect(existsSync(join(engine, 'started-from.txt'))).toBe(false)
+  })
+
+  it('flushes a fresh cache-store index once, before any repository runs a step', async () => {
+    writeFileSync(join(project, '.env'), 'REDIS_URL=redis://localhost:6399\n')
+    writeFileSync(join(engine, '.env'), 'REDIS_URL=redis://localhost:6399\n')
+    const cached = {
+      repositories: [
+        { path: '.', cacheStoreIndex: true, provisionSteps: ['touch step-ran.txt'] },
+        { path: '../engine', cacheStoreIndex: true },
+      ],
+    }
+    const stepMarker = join(root, 'project-worktrees/flush-lane/step-ran.txt')
+    const flushed: { url: string; afterAStep: boolean }[] = []
+    vi.spyOn(runtime, 'flushCacheStore').mockImplementation((url) => {
+      flushed.push({ url, afterAStep: existsSync(stepMarker) })
+    })
+
+    const result = await provisionLane(project, cached, 'flush-lane', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    expect(flushed).toEqual([
+      { url: result.repositories[0]?.cacheStoreUrl, afterAStep: false },
+    ])
+    expect(existsSync(stepMarker)).toBe(true)
+  })
+
+  it('steers a later run around the ports the lane already holds elsewhere', async () => {
+    const sameBases = {
+      repositories: [
+        { path: '.', portBases: { app: 5900 } },
+        { path: '../engine', portBases: { engine: 5900 } },
+      ],
+    }
+    const first = await provisionLane(project, sameBases, 'two-run-lane')
+
+    const second = await provisionLane(project, sameBases, 'two-run-lane', {
+      repositoryPaths: ['../engine'],
+    })
+
+    expect(second.ports.engine).not.toBe(first.ports.app)
+    expect(
+      readFileSync(join(root, 'project-worktrees/two-run-lane/.env'), 'utf8'),
+    ).toContain(`APP=${first.ports.app}`)
+  })
+
+  it('keeps clear of a sibling lane serving a port in an uncovered repository', async () => {
+    const sameBases = {
+      repositories: [
+        { path: '.', portBases: { app: 6200 } },
+        { path: '../engine', portBases: { engine: 6200 } },
+      ],
+    }
+    const target = await provisionLane(project, sameBases, 'target-lane')
+    const claimed = target.ports.app as number
+    await teardownLane(project, sameBases, 'target-lane', { force: true })
+    // A sibling lane serving the very port this lane's hash points at, in the
+    // repository the next run does not cover.
+    await provisionLane(project, sameBases, 'neighbour-lane', {
+      repositoryPaths: ['../engine'],
+    })
+    const neighbourEnv = join(root, 'engine-worktrees/neighbour-lane/.env')
+    writeFileSync(
+      neighbourEnv,
+      readFileSync(neighbourEnv, 'utf8').replace(/ENGINE=.*/, `ENGINE=${claimed}`),
+    )
+
+    const again = await provisionLane(project, sameBases, 'target-lane')
+
+    expect(again.ports.app).not.toBe(claimed)
+  })
+
+  it('keeps clear of a sibling lane holding a cache-store index in an uncovered repository', async () => {
+    writeFileSync(join(project, '.env'), 'REDIS_URL=redis://localhost:6399\n')
+    writeFileSync(join(engine, '.env'), 'REDIS_URL=redis://localhost:6399\n')
+    const cached = {
+      repositories: [
+        { path: '.', cacheStoreIndex: true },
+        { path: '../engine', cacheStoreIndex: true },
+      ],
+    }
+    const target = await provisionLane(project, cached, 'index-lane')
+    const claimed = target.repositories[0]?.cacheStoreUrl as string
+    await teardownLane(project, cached, 'index-lane', { force: true })
+    await provisionLane(project, cached, 'neighbour-lane', {
+      repositoryPaths: ['../engine'],
+    })
+    const neighbourEnv = join(root, 'engine-worktrees/neighbour-lane/.env')
+    writeFileSync(
+      neighbourEnv,
+      readFileSync(neighbourEnv, 'utf8').replace(/REDIS_URL=.*/, `REDIS_URL=${claimed}`),
+    )
+
+    const again = await provisionLane(project, cached, 'index-lane')
+
+    expect(again.repositories[0]?.cacheStoreUrl).not.toBe(claimed)
+  })
+
   it('keeps the ports a live lane holds when a repository joins it later', async () => {
     const first = await provisionLane(project, workspace, 'grown-lane')
     // A port the lane holds is the lane's, whatever the hash would pick now.
@@ -386,6 +560,34 @@ describe('the repositories a lane covers', () => {
 
     expect(result.removedWorktrees).toEqual([join(root, 'project-worktrees/subset-lane')])
     expect(existsSync(join(root, 'project-worktrees/subset-lane'))).toBe(false)
+  })
+
+  it('tears a lane down past a declared repository it never reached', async () => {
+    // Port 1 refuses instantly: reaching for this server at all would abort
+    // the teardown of a lane that never touched the repository declaring it.
+    writeFileSync(
+      join(engine, '.env'),
+      'ENGINE_DATABASE_URL=postgres://user:pass@localhost:1/engine\n',
+    )
+    const withDatabases = {
+      repositories: [
+        { path: '.', portBases: { app: 6000 } },
+        {
+          path: '../engine',
+          migrateCommand: 'true',
+          databases: [{ name: 'engine' }],
+        },
+      ],
+    }
+    await provisionLane(project, withDatabases, 'lonely-lane')
+
+    const result = await teardownLane(project, withDatabases, 'lonely-lane', {
+      force: true,
+    })
+
+    expect(result.removedWorktrees).toEqual([join(root, 'project-worktrees/lonely-lane')])
+    expect(result.droppedDatabases).toEqual([])
+    expect(existsSync(join(root, 'project-worktrees/lonely-lane'))).toBe(false)
   })
 
   it('tears down every worktree a lane spread across', async () => {
