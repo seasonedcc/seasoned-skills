@@ -1,0 +1,3 @@
+## History rewrites and push forms in charters
+
+The permission classifier blocks subagents from `git commit --amend` and force-pushes, and sometimes blocks a bare `git push`. Charters therefore prescribe follow-up commits instead of history rewrites, and always the explicit push form — `git push origin <branch>`. A lane once stalled on an amend the classifier refused; the follow-up-commit shape landed the same content without a fight.
