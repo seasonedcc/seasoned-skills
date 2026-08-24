@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { RepositoryResource } from '../config/types.js'
 import {
   allocateCacheStoreIndex,
   assignPortPlan,
@@ -23,6 +24,7 @@ import {
   laneEnvValues,
   laneEnvValuesForFile,
   laneProcessesFromLsofOutput,
+  laneResourcePool,
   laneSlug,
   type PortPlan,
   parseLaneAllocation,
@@ -587,24 +589,32 @@ describe('repointLocalhostUrls', () => {
   })
 })
 
-const resolvedFixture = resolveProvisioning(
-  {
-    databases: [
-      {
-        name: 'development',
-        envKey: 'DATABASE_URL',
-        seeded: true,
-        derivedPatterns: ['{base}_w*', '{base}_unit*'],
-      },
-      { name: 'test', derivedPatterns: ['test_{base}', '{base}_gw*'] },
-    ],
-    portBases: PORT_BASES,
-    portBlocks: PORT_BLOCKS,
-    cacheStoreIndex: true,
-    repositories: [{ path: '.', migrateCommand: 'pnpm run db:migrate' }],
-  },
-  { databasePrefix: 'app_wt_' },
-)
+/** Resolve one repository entry the way the resource table does. */
+function resolveRepositoryEntry(repository: RepositoryResource) {
+  const [resolved] = resolveProvisioning(
+    { repositories: [repository] },
+    { databasePrefix: 'app_wt_' },
+  ).repositories
+  if (!resolved) throw new Error('the entry resolved to no repository')
+  return resolved
+}
+
+const repositoryFixture = resolveRepositoryEntry({
+  path: '.',
+  migrateCommand: 'pnpm run db:migrate',
+  databases: [
+    {
+      name: 'development',
+      envKey: 'DATABASE_URL',
+      seeded: true,
+      derivedPatterns: ['{base}_w*', '{base}_unit*'],
+    },
+    { name: 'test', derivedPatterns: ['test_{base}', '{base}_gw*'] },
+  ],
+  portBases: PORT_BASES,
+  portBlocks: PORT_BLOCKS,
+  cacheStoreIndex: true,
+})
 
 const allocationFixture: LaneAllocation = {
   ports: {
@@ -624,8 +634,8 @@ const allocationFixture: LaneAllocation = {
 }
 
 describe('laneEnvValues', () => {
-  it('records the whole allocation under the configured keys', () => {
-    expect(laneEnvValues(allocationFixture, resolvedFixture)).toEqual({
+  it("records the repository's whole slice under the configured keys", () => {
+    expect(laneEnvValues(allocationFixture, repositoryFixture)).toEqual({
       DATABASE_URL: 'postgresql://localhost:5432/app_wt_task_a_development',
       TEST_DATABASE_URL: 'postgresql://localhost:5432/app_wt_task_a_test',
       PORT: '4187',
@@ -640,16 +650,14 @@ describe('laneEnvValues', () => {
   })
 
   it('writes the cache-store URL under every configured key', () => {
-    const resolved = resolveProvisioning(
-      {
-        cacheStoreIndex: true,
-        cacheStoreEnvKeys: ['REDIS_URL', 'CELERY_URL'],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      cacheStoreIndex: true,
+      cacheStoreEnvKeys: ['REDIS_URL', 'CELERY_URL'],
+    })
     const values = laneEnvValues(
       { ports: {}, databaseUrls: {}, cacheStoreUrl: 'redis://localhost:6379/5' },
-      resolved,
+      repository,
     )
     expect(values).toEqual({
       REDIS_URL: 'redis://localhost:6379/5',
@@ -658,25 +666,25 @@ describe('laneEnvValues', () => {
   })
 
   it('refuses an allocation missing a declared resource', () => {
-    expect(() => laneEnvValues({ ports: {}, databaseUrls: {} }, resolvedFixture)).toThrow(
-      /no URL for database/,
-    )
+    expect(() =>
+      laneEnvValues({ ports: {}, databaseUrls: {} }, repositoryFixture),
+    ).toThrow(/no URL for database/)
   })
 })
 
 describe('parseLaneAllocation', () => {
   const contents = upsertEnvValues(
     'SESSION_SECRET=s\n',
-    laneEnvValues(allocationFixture, resolvedFixture),
+    laneEnvValues(allocationFixture, repositoryFixture),
   )
 
   it('round-trips the allocation through the managed block', () => {
-    expect(parseLaneAllocation(contents, resolvedFixture)).toEqual(allocationFixture)
+    expect(parseLaneAllocation(contents, repositoryFixture)).toEqual(allocationFixture)
   })
 
   it('treats a file without the marker as unallocated', () => {
-    expect(parseLaneAllocation('PORT=4187\n', resolvedFixture)).toBeNull()
-    expect(parseLaneAllocation('', resolvedFixture)).toBeNull()
+    expect(parseLaneAllocation('PORT=4187\n', repositoryFixture)).toBeNull()
+    expect(parseLaneAllocation('', repositoryFixture)).toBeNull()
   })
 
   it('refuses a marker with a managed key missing', () => {
@@ -684,16 +692,16 @@ describe('parseLaneAllocation', () => {
       .split('\n')
       .filter((line) => !line.startsWith('REDIS_URL='))
       .join('\n')
-    expect(() => parseLaneAllocation(broken, resolvedFixture)).toThrow(/REDIS_URL/)
+    expect(() => parseLaneAllocation(broken, repositoryFixture)).toThrow(/REDIS_URL/)
   })
 
   it('is the idempotency sentinel: a re-run parses back the same allocation', () => {
     const rewritten = upsertEnvValues(
       contents,
-      laneEnvValues(allocationFixture, resolvedFixture),
+      laneEnvValues(allocationFixture, repositoryFixture),
     )
     expect(rewritten).toBe(contents)
-    expect(parseLaneAllocation(rewritten, resolvedFixture)).toEqual(allocationFixture)
+    expect(parseLaneAllocation(rewritten, repositoryFixture)).toEqual(allocationFixture)
   })
 })
 
@@ -1080,37 +1088,13 @@ describe('shared-service probing', () => {
 })
 
 describe('resolveProvisioning', () => {
-  it('applies every default', () => {
+  it('applies every lane-wide default, over one resource-less repository', () => {
     const resolved = resolveProvisioning(undefined, { databasePrefix: 'app_wt_' })
     expect(resolved.databasePrefix).toBe('app_wt_')
-    expect(resolved.envFile).toBe('.env')
-    expect(resolved.repositories).toEqual([{ path: '.' }])
-    expect(resolved.databases).toEqual([])
-    expect(resolved.portBases).toEqual({})
-    expect(resolved.portBlocks).toEqual({})
-    expect(resolved.templateCaching).toBe(false)
-    expect(resolved.cacheStoreIndex).toBe(false)
-    expect(resolved.cacheStoreEnvKeys).toEqual(['REDIS_URL'])
+    expect(resolved.services).toEqual([])
     expect(resolved.serviceStartCommand).toBe('docker compose up -d')
     expect(resolved.laneProcessCommands).toContain('node')
-  })
-
-  it('defaults database env keys and seeded flags', () => {
-    const resolved = resolveProvisioning(
-      {
-        databases: [{ name: 'development' }],
-        repositories: [{ path: '.', migrateCommand: 'make migrate' }],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
-    expect(resolved.databases).toEqual([
-      {
-        name: 'development',
-        envKey: 'DEVELOPMENT_DATABASE_URL',
-        seeded: false,
-        derivedPatterns: [],
-      },
-    ])
+    expect(resolved.repositories.map((repository) => repository.path)).toEqual(['.'])
   })
 
   it('keeps a declared databasePrefix over the default', () => {
@@ -1127,55 +1111,171 @@ describe('resolveProvisioning', () => {
     ).toThrow(/end with an underscore/)
   })
 
+  it('keeps every declared repository, in declaration order', () => {
+    const resolved = resolveProvisioning(
+      {
+        repositories: [
+          { path: '.', portBases: { app: 4100 } },
+          { path: '../engine', provisionSteps: ['go mod download'] },
+        ],
+      },
+      { databasePrefix: 'app_wt_' },
+    )
+    expect(resolved.repositories.map((repository) => repository.path)).toEqual([
+      '.',
+      '../engine',
+    ])
+    expect(resolved.repositories[1]?.provisionSteps).toEqual(['go mod download'])
+  })
+
+  it('rejects the same repository path declared twice', () => {
+    expect(() =>
+      resolveProvisioning(
+        { repositories: [{ path: '.' }, { path: '.' }] },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/repository "\." is declared twice/)
+  })
+})
+
+describe('resolveProvisioning repository entries', () => {
+  it('applies every entry-level default', () => {
+    const repository = resolveRepositoryEntry({ path: '.' })
+    expect(repository.envFile).toBe('.env')
+    expect(repository.provisionSteps).toEqual([])
+    expect(repository.databases).toEqual([])
+    expect(repository.portBases).toEqual({})
+    expect(repository.portBlocks).toEqual({})
+    expect(repository.templateCaching).toBe(false)
+    expect(repository.cacheStoreIndex).toBe(false)
+    expect(repository.cacheStoreEnvKeys).toEqual(['REDIS_URL'])
+    expect(repository.migrationSources).toEqual([])
+    expect(repository.seedSources).toEqual([])
+  })
+
+  it('defaults database env keys and seeded flags', () => {
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      migrateCommand: 'make migrate',
+      databases: [{ name: 'development' }],
+    })
+    expect(repository.databases).toEqual([
+      {
+        name: 'development',
+        envKey: 'DEVELOPMENT_DATABASE_URL',
+        seeded: false,
+        derivedPatterns: [],
+      },
+    ])
+  })
+
   it('rejects a duplicate or malformed database resource', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          databases: [{ name: 'development' }, { name: 'development' }],
-          repositories: [{ path: '.', migrateCommand: 'make migrate' }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
-    ).toThrow(/declared twice/)
+      resolveRepositoryEntry({
+        path: '.',
+        migrateCommand: 'make migrate',
+        databases: [{ name: 'development' }, { name: 'development' }],
+      }),
+    ).toThrow(/declares the database resource "development" twice/)
     expect(() =>
-      resolveProvisioning(
-        {
-          databases: [{ name: 'Weird-Name' }],
-          repositories: [{ path: '.', migrateCommand: 'make migrate' }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        migrateCommand: 'make migrate',
+        databases: [{ name: 'Weird-Name' }],
+      }),
     ).toThrow(/lowercase slug/)
   })
 
   it('rejects port blocks that name no declared port or carry a bad span', () => {
     expect(() =>
-      resolveProvisioning(
-        { portBases: { port: 4100 }, portBlocks: { testPort: 4 } },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100 },
+        portBlocks: { testPort: 4 },
+      }),
     ).toThrow(/portBases does not declare/)
     expect(() =>
-      resolveProvisioning(
-        { portBases: { port: 4100 }, portBlocks: { port: 0 } },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100 },
+        portBlocks: { port: 0 },
+      }),
     ).toThrow(/positive integer/)
   })
 
-  it('requires migration sources for template caching', () => {
+  it('requires migration sources on the entry that turns template caching on', () => {
     expect(() =>
-      resolveProvisioning({ templateCaching: true }, { databasePrefix: 'app_wt_' }),
-    ).toThrow(/migrationSources/)
+      resolveRepositoryEntry({ path: '../engine', templateCaching: true }),
+    ).toThrow(/"\.\.\/engine" turns templateCaching on but declares no migrationSources/)
   })
 
-  it('requires a primary migrate command when the lane owns databases', () => {
+  it('requires a migrate command on the entry that owns databases', () => {
     expect(() =>
-      resolveProvisioning(
-        { databases: [{ name: 'development' }] },
-        { databasePrefix: 'app_wt_' },
-      ),
-    ).toThrow(/migrateCommand/)
+      resolveRepositoryEntry({ path: '../engine', databases: [{ name: 'development' }] }),
+    ).toThrow(/"\.\.\/engine" must declare migrateCommand/)
+  })
+
+  it('lets a resource-less entry declare only its provision steps', () => {
+    const repository = resolveRepositoryEntry({
+      path: '../lambdas',
+      provisionSteps: ['corepack enable', 'yarn install'],
+    })
+    expect(repository.provisionSteps).toEqual(['corepack enable', 'yarn install'])
+    expect(repository.databases).toEqual([])
+    expect(repository.portBases).toEqual({})
+  })
+})
+
+describe('laneResourcePool', () => {
+  const web = resolveRepositoryEntry({
+    path: '.',
+    portBases: { webPort: 4100, testPort: 5100 },
+    portBlocks: { testPort: E2E_WORKER_COUNT },
+    migrateCommand: 'pnpm migrate',
+    databases: [{ name: 'development' }],
+  })
+  const engine = resolveRepositoryEntry({
+    path: '../engine',
+    portBases: { enginePort: 6100 },
+    migrateCommand: 'go run ./cmd/migrate',
+    databases: [{ name: 'engine' }],
+  })
+
+  it('pools the ports and blocks of every repository the lane covers', () => {
+    expect(laneResourcePool([web, engine])).toEqual({
+      portBases: { webPort: 4100, testPort: 5100, enginePort: 6100 },
+      portBlocks: { testPort: E2E_WORKER_COUNT },
+    })
+  })
+
+  it('pools nothing for a selection that declares no resources', () => {
+    expect(laneResourcePool([resolveRepositoryEntry({ path: '../lambdas' })])).toEqual({
+      portBases: {},
+      portBlocks: {},
+    })
+  })
+
+  it('refuses a port name two covered repositories both declare', () => {
+    const other = resolveRepositoryEntry({ path: '../api', portBases: { webPort: 7100 } })
+    expect(() => laneResourcePool([web, other])).toThrow(
+      /"\." and "\.\.\/api" both declare the port "webPort"/,
+    )
+  })
+
+  it('refuses a database name two covered repositories both declare', () => {
+    const other = resolveRepositoryEntry({
+      path: '../api',
+      migrateCommand: 'alembic upgrade head',
+      databases: [{ name: 'development' }],
+    })
+    expect(() => laneResourcePool([web, other])).toThrow(
+      /"\." and "\.\.\/api" both declare the database "development"/,
+    )
+  })
+
+  it('leaves repositories that never share a lane free to reuse a name', () => {
+    const other = resolveRepositoryEntry({ path: '../api', portBases: { webPort: 7100 } })
+    expect(laneResourcePool([other]).portBases).toEqual({ webPort: 7100 })
   })
 })
 
@@ -1185,34 +1285,32 @@ describe('resolveProvisioning', () => {
  * block) in the nested test-environment file, and each file carries
  * DATABASE_URL pointing at a different lane database.
  */
-const twoFileResolved = resolveProvisioning(
-  {
-    databases: [
-      { name: 'development', envKey: 'DATABASE_URL', seeded: true },
-      { name: 'test', envKey: 'DATABASE_URL' },
-    ],
-    portBases: { port: 4100, maildevPort: 11100, testPort: 5100, testMaildevPort: 13100 },
-    portBlocks: { testPort: E2E_WORKER_COUNT },
-    cacheStoreIndex: true,
-    repositories: [{ path: '.', migrateCommand: 'pnpm run db:migrate' }],
-    envFiles: [
-      {
-        path: '.env',
-        databases: ['development'],
-        ports: { PORT: 'port', MAILDEV_PORT: 'maildevPort' },
-        cacheStore: true,
-        extra: { TELEMETRY_ENABLED: 'false' },
-      },
-      {
-        path: 'apps/web/.env.test',
-        databases: ['test'],
-        ports: { PORT: 'testPort', MAILDEV_PORT: 'testMaildevPort' },
-        extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}', LANE: '{slug}' },
-      },
-    ],
-  },
-  { databasePrefix: 'app_wt_' },
-)
+const twoFileRepository = resolveRepositoryEntry({
+  path: '.',
+  migrateCommand: 'pnpm run db:migrate',
+  databases: [
+    { name: 'development', envKey: 'DATABASE_URL', seeded: true },
+    { name: 'test', envKey: 'DATABASE_URL' },
+  ],
+  portBases: { port: 4100, maildevPort: 11100, testPort: 5100, testMaildevPort: 13100 },
+  portBlocks: { testPort: E2E_WORKER_COUNT },
+  cacheStoreIndex: true,
+  envFiles: [
+    {
+      path: '.env',
+      databases: ['development'],
+      ports: { PORT: 'port', MAILDEV_PORT: 'maildevPort' },
+      cacheStore: true,
+      extra: { TELEMETRY_ENABLED: 'false' },
+    },
+    {
+      path: 'apps/web/.env.test',
+      databases: ['test'],
+      ports: { PORT: 'testPort', MAILDEV_PORT: 'testMaildevPort' },
+      extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}', LANE: '{slug}' },
+    },
+  ],
+})
 
 const twoFileAllocation: LaneAllocation = {
   ports: { port: 4187, maildevPort: 11187, testPort: 5187, testMaildevPort: 13187 },
@@ -1225,10 +1323,10 @@ const twoFileAllocation: LaneAllocation = {
 
 describe('resolveProvisioning envFiles', () => {
   it('synthesizes one entry equivalent to the single-file behavior when absent', () => {
-    expect(resolvedFixture.envFiles).toEqual([
+    expect(repositoryFixture.envFiles).toEqual([
       {
         path: '.env',
-        databases: resolvedFixture.databases,
+        databases: repositoryFixture.databases,
         ports: {
           PORT: 'port',
           HMR_PORT: 'hmrPort',
@@ -1245,24 +1343,19 @@ describe('resolveProvisioning envFiles', () => {
   })
 
   it('synthesizes the entry at the configured envFile path', () => {
-    const resolved = resolveProvisioning(
-      { envFile: 'apps/web/.env' },
-      { databasePrefix: 'app_wt_' },
-    )
-    expect(resolved.envFiles).toEqual([
+    const repository = resolveRepositoryEntry({ path: '.', envFile: 'apps/web/.env' })
+    expect(repository.envFiles).toEqual([
       { path: 'apps/web/.env', databases: [], ports: {}, cacheStore: true, extra: {} },
     ])
   })
 
   it('resolves declared entries, applying every default', () => {
-    const resolved = resolveProvisioning(
-      {
-        portBases: { port: 4100 },
-        envFiles: [{ path: '.env', ports: { PORT: 'port' } }],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
-    expect(resolved.envFiles).toEqual([
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      portBases: { port: 4100 },
+      envFiles: [{ path: '.env', ports: { PORT: 'port' } }],
+    })
+    expect(repository.envFiles).toEqual([
       {
         path: '.env',
         databases: [],
@@ -1274,131 +1367,118 @@ describe('resolveProvisioning envFiles', () => {
   })
 
   it('resolves the two-file table, listing each file its own databases', () => {
-    expect(twoFileResolved.envFiles.map((file) => file.path)).toEqual([
+    expect(twoFileRepository.envFiles.map((file) => file.path)).toEqual([
       '.env',
       'apps/web/.env.test',
     ])
     expect(
-      twoFileResolved.envFiles.map((file) =>
+      twoFileRepository.envFiles.map((file) =>
         file.databases.map((database) => database.name),
       ),
     ).toEqual([['development'], ['test']])
   })
 
   it('rejects an empty list', () => {
-    expect(() =>
-      resolveProvisioning({ envFiles: [] }, { databasePrefix: 'app_wt_' }),
-    ).toThrow(/at least one file/)
+    expect(() => resolveRepositoryEntry({ path: '.', envFiles: [] })).toThrow(
+      /at least one file/,
+    )
   })
 
   it('rejects a path declared twice', () => {
     expect(() =>
-      resolveProvisioning(
-        { envFiles: [{ path: '.env' }, { path: '.env' }] },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        envFiles: [{ path: '.env' }, { path: '.env' }],
+      }),
     ).toThrow(/declares "\.env" twice/)
   })
 
   it('rejects a file naming an undeclared database', () => {
     expect(() =>
-      resolveProvisioning(
-        { envFiles: [{ path: '.env', databases: ['development'] }] },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        envFiles: [{ path: '.env', databases: ['development'] }],
+      }),
     ).toThrow(/no database resource declares it/)
   })
 
   it('rejects a declared database listed in no file', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          databases: [{ name: 'development' }],
-          repositories: [{ path: '.', migrateCommand: 'make migrate' }],
-          envFiles: [{ path: '.env' }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        migrateCommand: 'make migrate',
+        databases: [{ name: 'development' }],
+        envFiles: [{ path: '.env' }],
+      }),
     ).toThrow(/listed in no envFiles entry/)
   })
 
   it('rejects a port entry naming an undeclared port', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          portBases: { port: 4100 },
-          envFiles: [{ path: '.env', ports: { PORT: 'port', TEST_PORT: 'testPort' } }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100 },
+        envFiles: [{ path: '.env', ports: { PORT: 'port', TEST_PORT: 'testPort' } }],
+      }),
     ).toThrow(/portBases does not declare it/)
   })
 
   it('rejects a declared port mapped in no file', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          portBases: { port: 4100, testPort: 5100 },
-          envFiles: [{ path: '.env', ports: { PORT: 'port' } }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100, testPort: 5100 },
+        envFiles: [{ path: '.env', ports: { PORT: 'port' } }],
+      }),
     ).toThrow(/mapped in no envFiles entry/)
   })
 
   it('rejects cacheStoreIndex with no file carrying the cache store', () => {
     expect(() =>
-      resolveProvisioning(
-        { cacheStoreIndex: true, envFiles: [{ path: '.env' }] },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        cacheStoreIndex: true,
+        envFiles: [{ path: '.env' }],
+      }),
     ).toThrow(/carries cacheStore/)
   })
 
   it('rejects env keys that could not be parsed back', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          portBases: { port: 4100 },
-          envFiles: [{ path: '.env', ports: { appPort: 'port' } }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100 },
+        envFiles: [{ path: '.env', ports: { appPort: 'port' } }],
+      }),
     ).toThrow(/SCREAMING_SNAKE_CASE/)
     expect(() =>
-      resolveProvisioning(
-        {
-          portBases: { port: 4100 },
-          envFiles: [
-            { path: '.env', ports: { PORT: 'port' }, extra: { 'weird-key': 'x' } },
-          ],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100 },
+        envFiles: [
+          { path: '.env', ports: { PORT: 'port' }, extra: { 'weird-key': 'x' } },
+        ],
+      }),
     ).toThrow(/SCREAMING_SNAKE_CASE/)
   })
 
   it('rejects a file writing the same env key twice', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          portBases: { port: 4100 },
-          envFiles: [{ path: '.env', ports: { PORT: 'port' }, extra: { PORT: '9999' } }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        portBases: { port: 4100 },
+        envFiles: [{ path: '.env', ports: { PORT: 'port' }, extra: { PORT: '9999' } }],
+      }),
     ).toThrow(/writes env key "PORT" more than once/)
   })
 
   it('rejects a cacheStore file whose other entries collide with the cache env keys', () => {
     expect(() =>
-      resolveProvisioning(
-        {
-          cacheStoreIndex: true,
-          envFiles: [{ path: '.env', cacheStore: true, extra: { REDIS_URL: 'x' } }],
-        },
-        { databasePrefix: 'app_wt_' },
-      ),
+      resolveRepositoryEntry({
+        path: '.',
+        cacheStoreIndex: true,
+        envFiles: [{ path: '.env', cacheStore: true, extra: { REDIS_URL: 'x' } }],
+      }),
     ).toThrow(/writes env key "REDIS_URL" more than once/)
   })
 })
@@ -1416,14 +1496,14 @@ describe('replaceSlugTokens', () => {
 })
 
 describe('laneEnvValuesForFile', () => {
-  const [devFile, testFile] = twoFileResolved.envFiles as [
-    (typeof twoFileResolved.envFiles)[number],
-    (typeof twoFileResolved.envFiles)[number],
+  const [devFile, testFile] = twoFileRepository.envFiles as [
+    (typeof twoFileRepository.envFiles)[number],
+    (typeof twoFileRepository.envFiles)[number],
   ]
 
   it("renders the dev file's slice: its database, its ports, cache, extras", () => {
     expect(
-      laneEnvValuesForFile(twoFileAllocation, twoFileResolved, devFile, 'task_a'),
+      laneEnvValuesForFile(twoFileAllocation, twoFileRepository, devFile, 'task_a'),
     ).toEqual({
       DATABASE_URL: 'postgresql://localhost:5432/app_wt_task_a_development',
       PORT: '4187',
@@ -1435,7 +1515,7 @@ describe('laneEnvValuesForFile', () => {
 
   it('remaps the same key names to the test allocations in the test file', () => {
     expect(
-      laneEnvValuesForFile(twoFileAllocation, twoFileResolved, testFile, 'task_a'),
+      laneEnvValuesForFile(twoFileAllocation, twoFileRepository, testFile, 'task_a'),
     ).toEqual({
       DATABASE_URL: 'postgresql://localhost:5432/app_wt_task_a_test',
       PORT: '5187',
@@ -1449,7 +1529,7 @@ describe('laneEnvValuesForFile', () => {
     expect(() =>
       laneEnvValuesForFile(
         { ...twoFileAllocation, ports: { port: 4187, maildevPort: 11187 } },
-        twoFileResolved,
+        twoFileRepository,
         testFile,
         'task_a',
       ),
@@ -1457,47 +1537,45 @@ describe('laneEnvValuesForFile', () => {
   })
 
   it('renders the synthesized single file identically to laneEnvValues', () => {
-    const [synthesized] = resolvedFixture.envFiles as [ResolvedEnvFile]
+    const [synthesized] = repositoryFixture.envFiles as [ResolvedEnvFile]
     expect(
-      laneEnvValuesForFile(allocationFixture, resolvedFixture, synthesized, 'task_a'),
-    ).toEqual(laneEnvValues(allocationFixture, resolvedFixture))
+      laneEnvValuesForFile(allocationFixture, repositoryFixture, synthesized, 'task_a'),
+    ).toEqual(laneEnvValues(allocationFixture, repositoryFixture))
   })
 })
 
 describe('parseLaneAllocationFromFiles', () => {
-  const contentsByFile = twoFileResolved.envFiles.map((file) =>
+  const contentsByFile = twoFileRepository.envFiles.map((file) =>
     upsertEnvValues(
       'SESSION_SECRET=s\n',
-      laneEnvValuesForFile(twoFileAllocation, twoFileResolved, file, 'task_a'),
+      laneEnvValuesForFile(twoFileAllocation, twoFileRepository, file, 'task_a'),
     ),
   )
 
   it('round-trips the allocation across the files, keys remapped per file', () => {
-    expect(parseLaneAllocationFromFiles(contentsByFile, twoFileResolved)).toEqual(
+    expect(parseLaneAllocationFromFiles(contentsByFile, twoFileRepository)).toEqual(
       twoFileAllocation,
     )
   })
 
   it('treats a lane with no marker in any file as unallocated', () => {
-    expect(parseLaneAllocationFromFiles([null, null], twoFileResolved)).toBeNull()
+    expect(parseLaneAllocationFromFiles([null, null], twoFileRepository)).toBeNull()
     expect(
-      parseLaneAllocationFromFiles(['PORT=4187\n', 'PORT=5187\n'], twoFileResolved),
+      parseLaneAllocationFromFiles(['PORT=4187\n', 'PORT=5187\n'], twoFileRepository),
     ).toBeNull()
   })
 
   it('parses from a later marked file when every value is recoverable', () => {
-    const resolved = resolveProvisioning(
-      {
-        portBases: { port: 4100 },
-        envFiles: [
-          { path: '.env', ports: { PORT: 'port' } },
-          { path: '.env.test', ports: { PORT: 'port' }, extra: { FOO: 'bar' } },
-        ],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      portBases: { port: 4100 },
+      envFiles: [
+        { path: '.env', ports: { PORT: 'port' } },
+        { path: '.env.test', ports: { PORT: 'port' }, extra: { FOO: 'bar' } },
+      ],
+    })
     const second = [ENV_MARKER, 'PORT=4187'].join('\n')
-    expect(parseLaneAllocationFromFiles([null, second], resolved)).toEqual({
+    expect(parseLaneAllocationFromFiles([null, second], repository)).toEqual({
       ports: { port: 4187 },
       databaseUrls: {},
     })
@@ -1505,64 +1583,58 @@ describe('parseLaneAllocationFromFiles', () => {
 
   it('complains when only a later file is marked and a value is unrecoverable', () => {
     expect(() =>
-      parseLaneAllocationFromFiles([null, contentsByFile[1]], twoFileResolved),
+      parseLaneAllocationFromFiles([null, contentsByFile[1]], twoFileRepository),
     ).toThrow(/fix or delete the managed blocks and re-run/)
   })
 
   it('complains when a missing later file leaves a value recorded nowhere', () => {
     expect(() =>
-      parseLaneAllocationFromFiles([contentsByFile[0], null], twoFileResolved),
+      parseLaneAllocationFromFiles([contentsByFile[0], null], twoFileRepository),
     ).toThrow(/fix or delete the managed blocks and re-run/)
   })
 
   it('tolerates a missing later file whose values are recorded elsewhere', () => {
-    const resolved = resolveProvisioning(
-      {
-        portBases: { port: 4100 },
-        envFiles: [
-          { path: '.env', ports: { PORT: 'port' } },
-          { path: '.env.test', ports: { PORT: 'port' }, extra: { FOO: 'bar' } },
-        ],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      portBases: { port: 4100 },
+      envFiles: [
+        { path: '.env', ports: { PORT: 'port' } },
+        { path: '.env.test', ports: { PORT: 'port' }, extra: { FOO: 'bar' } },
+      ],
+    })
     const first = [ENV_MARKER, 'PORT=4187'].join('\n')
-    expect(parseLaneAllocationFromFiles([first, null], resolved)).toEqual({
+    expect(parseLaneAllocationFromFiles([first, null], repository)).toEqual({
       ports: { port: 4187 },
       databaseUrls: {},
     })
   })
 
   it('complains when two files disagree about a recorded value', () => {
-    const resolved = resolveProvisioning(
-      {
-        portBases: { port: 4100 },
-        envFiles: [
-          { path: '.env', ports: { PORT: 'port' } },
-          { path: '.env.test', ports: { PORT: 'port' } },
-        ],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      portBases: { port: 4100 },
+      envFiles: [
+        { path: '.env', ports: { PORT: 'port' } },
+        { path: '.env.test', ports: { PORT: 'port' } },
+      ],
+    })
     const first = [ENV_MARKER, 'PORT=4187'].join('\n')
     const second = [ENV_MARKER, 'PORT=4188'].join('\n')
-    expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
+    expect(() => parseLaneAllocationFromFiles([first, second], repository)).toThrow(
       /disagree about the port "port"/,
     )
   })
 
   it('complains when two files disagree about a database URL', () => {
-    const resolved = resolveProvisioning(
-      {
-        databases: [{ name: 'development', envKey: 'DATABASE_URL' }],
-        repositories: [{ path: '.', migrateCommand: 'make migrate' }],
-        envFiles: [
-          { path: '.env', databases: ['development'] },
-          { path: '.env.test', databases: ['development'] },
-        ],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      migrateCommand: 'make migrate',
+      databases: [{ name: 'development', envKey: 'DATABASE_URL' }],
+      envFiles: [
+        { path: '.env', databases: ['development'] },
+        { path: '.env.test', databases: ['development'] },
+      ],
+    })
     const first = [
       ENV_MARKER,
       'DATABASE_URL=postgresql://localhost:5432/app_wt_a_development',
@@ -1571,25 +1643,23 @@ describe('parseLaneAllocationFromFiles', () => {
       ENV_MARKER,
       'DATABASE_URL=postgresql://localhost:5432/app_wt_b_development',
     ].join('\n')
-    expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
+    expect(() => parseLaneAllocationFromFiles([first, second], repository)).toThrow(
       /disagree about the URL for database "development"/,
     )
   })
 
   it('complains when two files disagree about the cache-store URL', () => {
-    const resolved = resolveProvisioning(
-      {
-        cacheStoreIndex: true,
-        envFiles: [
-          { path: '.env', cacheStore: true },
-          { path: '.env.worker', cacheStore: true },
-        ],
-      },
-      { databasePrefix: 'app_wt_' },
-    )
+    const repository = resolveRepositoryEntry({
+      path: '.',
+      cacheStoreIndex: true,
+      envFiles: [
+        { path: '.env', cacheStore: true },
+        { path: '.env.worker', cacheStore: true },
+      ],
+    })
     const first = [ENV_MARKER, 'REDIS_URL=redis://localhost:6379/3'].join('\n')
     const second = [ENV_MARKER, 'REDIS_URL=redis://localhost:6379/4'].join('\n')
-    expect(() => parseLaneAllocationFromFiles([first, second], resolved)).toThrow(
+    expect(() => parseLaneAllocationFromFiles([first, second], repository)).toThrow(
       /disagree about the cache-store URL/,
     )
   })
@@ -1600,15 +1670,15 @@ describe('parseLaneAllocationFromFiles', () => {
       .filter((line) => !line.startsWith('DATABASE_URL='))
       .join('\n')
     expect(() =>
-      parseLaneAllocationFromFiles([contentsByFile[0], broken], twoFileResolved),
+      parseLaneAllocationFromFiles([contentsByFile[0], broken], twoFileRepository),
     ).toThrow(/DATABASE_URL \(in apps\/web\/\.env\.test\)/)
   })
 })
 
 describe('portsClaimedByEnvFile', () => {
-  const [devFile, testFile] = twoFileResolved.envFiles as [
-    (typeof twoFileResolved.envFiles)[number],
-    (typeof twoFileResolved.envFiles)[number],
+  const [devFile, testFile] = twoFileRepository.envFiles as [
+    (typeof twoFileRepository.envFiles)[number],
+    (typeof twoFileRepository.envFiles)[number],
   ]
 
   it("claims under the file's own mapping, whole blocks included", () => {
@@ -1616,7 +1686,7 @@ describe('portsClaimedByEnvFile', () => {
       portsClaimedByEnvFile(
         { PORT: '5187', MAILDEV_PORT: '13187' },
         testFile,
-        twoFileResolved.portBlocks,
+        twoFileRepository.portBlocks,
       ).sort((first, second) => first - second),
     ).toEqual([5187, 5188, 5189, 5190, 13187])
   })
@@ -1626,7 +1696,7 @@ describe('portsClaimedByEnvFile', () => {
       portsClaimedByEnvFile(
         { PORT: '4187', MAILDEV_PORT: '11187' },
         devFile,
-        twoFileResolved.portBlocks,
+        twoFileRepository.portBlocks,
       ).sort((first, second) => first - second),
     ).toEqual([4187, 11187])
   })
@@ -1639,7 +1709,7 @@ describe('reservedPortsFromLaneEnvFiles', () => {
   it('unions every file of every lane; a colliding key contributes both values', () => {
     const reserved = reservedPortsFromLaneEnvFiles(
       [[devContents, testContents]],
-      twoFileResolved,
+      twoFileRepository,
     )
     expect([...reserved].sort((first, second) => first - second)).toEqual([
       4187, 5187, 5188, 5189, 5190, 11187, 13187,
@@ -1652,7 +1722,7 @@ describe('reservedPortsFromLaneEnvFiles', () => {
         [devContents, 'PORT=9999\nMAILDEV_PORT=9899'],
         [null, testContents],
       ],
-      twoFileResolved,
+      twoFileRepository,
     )
     expect([...reserved].sort((first, second) => first - second)).toEqual([
       4187, 5187, 5188, 5189, 5190, 11187, 13187,

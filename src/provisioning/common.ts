@@ -57,7 +57,7 @@ type ResolvedDatabase = {
 }
 
 type ResolvedEnvFile = {
-  /** Path relative to the primary repository's worktree. */
+  /** Path relative to the declaring repository's worktree. */
   path: string
   /** Declared database resources whose lane URLs this file carries. */
   databases: ResolvedDatabase[]
@@ -69,28 +69,36 @@ type ResolvedEnvFile = {
   extra: Record<string, string>
 }
 
-type ResolvedProvisioning = {
+/** One repository entry with every default applied — everything it owns in a lane. */
+type ResolvedRepository = {
+  path: string
+  provisionSteps: string[]
+  migrateCommand: string | undefined
+  seedCommand: string | undefined
   databases: ResolvedDatabase[]
   portBases: Record<string, number>
   portBlocks: Record<string, number>
-  services: string[]
-  /** At least one entry; the first is the primary repository. */
-  repositories: RepositoryResource[]
   templateCaching: boolean
   cacheStoreIndex: boolean
   cacheStoreEnvKeys: string[]
-  databasePrefix: string
   envFile: string
   /**
    * At least one entry; the absent case is synthesized as one file at
-   * `envFile` carrying the whole allocation, so downstream code has one code
-   * path over a list.
+   * `envFile` carrying this repository's whole slice, so downstream code has
+   * one code path over a list.
    */
   envFiles: ResolvedEnvFile[]
   migrationSources: string[]
   seedSources: string[]
-  seedDateTimezone: string | undefined
+}
+
+type ResolvedProvisioning = {
+  /** At least one entry, in declaration order; the first is the default selection. */
+  repositories: ResolvedRepository[]
+  services: string[]
   serviceStartCommand: string
+  databasePrefix: string
+  seedDateTimezone: string | undefined
   laneProcessCommands: string[]
 }
 
@@ -133,16 +141,45 @@ function resolveProvisioning(
       `databasePrefix "${databasePrefix}" must be lowercase alphanumeric/underscore and end with an underscore`,
     )
   }
-  const databases = (provisioning.databases ?? []).map(resolveDatabase)
+  const declared = provisioning.repositories?.length
+    ? provisioning.repositories
+    : [{ path: '.' }]
+  const seenPaths = new Set<string>()
+  for (const repository of declared) {
+    if (seenPaths.has(repository.path)) {
+      throw new Error(`repository "${repository.path}" is declared twice`)
+    }
+    seenPaths.add(repository.path)
+  }
+  return {
+    repositories: declared.map(resolveRepository),
+    services: provisioning.services ?? [],
+    serviceStartCommand:
+      provisioning.serviceStartCommand ?? DEFAULT_SERVICE_START_COMMAND,
+    databasePrefix,
+    seedDateTimezone: provisioning.seedDateTimezone,
+    laneProcessCommands:
+      provisioning.laneProcessCommands ?? DEFAULT_LANE_PROCESS_COMMANDS,
+  }
+}
+
+/**
+ * Normalize one repository entry. Every cross-field rule is an entry-level
+ * rule: what a repository declares, it declares whole.
+ */
+function resolveRepository(repository: RepositoryResource): ResolvedRepository {
+  const databases = (repository.databases ?? []).map(resolveDatabase)
   const seen = new Set<string>()
   for (const database of databases) {
     if (seen.has(database.name)) {
-      throw new Error(`database resource "${database.name}" is declared twice`)
+      throw new Error(
+        `repository "${repository.path}" declares the database resource "${database.name}" twice`,
+      )
     }
     seen.add(database.name)
   }
-  const portBases = provisioning.portBases ?? {}
-  const portBlocks = provisioning.portBlocks ?? {}
+  const portBases = repository.portBases ?? {}
+  const portBlocks = repository.portBlocks ?? {}
   for (const name of Object.keys(portBases)) {
     if (!PORT_NAME_PATTERN.test(name)) {
       throw new Error(`port name "${name}" must be camelCase alphanumeric`)
@@ -156,50 +193,84 @@ function resolveProvisioning(
       throw new Error(`portBlocks.${name} must be a positive integer`)
     }
   }
-  const repositories = provisioning.repositories?.length
-    ? provisioning.repositories
-    : [{ path: '.' }]
-  const templateCaching = provisioning.templateCaching ?? false
-  const migrationSources = provisioning.migrationSources ?? []
+  const templateCaching = repository.templateCaching ?? false
+  const migrationSources = repository.migrationSources ?? []
   if (templateCaching && migrationSources.length === 0) {
-    throw new Error('templateCaching requires migrationSources to fingerprint')
-  }
-  const primary = repositories[0]
-  if (databases.length > 0 && primary && !primary.migrateCommand) {
     throw new Error(
-      'the primary repository must declare migrateCommand when the lane owns databases',
+      `repository "${repository.path}" turns templateCaching on but declares no migrationSources to fingerprint`,
     )
   }
-  const envFile = provisioning.envFile ?? DEFAULT_ENV_FILE
-  const cacheStoreIndex = provisioning.cacheStoreIndex ?? false
-  const cacheStoreEnvKeys = provisioning.cacheStoreEnvKeys ?? DEFAULT_CACHE_STORE_ENV_KEYS
-  const envFiles = resolveEnvFiles(provisioning.envFiles, {
-    envFile,
-    databases,
-    portBases,
-    cacheStoreIndex,
-    cacheStoreEnvKeys,
-  })
+  if (databases.length > 0 && !repository.migrateCommand) {
+    throw new Error(
+      `repository "${repository.path}" must declare migrateCommand when it owns databases`,
+    )
+  }
+  const envFile = repository.envFile ?? DEFAULT_ENV_FILE
+  const cacheStoreIndex = repository.cacheStoreIndex ?? false
+  const cacheStoreEnvKeys = repository.cacheStoreEnvKeys ?? DEFAULT_CACHE_STORE_ENV_KEYS
   return {
+    path: repository.path,
+    provisionSteps: repository.provisionSteps ?? [],
+    migrateCommand: repository.migrateCommand,
+    seedCommand: repository.seedCommand,
     databases,
     portBases,
     portBlocks,
-    services: provisioning.services ?? [],
-    repositories,
     templateCaching,
     cacheStoreIndex,
     cacheStoreEnvKeys,
-    databasePrefix,
     envFile,
-    envFiles,
+    envFiles: resolveEnvFiles(repository.envFiles, {
+      envFile,
+      databases,
+      portBases,
+      cacheStoreIndex,
+      cacheStoreEnvKeys,
+    }),
     migrationSources,
-    seedSources: provisioning.seedSources ?? [],
-    seedDateTimezone: provisioning.seedDateTimezone,
-    serviceStartCommand:
-      provisioning.serviceStartCommand ?? DEFAULT_SERVICE_START_COMMAND,
-    laneProcessCommands:
-      provisioning.laneProcessCommands ?? DEFAULT_LANE_PROCESS_COMMANDS,
+    seedSources: repository.seedSources ?? [],
   }
+}
+
+/**
+ * The lane's shared port pool, collected across the repositories one
+ * provisioning run covers. Allocation is lane-wide, so a name two selected
+ * repositories both declare would hand them the same port — and a database
+ * name they share would hand them the same lane database. Both are refused
+ * here, where the selection is known, rather than in the table: repositories
+ * that never land in one lane together are free to name their own resources
+ * however they like.
+ */
+function laneResourcePool(repositories: ResolvedRepository[]) {
+  const portBases: Record<string, number> = {}
+  const portBlocks: Record<string, number> = {}
+  const portDeclaredBy = new Map<string, string>()
+  const databaseDeclaredBy = new Map<string, string>()
+  for (const repository of repositories) {
+    for (const [name, base] of Object.entries(repository.portBases)) {
+      const other = portDeclaredBy.get(name)
+      if (other !== undefined) {
+        throw new Error(
+          `repositories "${other}" and "${repository.path}" both declare the port "${name}"; a lane covering both needs distinct port names`,
+        )
+      }
+      portDeclaredBy.set(name, repository.path)
+      portBases[name] = base
+    }
+    for (const [name, span] of Object.entries(repository.portBlocks)) {
+      portBlocks[name] = span
+    }
+    for (const database of repository.databases) {
+      const other = databaseDeclaredBy.get(database.name)
+      if (other !== undefined) {
+        throw new Error(
+          `repositories "${other}" and "${repository.path}" both declare the database "${database.name}"; a lane covering both needs distinct database names`,
+        )
+      }
+      databaseDeclaredBy.set(database.name, repository.path)
+    }
+  }
+  return { portBases, portBlocks }
 }
 
 function resolveDatabase(database: DatabaseResource): ResolvedDatabase {
@@ -513,23 +584,24 @@ function portsClaimedByEnvFile(
 }
 
 /**
- * Every port sibling lanes hold, scanned across every declared env file of
- * each sibling — one contents entry per declared file, in declaration order.
- * A colliding key name (e.g. PORT in two files) contributes both values.
+ * Every port sibling lanes hold in one repository, scanned across every env
+ * file that repository declares — one contents entry per declared file, in
+ * declaration order. A colliding key name (e.g. PORT in two files)
+ * contributes both values.
  */
 function reservedPortsFromLaneEnvFiles(
   laneContents: Iterable<readonly (string | null | undefined)[]>,
-  resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
 ) {
   const reserved = new Set<number>()
   for (const contentsByFile of laneContents) {
-    resolved.envFiles.forEach((file, index) => {
+    repository.envFiles.forEach((file, index) => {
       const contents = contentsByFile[index]
       if (!contents?.includes(ENV_MARKER)) return
       for (const port of portsClaimedByEnvFile(
         readEnvValues(contents),
         file,
-        resolved.portBlocks,
+        repository.portBlocks,
       )) {
         reserved.add(port)
       }
@@ -611,31 +683,31 @@ type LaneAllocation = {
 }
 
 /**
- * The values the managed block records — the lane's whole allocation. The
- * block is what makes re-runs idempotent: parse it back and the lane keeps
- * its ports, databases, and cache-store index.
+ * The values the managed block records — one repository's whole slice of the
+ * lane's allocation. The block is what makes re-runs idempotent: parse it back
+ * and the lane keeps its ports, databases, and cache-store index.
  */
-function laneEnvValues(allocation: LaneAllocation, resolved: ResolvedProvisioning) {
+function laneEnvValues(allocation: LaneAllocation, repository: ResolvedRepository) {
   const values: Record<string, string> = {}
-  for (const database of resolved.databases) {
+  for (const database of repository.databases) {
     const url = allocation.databaseUrls[database.name]
     if (url === undefined) {
       throw new Error(`allocation carries no URL for database "${database.name}"`)
     }
     values[database.envKey] = url
   }
-  for (const name of Object.keys(resolved.portBases)) {
+  for (const name of Object.keys(repository.portBases)) {
     const port = allocation.ports[name]
     if (port === undefined) {
       throw new Error(`allocation carries no port for "${name}"`)
     }
     values[envKeyForPort(name)] = String(port)
   }
-  if (resolved.cacheStoreIndex) {
+  if (repository.cacheStoreIndex) {
     if (allocation.cacheStoreUrl === undefined) {
       throw new Error('allocation carries no cache-store URL')
     }
-    for (const key of resolved.cacheStoreEnvKeys) {
+    for (const key of repository.cacheStoreEnvKeys) {
       values[key] = allocation.cacheStoreUrl
     }
   }
@@ -657,7 +729,7 @@ function replaceSlugTokens(value: string, slug: string) {
  */
 function laneEnvValuesForFile(
   allocation: LaneAllocation,
-  resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
   file: ResolvedEnvFile,
   slug: string,
 ) {
@@ -676,11 +748,11 @@ function laneEnvValuesForFile(
     }
     values[envKey] = String(port)
   }
-  if (file.cacheStore && resolved.cacheStoreIndex) {
+  if (file.cacheStore && repository.cacheStoreIndex) {
     if (allocation.cacheStoreUrl === undefined) {
       throw new Error('allocation carries no cache-store URL')
     }
-    for (const key of resolved.cacheStoreEnvKeys) {
+    for (const key of repository.cacheStoreEnvKeys) {
       values[key] = allocation.cacheStoreUrl
     }
   }
@@ -691,20 +763,20 @@ function laneEnvValuesForFile(
 }
 
 /**
- * Every declared file's slice of the allocation merged into one record, in
- * declaration order, the first file winning on a colliding key — the
- * environment provisioning steps run under. For the synthesized single-file
- * case this equals `laneEnvValues`.
+ * Every file one repository declares, its slice of the allocation merged into
+ * one record, in declaration order, the first file winning on a colliding key
+ * — the environment that repository's provisioning steps run under. For the
+ * synthesized single-file case this equals `laneEnvValues`.
  */
 function mergedLaneEnvValues(
   allocation: LaneAllocation,
-  resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
   slug: string,
 ) {
   const merged: Record<string, string> = {}
-  for (const file of resolved.envFiles) {
+  for (const file of repository.envFiles) {
     for (const [key, value] of Object.entries(
-      laneEnvValuesForFile(allocation, resolved, file, slug),
+      laneEnvValuesForFile(allocation, repository, file, slug),
     )) {
       if (!(key in merged)) merged[key] = value
     }
@@ -713,18 +785,18 @@ function mergedLaneEnvValues(
 }
 
 /**
- * Read a lane's allocation back from its env files — one contents entry per
- * declared file, in declaration order, null where a file is absent. A managed
- * block in ANY file is the sentinel: with none, the lane is fresh. With one,
- * the allocation is merged from every marked file using that file's own
- * key→port mapping; a file may be missing its block (the caller re-writes it
- * from the merged allocation), but a value recorded nowhere — or recorded
- * twice with a disagreement — is a hand-edit the implementation refuses to
- * guess about.
+ * Read one repository's slice of a lane's allocation back from its env files
+ * — one contents entry per declared file, in declaration order, null where a
+ * file is absent. A managed block in ANY file is the sentinel: with none, the
+ * repository's lane worktree is fresh. With one, the allocation is merged from
+ * every marked file using that file's own key→port mapping; a file may be
+ * missing its block (the caller re-writes it from the merged allocation), but
+ * a value recorded nowhere — or recorded twice with a disagreement — is a
+ * hand-edit the implementation refuses to guess about.
  */
 function parseLaneAllocationFromFiles(
   contentsByFile: readonly (string | null | undefined)[],
-  resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
 ): LaneAllocation | null {
   if (!contentsByFile.some((contents) => contents?.includes(ENV_MARKER))) return null
   const complain = (what: string): never => {
@@ -740,7 +812,7 @@ function parseLaneAllocationFromFiles(
   const ports: PortPlan = {}
   const databaseUrls: Record<string, string> = {}
   let cacheStoreUrl: string | undefined
-  resolved.envFiles.forEach((file, index) => {
+  repository.envFiles.forEach((file, index) => {
     const contents = contentsByFile[index]
     if (!contents?.includes(ENV_MARKER)) return
     const values = readEnvValues(contents)
@@ -763,8 +835,8 @@ function parseLaneAllocationFromFiles(
         databaseUrls[database.name] = url
       }
     }
-    if (file.cacheStore && resolved.cacheStoreIndex) {
-      const key = resolved.cacheStoreEnvKeys[0]
+    if (file.cacheStore && repository.cacheStoreIndex) {
+      const key = repository.cacheStoreEnvKeys[0]
       const url = key === undefined ? undefined : values[key]
       if (!url) complain(`${key ?? 'the cache-store env key'} (in ${file.path})`)
       else {
@@ -775,16 +847,16 @@ function parseLaneAllocationFromFiles(
       }
     }
   })
-  for (const name of Object.keys(resolved.portBases)) {
+  for (const name of Object.keys(repository.portBases)) {
     if (ports[name] === undefined) complain(`a value for port "${name}"`)
   }
-  for (const database of resolved.databases) {
+  for (const database of repository.databases) {
     if (databaseUrls[database.name] === undefined) complain(database.envKey)
   }
   const allocation: LaneAllocation = { ports, databaseUrls }
-  if (resolved.cacheStoreIndex) {
+  if (repository.cacheStoreIndex) {
     if (cacheStoreUrl === undefined) {
-      complain(resolved.cacheStoreEnvKeys[0] ?? 'the cache-store env key')
+      complain(repository.cacheStoreEnvKeys[0] ?? 'the cache-store env key')
     } else {
       allocation.cacheStoreUrl = cacheStoreUrl
     }
@@ -793,15 +865,15 @@ function parseLaneAllocationFromFiles(
 }
 
 /**
- * Read a lane's allocation back from its (single) env file. No marker means
- * no allocation (a fresh lane). A marker with a missing key is a hand-edit
- * the implementation refuses to guess about.
+ * Read one repository's slice back from its (single) env file. No marker means
+ * no allocation (a fresh lane worktree). A marker with a missing key is a
+ * hand-edit the implementation refuses to guess about.
  */
 function parseLaneAllocation(
   contents: string,
-  resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
 ): LaneAllocation | null {
-  return parseLaneAllocationFromFiles([contents], resolved)
+  return parseLaneAllocationFromFiles([contents], repository)
 }
 
 /** Strip a trailing database index: redis://host:6379/2 -> redis://host:6379 */
@@ -1055,6 +1127,7 @@ export type {
   ResolvedDatabase,
   ResolvedEnvFile,
   ResolvedProvisioning,
+  ResolvedRepository,
   TemplateFingerprint,
 }
 export {
@@ -1082,6 +1155,7 @@ export {
   laneEnvValues,
   laneEnvValuesForFile,
   laneProcessesFromLsofOutput,
+  laneResourcePool,
   laneSlug,
   mergedLaneEnvValues,
   PORT_OFFSET_RANGE,

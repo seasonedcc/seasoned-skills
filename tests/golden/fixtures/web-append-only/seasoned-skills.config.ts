@@ -29,9 +29,14 @@ export default defineConfig({
     databaseMutability: 'append-only',
   },
   provisioning: {
-    databases: [{ name: 'acme_operations', derivedPatterns: ['{database}_e2e'] }],
-    portBases: { app: 7000, maildev: 1080 },
-    templateCaching: true,
+    repositories: [
+      {
+        path: '.',
+        databases: [{ name: 'acme_operations', derivedPatterns: ['{database}_e2e'] }],
+        portBases: { app: 7000, maildev: 1080 },
+        templateCaching: true,
+      },
+    ],
   },
   additionalCriteria: [
     {

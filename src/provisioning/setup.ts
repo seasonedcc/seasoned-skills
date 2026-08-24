@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import type pg from 'pg'
-import type { ProvisioningConfig, RepositoryResource } from '../config/types.js'
+import { CONFIG_FILE_NAME } from '../config/load.js'
+import type { ProvisioningConfig } from '../config/types.js'
 import {
   allocateCacheStoreIndex,
   cacheStoreIndexFromUrl,
@@ -10,12 +11,15 @@ import {
   type LaneAllocation,
   laneDatabaseName,
   laneEnvValuesForFile,
+  laneResourcePool,
   laneSlug,
   mergedLaneEnvValues,
+  type PortPlan,
   parseLaneAllocationFromFiles,
   type ResolvedDatabase,
   type ResolvedEnvFile,
   type ResolvedProvisioning,
+  type ResolvedRepository,
   readEnvValues,
   repointLocalhostUrls,
   reservedPortsFromLaneEnvFiles,
@@ -48,17 +52,21 @@ import {
 } from './template.js'
 
 /**
- * Lane setup: create (or reuse) an isolated worktree of every declared
+ * Lane setup: create (or reuse) an isolated worktree of every selected
  * repository, allocate the lane's resources by deterministic hash of the lane
- * name, record them in the managed env block, and provision databases,
- * dependencies, and seed data from the resource table. Idempotent: the
- * managed block is the allocation record, so a re-run reuses the registered
- * worktree, its databases, its ports, and its cache-store index — and a
- * re-run never overwrites a lane's data, because seeding belongs only to
- * databases created in that same run.
+ * name, record them in each repository's managed env block, and provision
+ * databases, dependencies, and seed data from what that repository declares.
+ * Ports and the cache-store index are pooled across the selection — a lane
+ * holds one set — while every other resource is anchored to the repository
+ * that owns it. Idempotent: the managed block is the allocation record, so a
+ * re-run reuses the registered worktrees, their databases, their ports, and
+ * the lane's cache-store index — and a re-run never overwrites a lane's data,
+ * because seeding belongs only to databases created in that same run.
  */
 
 type ProvisionOptions = {
+  /** Declared repository paths this run covers; defaults to the first declared entry. */
+  repositoryPaths?: string[]
   /** Branch the lane's worktrees check out; defaults to `worktree/<lane>`. */
   branch?: string
   /** Base reference for a new branch; defaults to origin's HEAD branch. */
@@ -76,7 +84,7 @@ type LaneWorktree = {
   repositoryPath: string
   worktreePath: string
   branch: string
-  repository: RepositoryResource
+  repository: ResolvedRepository
 }
 
 type ProvisionedDatabase = {
@@ -86,15 +94,19 @@ type ProvisionedDatabase = {
   created: boolean
 }
 
-type ProvisionResult = {
-  lane: string
-  slug: string
-  worktrees: LaneWorktree[]
-  primaryWorktreePath: string
-  ports: Record<string, number>
+type ProvisionedRepository = {
+  worktree: LaneWorktree
   databases: ProvisionedDatabase[]
   cacheStoreUrl?: string
   seed: string
+}
+
+type ProvisionResult = {
+  lane: string
+  slug: string
+  /** The lane's pooled ports, across every repository this run covered. */
+  ports: PortPlan
+  repositories: ProvisionedRepository[]
   summary: string
 }
 
@@ -197,11 +209,11 @@ function worktreesRoot(repositoryPath: string) {
 
 function laneWorktrees(
   mainRepository: string,
-  resolved: ResolvedProvisioning,
+  repositories: ResolvedRepository[],
   lane: string,
   branch: string,
 ): LaneWorktree[] {
-  return resolved.repositories.map((repository) => {
+  return repositories.map((repository) => {
     const repositoryPath = resolve(mainRepository, repository.path)
     return {
       repositoryPath,
@@ -212,6 +224,35 @@ function laneWorktrees(
   })
 }
 
+/**
+ * The repositories one provisioning run covers. Each requested path must match
+ * a declared entry exactly; with none requested the run covers the first
+ * declared entry alone, so declaration order is a default and never resource
+ * semantics.
+ */
+function selectRepositories(
+  resolved: ResolvedProvisioning,
+  requestedPaths: string[] | undefined,
+): ResolvedRepository[] {
+  const declaredPaths = resolved.repositories.map((repository) => repository.path)
+  if (requestedPaths === undefined || requestedPaths.length === 0) {
+    const [first] = resolved.repositories
+    if (!first) throw new Error('the resource table resolved to no repositories')
+    return [first]
+  }
+  const selected: ResolvedRepository[] = []
+  for (const path of requestedPaths) {
+    const repository = resolved.repositories.find((candidate) => candidate.path === path)
+    if (!repository) {
+      throw new Error(
+        `--repo ${path} matches no repository declared in ${CONFIG_FILE_NAME}; it declares ${declaredPaths.map((declared) => `"${declared}"`).join(', ')}`,
+      )
+    }
+    if (!selected.includes(repository)) selected.push(repository)
+  }
+  return selected
+}
+
 /** One declared env file with the main checkout's contents at its path. */
 type MainEnvFile = {
   file: ResolvedEnvFile
@@ -219,9 +260,9 @@ type MainEnvFile = {
   values: Record<string, string>
 }
 
-function readMainEnvFiles(primaryRepositoryPath: string, resolved: ResolvedProvisioning) {
-  return resolved.envFiles.map((file): MainEnvFile => {
-    const path = join(primaryRepositoryPath, file.path)
+function readMainEnvFiles(repositoryPath: string, repository: ResolvedRepository) {
+  return repository.envFiles.map((file): MainEnvFile => {
+    const path = join(repositoryPath, file.path)
     const contents = existsSync(path) ? readFileSync(path, 'utf8') : ''
     return { file, contents, values: readEnvValues(contents) }
   })
@@ -239,15 +280,16 @@ function mergedMainEnvValues(mainFiles: MainEnvFile[]) {
 }
 
 /**
- * Every declared env file of every sibling worktree (the main checkout
- * included), one contents entry per declared file, in declaration order.
+ * Every declared env file of every sibling worktree of one repository (its
+ * main checkout included), one contents entry per declared file, in
+ * declaration order.
  */
 function siblingLaneEnvFileContents(
-  mainRepository: string,
+  repositoryPath: string,
   currentWorktreePath: string,
   envFiles: ResolvedEnvFile[],
 ) {
-  const listing = git(['worktree', 'list', '--porcelain'], { cwd: mainRepository })
+  const listing = git(['worktree', 'list', '--porcelain'], { cwd: repositoryPath })
   return worktreePathsFromPorcelain(listing, currentWorktreePath).map((path) =>
     envFiles.map((file) => {
       const envPath = join(path, file.path)
@@ -260,24 +302,24 @@ function siblingLaneEnvFileContents(
  * The main checkout's URL a lane database is derived from: read under the
  * database's env key from the files that carry that database — the same key
  * name may point at a different database in another file — falling back to
- * the primary database's key within those same files.
+ * the repository's first database key within those same files.
  */
 function mainDatabaseUrl(
   mainFiles: MainEnvFile[],
-  resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
   database: ResolvedDatabase,
 ) {
   const carrying = mainFiles.filter(({ file }) =>
     file.databases.some((candidate) => candidate.name === database.name),
   )
-  const primaryKey = resolved.databases[0]?.envKey
+  const firstKey = repository.databases[0]?.envKey
   const url =
     carrying.map(({ values }) => values[database.envKey]).find(Boolean) ??
-    (primaryKey === undefined
+    (firstKey === undefined
       ? undefined
-      : carrying.map(({ values }) => values[primaryKey]).find(Boolean))
+      : carrying.map(({ values }) => values[firstKey]).find(Boolean))
   if (!url) {
-    const where = carrying[0]?.file.path ?? resolved.envFile
+    const where = carrying[0]?.file.path ?? repository.envFile
     throw new Error(
       `the main checkout's ${where} carries no ${database.envKey}; provisioning needs it to derive lane database URLs`,
     )
@@ -285,58 +327,147 @@ function mainDatabaseUrl(
   return url
 }
 
-async function allocateLane({
-  resolved,
-  slug,
-  mainFiles,
-  siblingLaneFiles,
-}: {
-  resolved: ResolvedProvisioning
-  slug: string
+/** What one repository's lane worktree already records, before anything is assigned. */
+type RepositoryLaneState = {
+  worktree: LaneWorktree
   mainFiles: MainEnvFile[]
-  siblingLaneFiles: (string | null)[][]
-}) {
-  const reserved = reservedPortsFromLaneEnvFiles(siblingLaneFiles, resolved)
-  const ports = await resolvePortPlan(
+  laneFileContents: (string | null)[]
+  existing: LaneAllocation | null
+}
+
+function readRepositoryLaneState(worktree: LaneWorktree): RepositoryLaneState {
+  const { repository } = worktree
+  const laneFileContents = repository.envFiles.map((file) => {
+    const envPath = join(worktree.worktreePath, file.path)
+    return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+  })
+  return {
+    worktree,
+    mainFiles: readMainEnvFiles(worktree.repositoryPath, repository),
+    laneFileContents,
+    existing: parseLaneAllocationFromFiles(laneFileContents, repository),
+  }
+}
+
+/**
+ * The lane's port plan: whatever the lane already records stands, and only the
+ * names no marked env file carries yet are assigned — so adding a repository
+ * to a live lane never moves the ports its siblings are already serving on.
+ */
+async function resolveLanePorts(
+  slug: string,
+  pool: { portBases: Record<string, number>; portBlocks: Record<string, number> },
+  states: RepositoryLaneState[],
+) {
+  const recorded: PortPlan = {}
+  for (const state of states) {
+    for (const [name, port] of Object.entries(state.existing?.ports ?? {})) {
+      recorded[name] = port
+    }
+  }
+  const unassigned = Object.fromEntries(
+    Object.entries(pool.portBases).filter(([name]) => recorded[name] === undefined),
+  )
+  if (Object.keys(unassigned).length === 0) return recorded
+  const reserved = new Set<number>(Object.values(recorded))
+  for (const state of states) {
+    const sibling = reservedPortsFromLaneEnvFiles(
+      siblingLaneEnvFileContents(
+        state.worktree.repositoryPath,
+        state.worktree.worktreePath,
+        state.worktree.repository.envFiles,
+      ),
+      state.worktree.repository,
+    )
+    for (const port of sibling) reserved.add(port)
+  }
+  const assigned = await resolvePortPlan(
     slug,
-    resolved.portBases,
-    resolved.portBlocks,
+    unassigned,
+    pool.portBlocks,
     reserved,
     isPortFree,
   )
-  const databaseUrls: Record<string, string> = {}
-  for (const database of resolved.databases) {
-    databaseUrls[database.name] = withDatabaseName(
-      mainDatabaseUrl(mainFiles, resolved, database),
-      laneDatabaseName(resolved.databasePrefix, slug, database.name),
+  return { ...recorded, ...assigned }
+}
+
+/**
+ * The lane's cache-store index — one per lane, shared by every repository that
+ * asks for one. An index the lane already records is kept; a fresh one is
+ * allocated against the indexes sibling lanes claim in every declaring
+ * repository, and flushed before first use, since a recycled index carries the
+ * previous tenant's keys.
+ */
+function resolveLaneCacheStoreIndex(slug: string, states: RepositoryLaneState[]) {
+  const declaring = states.filter((state) => state.worktree.repository.cacheStoreIndex)
+  if (declaring.length === 0) return null
+  const recorded = declaring
+    .map((state) => state.existing?.cacheStoreUrl)
+    .filter((url): url is string => url !== undefined)
+    .map(cacheStoreIndexFromUrl)
+    .find((index): index is number => index !== null)
+  if (recorded !== undefined) return { index: recorded, isNew: false }
+  const taken = declaring.flatMap((state) => {
+    const key = state.worktree.repository.cacheStoreEnvKeys[0]
+    if (key === undefined) return []
+    return siblingLaneEnvFileContents(
+      state.worktree.repositoryPath,
+      state.worktree.worktreePath,
+      state.worktree.repository.envFiles,
+    )
+      .flat()
+      .flatMap((contents) => {
+        const url = contents === null ? undefined : readEnvValues(contents)[key]
+        const index = url === undefined ? null : cacheStoreIndexFromUrl(url)
+        return index === null ? [] : [index]
+      })
+  })
+  const index = allocateCacheStoreIndex(slug, taken)
+  if (index === null) {
+    throw new Error('no free cache-store index — tear down an unused lane first')
+  }
+  return { index, isNew: true }
+}
+
+/** The cache-store URL one repository records: its own base URL, the lane's index. */
+function repositoryCacheStoreUrl(state: RepositoryLaneState, index: number) {
+  const { repository } = state.worktree
+  const recorded = state.existing?.cacheStoreUrl
+  if (recorded !== undefined) return recorded
+  const key = repository.cacheStoreEnvKeys[0]
+  const cacheFile = state.mainFiles.find(({ file }) => file.cacheStore)
+  const mainCacheUrl = key === undefined ? undefined : cacheFile?.values[key]
+  if (!mainCacheUrl) {
+    throw new Error(
+      `the main checkout's ${cacheFile?.file.path ?? repository.envFile} carries no ${key ?? 'cache-store URL'}; cacheStoreIndex needs it`,
     )
   }
-  const allocation: LaneAllocation = { ports, databaseUrls }
-  let cacheIndexIsNew = false
-  if (resolved.cacheStoreIndex) {
-    const primaryKey = resolved.cacheStoreEnvKeys[0]
-    const cacheFile = mainFiles.find(({ file }) => file.cacheStore)
-    const mainCacheUrl =
-      primaryKey === undefined ? undefined : cacheFile?.values[primaryKey]
-    if (!mainCacheUrl) {
-      throw new Error(
-        `the main checkout's ${cacheFile?.file.path ?? resolved.envFile} carries no ${primaryKey ?? 'cache-store URL'}; cacheStoreIndex needs it`,
+  return withCacheStoreIndex(mainCacheUrl, index)
+}
+
+/** One repository's slice of the lane: its ports, its databases, its cache-store URL. */
+function repositoryAllocation(
+  state: RepositoryLaneState,
+  ports: PortPlan,
+  cacheStoreIndex: { index: number; isNew: boolean } | null,
+  slug: string,
+  databasePrefix: string,
+): LaneAllocation {
+  const { repository } = state.worktree
+  const databaseUrls: Record<string, string> = {}
+  for (const database of repository.databases) {
+    databaseUrls[database.name] =
+      state.existing?.databaseUrls[database.name] ??
+      withDatabaseName(
+        mainDatabaseUrl(state.mainFiles, repository, database),
+        laneDatabaseName(databasePrefix, slug, database.name),
       )
-    }
-    const taken = siblingLaneFiles.flat().flatMap((contents) => {
-      if (!contents || primaryKey === undefined) return []
-      const url = readEnvValues(contents)[primaryKey]
-      const index = url === undefined ? null : cacheStoreIndexFromUrl(url)
-      return index === null ? [] : [index]
-    })
-    const index = allocateCacheStoreIndex(slug, taken)
-    if (index === null) {
-      throw new Error('no free cache-store index — tear down an unused lane first')
-    }
-    allocation.cacheStoreUrl = withCacheStoreIndex(mainCacheUrl, index)
-    cacheIndexIsNew = true
   }
-  return { allocation, cacheIndexIsNew }
+  const allocation: LaneAllocation = { ports, databaseUrls }
+  if (repository.cacheStoreIndex && cacheStoreIndex !== null) {
+    allocation.cacheStoreUrl = repositoryCacheStoreUrl(state, cacheStoreIndex.index)
+  }
+  return allocation
 }
 
 async function startDeclaredServices(
@@ -369,21 +500,22 @@ async function startDeclaredServices(
 }
 
 /**
- * Write the lane's declared env files. Each seeds from the main checkout's
- * file at the same relative path, repoints localhost URLs using its own port
- * entries (the main file's value for each managed key is the from-port), and
- * upserts its slice of the managed allocation block. `only` limits the write
- * to the named paths — used to restore files missing from a partial lane.
+ * Write one repository's lane env files. Each seeds from that repository's
+ * main checkout at the same relative path, repoints localhost URLs using its
+ * own port entries (the main file's value for each managed key is the
+ * from-port), and upserts its slice of the managed allocation block. `only`
+ * limits the write to the named paths — used to restore files missing from a
+ * partial lane.
  */
 function writeLaneEnvFiles({
-  resolved,
+  repository,
   allocation,
   slug,
   mainFiles,
   worktreePath,
   only,
 }: {
-  resolved: ResolvedProvisioning
+  repository: ResolvedRepository
   allocation: LaneAllocation
   slug: string
   mainFiles: MainEnvFile[]
@@ -402,7 +534,7 @@ function writeLaneEnvFiles({
     mkdirSync(dirname(envPath), { recursive: true })
     writeFileSync(
       envPath,
-      upsertEnvValues(contents, laneEnvValuesForFile(allocation, resolved, file, slug)),
+      upsertEnvValues(contents, laneEnvValuesForFile(allocation, repository, file, slug)),
     )
     log(`wrote ${envPath} with the lane's allocation`)
   }
@@ -417,6 +549,7 @@ function writeLaneEnvFiles({
 async function provisionLaneDatabases({
   client,
   resolved,
+  repository,
   allocation,
   slug,
   worktreePath,
@@ -427,6 +560,7 @@ async function provisionLaneDatabases({
 }: {
   client: pg.Client
   resolved: ResolvedProvisioning
+  repository: ResolvedRepository
   allocation: LaneAllocation
   slug: string
   worktreePath: string
@@ -442,7 +576,7 @@ async function provisionLaneDatabases({
     exists: boolean
     useTemplate: boolean
   }[] = []
-  for (const database of resolved.databases) {
+  for (const database of repository.databases) {
     const url = allocation.databaseUrls[database.name]
     if (url === undefined) continue
     const databaseName = laneDatabaseName(resolved.databasePrefix, slug, database.name)
@@ -451,7 +585,7 @@ async function provisionLaneDatabases({
     ])
     const exists = Boolean(existing.rowCount)
     const useTemplate =
-      resolved.templateCaching && (!database.seeded || !options.skipSeed)
+      repository.templateCaching && (!database.seeded || !options.skipSeed)
     if (!exists && !useTemplate) {
       await client.query(`create database "${databaseName}"`)
     }
@@ -474,6 +608,7 @@ async function provisionLaneDatabases({
         adminUrl: url,
         worktreePath,
         resolved,
+        repository,
         database,
         migrateCommand,
         seedCommand,
@@ -482,7 +617,7 @@ async function provisionLaneDatabases({
       await provisionDatabaseFromTemplate(
         context,
         databaseName,
-        templateFingerprint(worktreePath, resolved, database),
+        templateFingerprint(worktreePath, resolved, repository, database),
         { freshSeed: options.freshSeed ?? false },
       )
     } else {
@@ -497,21 +632,104 @@ async function provisionLaneDatabases({
   return databases
 }
 
+/**
+ * Provision one repository's databases and seed them: the databases created in
+ * this same run are the only ones the seed may touch, because an existing one
+ * holds a developer's data a second seed would collide with.
+ */
+async function provisionRepositoryDatabases({
+  resolved,
+  repository,
+  allocation,
+  slug,
+  worktreePath,
+  stepEnv,
+  options,
+}: {
+  resolved: ResolvedProvisioning
+  repository: ResolvedRepository
+  allocation: LaneAllocation
+  slug: string
+  worktreePath: string
+  stepEnv: Record<string, string>
+  options: ProvisionOptions
+}) {
+  const { migrateCommand, seedCommand } = repository
+  if (!migrateCommand) {
+    throw new Error(`repository "${repository.path}" declares no migrateCommand`)
+  }
+  const [firstDatabase] = repository.databases
+  const adminUrl =
+    firstDatabase === undefined ? undefined : allocation.databaseUrls[firstDatabase.name]
+  if (adminUrl === undefined) throw new Error('no admin database URL resolved')
+  await waitForDatabaseServer(adminUrl)
+  const databases = await withAdminClient(adminUrl, (client) =>
+    provisionLaneDatabases({
+      client,
+      resolved,
+      repository,
+      allocation,
+      slug,
+      worktreePath,
+      migrateCommand,
+      seedCommand,
+      stepEnv,
+      options,
+    }),
+  )
+  if (repository.templateCaching) {
+    return { databases, seed: 'carried by the template copy' }
+  }
+  const seededDatabases = repository.databases.filter((database) => database.seeded)
+  const created = new Set(
+    databases.filter((database) => database.created).map((database) => database.name),
+  )
+  const refusal = seedRefusal({
+    databasesAreNew:
+      seededDatabases.length > 0 &&
+      seededDatabases.every((database) => created.has(database.name)),
+    seedRequested: !options.skipSeed,
+    hasSeedCommand: Boolean(seedCommand),
+  })
+  if (refusal === null && seedCommand) {
+    const seedEnv = { ...stepEnv }
+    for (const database of seededDatabases) {
+      const url = allocation.databaseUrls[database.name]
+      if (url !== undefined) seedEnv[database.envKey] = url
+    }
+    runStep(seedCommand, { cwd: worktreePath, env: seedEnv })
+    return {
+      databases,
+      seed: 'seeded (reseed by tearing the lane down and setting it up again)',
+    }
+  }
+  log(`skipping the seed: ${refusal}`)
+  return { databases, seed: `skipped (${refusal})` }
+}
+
 function summaryText(result: Omit<ProvisionResult, 'summary'>) {
   const lines = [
     `Lane ${result.lane} ready`,
-    ...result.worktrees.map(
-      (worktree) => `  worktree:  ${worktree.worktreePath} (branch ${worktree.branch})`,
-    ),
     ...Object.entries(result.ports).map(([name, port]) => `  ${name}: ${port}`),
-    ...result.databases.map(
-      (database) =>
-        `  database ${database.name}: ${database.databaseName}${database.created ? ' (created)' : ''}`,
-    ),
-    ...(result.cacheStoreUrl ? [`  cache store: ${result.cacheStoreUrl}`] : []),
-    `  seed: ${result.seed}`,
+    ...result.repositories.flatMap((provisioned) => [
+      `  ${provisioned.worktree.repository.path}: ${provisioned.worktree.worktreePath} (branch ${provisioned.worktree.branch})`,
+      ...provisioned.databases.map(
+        (database) =>
+          `    database ${database.name}: ${database.databaseName}${database.created ? ' (created)' : ''}`,
+      ),
+      ...(provisioned.cacheStoreUrl
+        ? [`    cache store: ${provisioned.cacheStoreUrl}`]
+        : []),
+      `    seed: ${provisioned.seed}`,
+    ]),
   ]
   return lines.join('\n')
+}
+
+function finish(result: Omit<ProvisionResult, 'summary'>): ProvisionResult {
+  const summary = summaryText(result)
+  log(`\n${summary}`)
+  return { ...result, summary }
 }
 
 async function provisionLane(
@@ -527,8 +745,10 @@ async function provisionLane(
   const slug = laneSlug(lane)
   if (!slug) throw new Error(`cannot derive a slug from "${lane}"`)
 
+  const selection = selectRepositories(resolved, options.repositoryPaths)
+  const pool = laneResourcePool(selection)
   const branch = options.branch ?? `worktree/${lane}`
-  const worktrees = laneWorktrees(mainRepository, resolved, lane, branch)
+  const worktrees = laneWorktrees(mainRepository, selection, lane, branch)
   for (const worktree of worktrees) {
     ensureWorktree({
       repositoryPath: worktree.repositoryPath,
@@ -537,167 +757,124 @@ async function provisionLane(
       baseReference: options.base ?? defaultBaseReference(worktree.repositoryPath),
     })
   }
-  const primary = worktrees[0]
-  if (!primary) throw new Error('the resource table resolved to no repositories')
-
-  const base: Omit<ProvisionResult, 'summary' | 'seed'> = {
-    lane,
-    slug,
-    worktrees,
-    primaryWorktreePath: primary.worktreePath,
-    ports: {},
-    databases: [],
-  }
   if (options.skipProvision) {
-    const seed = 'skipped (provisioning was skipped)'
-    const summary = summaryText({ ...base, seed })
-    log(`\n${summary}`)
-    return { ...base, seed, summary }
-  }
-
-  const mainFiles = readMainEnvFiles(primary.repositoryPath, resolved)
-  const mainEnvValues = mergedMainEnvValues(mainFiles)
-
-  await startDeclaredServices(primary.repositoryPath, resolved, mainEnvValues)
-
-  const laneFileContents = resolved.envFiles.map((file) => {
-    const envPath = join(primary.worktreePath, file.path)
-    return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
-  })
-  const existing = parseLaneAllocationFromFiles(laneFileContents, resolved)
-  let allocation: LaneAllocation
-  let cacheIndexIsNew = false
-  if (existing) {
-    log('env file already carries the managed block; keeping the existing allocation')
-    allocation = existing
-    // Partial state: a declared file without the block is re-written from
-    // the allocation the marked files still record.
-    const missing = new Set(
-      resolved.envFiles
-        .filter((_, index) => !laneFileContents[index]?.includes(ENV_MARKER))
-        .map((file) => file.path),
-    )
-    if (missing.size > 0) {
-      writeLaneEnvFiles({
-        resolved,
-        allocation,
-        slug,
-        mainFiles,
-        worktreePath: primary.worktreePath,
-        only: missing,
-      })
-    }
-  } else {
-    ;({ allocation, cacheIndexIsNew } = await allocateLane({
-      resolved,
+    return finish({
+      lane,
       slug,
-      mainFiles,
-      siblingLaneFiles: siblingLaneEnvFileContents(
-        primary.repositoryPath,
-        primary.worktreePath,
-        resolved.envFiles,
-      ),
-    }))
-    writeLaneEnvFiles({
-      resolved,
-      allocation,
-      slug,
-      mainFiles,
-      worktreePath: primary.worktreePath,
+      ports: {},
+      repositories: worktrees.map((worktree) => ({
+        worktree,
+        databases: [],
+        seed: 'skipped (provisioning was skipped)',
+      })),
     })
   }
 
-  // A freshly allocated index may have belonged to a lane that died without
-  // teardown — flush before first use so its keys and queues cannot leak in.
-  if (cacheIndexIsNew && allocation.cacheStoreUrl !== undefined) {
-    flushCacheStore(allocation.cacheStoreUrl)
-  }
+  const states = worktrees.map(readRepositoryLaneState)
+  const [first] = states
+  if (!first) throw new Error('the resource table resolved to no repositories')
+  await startDeclaredServices(
+    first.worktree.repositoryPath,
+    resolved,
+    mergedMainEnvValues(states.flatMap((state) => state.mainFiles)),
+  )
 
-  const stepEnv = mergedLaneEnvValues(allocation, resolved, slug)
-  for (const worktree of worktrees) {
-    for (const step of worktree.repository.provisionSteps ?? []) {
-      runStep(step, { cwd: worktree.worktreePath, env: stepEnv })
-    }
-  }
+  const ports = await resolveLanePorts(slug, pool, states)
+  const cacheStoreIndex = resolveLaneCacheStoreIndex(slug, states)
 
-  let databases: ProvisionedDatabase[] = []
-  let seed = 'not applicable (no databases declared)'
-  if (resolved.databases.length > 0) {
-    const migrateCommand = primary.repository.migrateCommand
-    if (!migrateCommand) {
-      throw new Error('the primary repository declares no migrateCommand')
-    }
-    const seedCommand = primary.repository.seedCommand
-    const firstDatabase = resolved.databases[0]
-    const adminUrl =
-      firstDatabase === undefined
-        ? undefined
-        : allocation.databaseUrls[firstDatabase.name]
-    if (adminUrl === undefined) throw new Error('no admin database URL resolved')
-    await waitForDatabaseServer(adminUrl)
-    databases = await withAdminClient(adminUrl, (client) =>
-      provisionLaneDatabases({
-        client,
-        resolved,
+  const repositories: ProvisionedRepository[] = []
+  for (const state of states) {
+    const { repository, worktreePath } = state.worktree
+    const allocation = repositoryAllocation(
+      state,
+      ports,
+      cacheStoreIndex,
+      slug,
+      resolved.databasePrefix,
+    )
+    if (state.existing) {
+      log(
+        `${repository.path}: the env files already carry the managed block; keeping the existing allocation`,
+      )
+      // Partial state: a declared file without the block is re-written from
+      // the allocation the marked files still record.
+      const missing = new Set(
+        repository.envFiles
+          .filter((_, index) => !state.laneFileContents[index]?.includes(ENV_MARKER))
+          .map((file) => file.path),
+      )
+      if (missing.size > 0) {
+        writeLaneEnvFiles({
+          repository,
+          allocation,
+          slug,
+          mainFiles: state.mainFiles,
+          worktreePath,
+          only: missing,
+        })
+      }
+    } else {
+      writeLaneEnvFiles({
+        repository,
         allocation,
         slug,
-        worktreePath: primary.worktreePath,
-        migrateCommand,
-        seedCommand,
-        stepEnv,
-        options,
-      }),
-    )
-
-    if (resolved.templateCaching) {
-      seed = 'carried by the template copy'
-    } else {
-      const seededDatabases = resolved.databases.filter((database) => database.seeded)
-      const created = new Set(
-        databases.filter((database) => database.created).map((database) => database.name),
-      )
-      const refusal = seedRefusal({
-        databasesAreNew:
-          seededDatabases.length > 0 &&
-          seededDatabases.every((database) => created.has(database.name)),
-        seedRequested: !options.skipSeed,
-        hasSeedCommand: Boolean(seedCommand),
+        mainFiles: state.mainFiles,
+        worktreePath,
       })
-      if (refusal === null && seedCommand) {
-        const seedEnv = { ...stepEnv }
-        for (const database of seededDatabases) {
-          const url = allocation.databaseUrls[database.name]
-          if (url !== undefined) seedEnv[database.envKey] = url
-        }
-        runStep(seedCommand, { cwd: primary.worktreePath, env: seedEnv })
-        seed = 'seeded (reseed by tearing the lane down and setting it up again)'
-      } else {
-        log(`skipping the seed: ${refusal}`)
-        seed = `skipped (${refusal})`
-      }
     }
+
+    // A freshly allocated index may have belonged to a lane that died without
+    // teardown — flush before first use so its keys and queues cannot leak in.
+    if (cacheStoreIndex?.isNew && allocation.cacheStoreUrl !== undefined) {
+      flushCacheStore(allocation.cacheStoreUrl)
+    }
+
+    const stepEnv = mergedLaneEnvValues(allocation, repository, slug)
+    for (const step of repository.provisionSteps) {
+      runStep(step, { cwd: worktreePath, env: stepEnv })
+    }
+
+    const provisioned: ProvisionedRepository =
+      repository.databases.length === 0
+        ? {
+            worktree: state.worktree,
+            databases: [],
+            seed: 'not applicable (no databases declared)',
+          }
+        : {
+            worktree: state.worktree,
+            ...(await provisionRepositoryDatabases({
+              resolved,
+              repository,
+              allocation,
+              slug,
+              worktreePath,
+              stepEnv,
+              options,
+            })),
+          }
+    if (allocation.cacheStoreUrl !== undefined) {
+      provisioned.cacheStoreUrl = allocation.cacheStoreUrl
+    }
+    repositories.push(provisioned)
   }
 
-  const withoutSummary = {
-    ...base,
-    ports: allocation.ports,
-    databases,
-    ...(allocation.cacheStoreUrl === undefined
-      ? {}
-      : { cacheStoreUrl: allocation.cacheStoreUrl }),
-    seed,
-  }
-  const summary = summaryText(withoutSummary)
-  log(`\n${summary}`)
-  return { ...withoutSummary, summary }
+  return finish({ lane, slug, ports, repositories })
 }
 
-export type { LaneWorktree, ProvisionedDatabase, ProvisionOptions, ProvisionResult }
+export type {
+  LaneWorktree,
+  ProvisionedDatabase,
+  ProvisionedRepository,
+  ProvisionOptions,
+  ProvisionResult,
+}
 export {
   defaultBaseReference,
   ensureWorktree,
   laneWorktrees,
   provisionLane,
   provisionLaneDatabases,
+  selectRepositories,
   worktreesRoot,
 }

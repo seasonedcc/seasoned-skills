@@ -78,8 +78,9 @@ export interface SeasonedSkillsConfig {
   stack?: StackConfig
 
   /**
-   * The resource table worktree provisioning is driven by: which databases,
-   * which port bases, which services, which repositories.
+   * The resource table worktree provisioning is driven by: which repositories
+   * a lane can cover, and what each of them owns — databases, port bases, env
+   * files — alongside the shared services the machine provides.
    */
   provisioning?: ProvisioningConfig
 
@@ -189,71 +190,35 @@ export interface StackConfig {
 }
 
 /**
- * The provisioning resource table. Modeled in full when the unified
- * implementation lands; these are the fields the rulings name.
+ * The provisioning resource table. What a lane's isolation is derived from
+ * belongs to the repository entry that owns it; what stays here is genuinely
+ * project- or machine-scoped.
  */
 export interface ProvisioningConfig {
-  /** Databases the lane owns, by name; each may declare derived-name patterns. */
-  databases?: DatabaseResource[]
-  /** Base port each service's lane-specific port is derived from. */
-  portBases?: Record<string, number>
+  /**
+   * The repositories a lane can be provisioned across, each declaring what it
+   * owns. Defaults to this project's own checkout with no resources.
+   */
+  repositories?: RepositoryResource[]
   /** Shared services probed before starting, in case the machine already runs them. */
   services?: string[]
-  /** Repositories a multi-repository workspace provisions per lane. */
-  repositories?: RepositoryResource[]
-  /** Keeps the expensive migrate-and-seed result as a fingerprinted template database. */
-  templateCaching?: boolean
-  /** Allocates a cache-store index per lane, flushed at allocation. */
-  cacheStoreIndex?: boolean
-  /**
-   * Prefix every lane-owned database name carries; the teardown guard refuses
-   * to drop anything outside it. Defaults to `<project-directory>_wt_`.
-   */
-  databasePrefix?: string
-  /**
-   * Env file, relative to the primary (first) repository's worktree, that
-   * carries the managed allocation block. Defaults to `.env`.
-   */
-  envFile?: string
-  /**
-   * The lane's env files, when the single `envFile` is not enough — e.g. a
-   * second file for the test environment that reuses the same env key names
-   * for different allocations. When declared, this fully replaces the
-   * single-file behavior (`envFile` is ignored): each entry seeds from the
-   * main checkout's file at the same relative path and carries its own slice
-   * of the managed allocation block.
-   */
-  envFiles?: EnvFileResource[]
-  /**
-   * How many consecutive ports a named port holds (e.g. one per E2E worker:
-   * the head port plus one per extra worker). Ports not listed hold one.
-   * Allocation hands out and reserves whole blocks.
-   */
-  portBlocks?: Record<string, number>
-  /**
-   * Env keys that receive the lane's cache-store URL (base URL plus the
-   * lane's index). Defaults to `['REDIS_URL']`.
-   */
-  cacheStoreEnvKeys?: string[]
-  /**
-   * Paths, relative to the primary worktree, whose contents fingerprint the
-   * migrations for template caching. Required when templateCaching is on.
-   */
-  migrationSources?: string[]
-  /** Paths, relative to the primary worktree, whose contents fingerprint the seed. */
-  seedSources?: string[]
-  /**
-   * IANA timezone anchoring the seed date stored in template fingerprints,
-   * so demo data re-anchors on the team's calendar day. Defaults to the
-   * machine's timezone.
-   */
-  seedDateTimezone?: string
   /**
    * Command run from the main checkout to start declared services that are
    * not already listening; the not-running service names are appended.
    * Defaults to `docker compose up -d`.
    */
   serviceStartCommand?: string
+  /**
+   * Prefix every lane-owned database name carries; the teardown guard refuses
+   * to drop anything outside it. Defaults to `<project-directory>_wt_`.
+   */
+  databasePrefix?: string
+  /**
+   * IANA timezone anchoring the seed date stored in template fingerprints,
+   * so demo data re-anchors on the team's calendar day. Defaults to the
+   * machine's timezone.
+   */
+  seedDateTimezone?: string
   /**
    * Command names the lane-process sweep enumerates (lsof by working
    * directory under the worktrees roots). Defaults to common dev-server
@@ -263,7 +228,7 @@ export interface ProvisioningConfig {
 }
 
 export interface EnvFileResource {
-  /** Path relative to the primary repository's worktree (e.g. 'apps/web/.env.test'). */
+  /** Path relative to the declaring repository's worktree (e.g. 'apps/web/.env.test'). */
   path: string
   /** Names of declared database resources whose lane URLs this file carries (each written under its database's envKey). */
   databases?: string[]
@@ -291,18 +256,65 @@ export interface DatabaseResource {
   seeded?: boolean
 }
 
+/**
+ * One repository a lane can cover, and everything that repository owns inside
+ * the lane. `provision <lane> --repo <path>` selects entries by this path;
+ * without the flag a lane covers the first declared entry alone. An entry that
+ * declares no resources gets a worktree and its provision steps, nothing more.
+ */
 export interface RepositoryResource {
+  /** Path to this repository's main checkout, relative to the project's own. */
   path: string
   /** Commands that provision this repository inside a fresh lane. */
   provisionSteps?: string[]
   /** The command that seeds this repository's databases, run only for databases created in the same run. */
   seedCommand?: string
   /**
-   * Command that migrates a database, run with that database's env key
-   * pointing at the target. Required on the primary repository when the lane
-   * owns databases.
+   * Command that migrates a database, run in this repository's lane worktree
+   * with that database's env key pointing at the target. Required when this
+   * entry declares databases.
    */
   migrateCommand?: string
+  /** Databases this repository owns in the lane; each may declare derived-name patterns. */
+  databases?: DatabaseResource[]
+  /**
+   * Env file, relative to this repository's worktree, that carries the
+   * managed allocation block. Defaults to `.env`.
+   */
+  envFile?: string
+  /**
+   * This repository's lane env files, when the single `envFile` is not enough
+   * — e.g. a second file for the test environment that reuses the same env key
+   * names for different allocations. When declared, this fully replaces the
+   * single-file behavior (`envFile` is ignored): each entry seeds from this
+   * repository's main checkout at the same relative path and carries its own
+   * slice of the managed allocation block.
+   */
+  envFiles?: EnvFileResource[]
+  /** Base port each of this repository's services derives its lane-specific port from. */
+  portBases?: Record<string, number>
+  /**
+   * How many consecutive ports a named port holds (e.g. one per E2E worker:
+   * the head port plus one per extra worker). Ports not listed hold one.
+   * Allocation hands out and reserves whole blocks.
+   */
+  portBlocks?: Record<string, number>
+  /** Keeps this repository's expensive migrate-and-seed result as a fingerprinted template database. */
+  templateCaching?: boolean
+  /** Gives the lane a cache-store index, flushed at allocation. */
+  cacheStoreIndex?: boolean
+  /**
+   * Env keys that receive the lane's cache-store URL (base URL plus the
+   * lane's index). Defaults to `['REDIS_URL']`.
+   */
+  cacheStoreEnvKeys?: string[]
+  /**
+   * Paths, relative to this repository's worktree, whose contents fingerprint
+   * the migrations for template caching. Required when templateCaching is on.
+   */
+  migrationSources?: string[]
+  /** Paths, relative to this repository's worktree, whose contents fingerprint the seed. */
+  seedSources?: string[]
 }
 
 export interface CriterionInjection {

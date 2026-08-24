@@ -128,7 +128,9 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       })
     }
   }
-  if (config.provisioning?.cacheStoreIndex) {
+  if (
+    config.provisioning?.repositories?.some((repository) => repository.cacheStoreIndex)
+  ) {
     checks.push({
       binary: 'redis-cli',
       reason: 'provisioning flushes recycled lane cache-store indexes with redis-cli',

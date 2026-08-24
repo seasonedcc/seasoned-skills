@@ -139,9 +139,15 @@ export function buildProgram(): Command {
   program
     .command('provision')
     .description(
-      "Set up an isolated worktree lane from the configuration's resource table: worktrees for every declared repository, ports, databases, cache-store index, dependencies, and seed data. Idempotent — re-running keeps the lane's allocation and never reseeds existing databases.",
+      "Set up an isolated worktree lane over the repositories the run covers, from what each declares in the configuration's resource table: worktrees, ports, databases, cache-store index, dependencies, and seed data. Idempotent — re-running keeps the lane's allocation and never reseeds existing databases.",
     )
     .argument('<lane>', 'the lane name; also names the worktree directories')
+    .option(
+      '--repo <path>',
+      'a declared repository this lane covers, by its exact declared path; repeatable (default: the first declared repository)',
+      (path: string, paths: string[]) => [...paths, path],
+      [] as string[],
+    )
     .option(
       '--branch <branch>',
       'branch the worktrees check out (default worktree/<lane>)',
@@ -157,6 +163,7 @@ export function buildProgram(): Command {
       async (
         lane: string,
         options: {
+          repo: string[]
           branch?: string
           base?: string
           skipProvision?: boolean
@@ -166,7 +173,11 @@ export function buildProgram(): Command {
       ) => {
         try {
           const config = await loadConfig(process.cwd())
-          await provisionLane(process.cwd(), config.provisioning, lane, options)
+          const { repo, ...rest } = options
+          await provisionLane(process.cwd(), config.provisioning, lane, {
+            ...rest,
+            repositoryPaths: repo,
+          })
         } catch (error) {
           console.error((error as Error).message)
           process.exitCode = 1
@@ -177,7 +188,7 @@ export function buildProgram(): Command {
   program
     .command('teardown')
     .description(
-      "Remove a provisioned lane: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
+      "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
     )
     .argument('<lane>', 'the lane to remove')
     .option('--force', 'remove the lane even when a worktree has uncommitted changes')

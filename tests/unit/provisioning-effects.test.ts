@@ -155,7 +155,12 @@ describe('lane worktrees', () => {
       { repositories: [{ path: '.' }, { path: '../sibling' }] },
       { databasePrefix: 'project_wt_' },
     )
-    const worktrees = laneWorktrees(repo, resolved, 'lane-a', 'worktree/lane-a')
+    const worktrees = laneWorktrees(
+      repo,
+      resolved.repositories,
+      'lane-a',
+      'worktree/lane-a',
+    )
     expect(worktrees.map((worktree) => worktree.worktreePath)).toEqual([
       join(root, 'project-worktrees', 'lane-a'),
       join(root, 'sibling-worktrees', 'lane-a'),

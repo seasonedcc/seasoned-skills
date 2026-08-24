@@ -73,7 +73,10 @@ describe('doctor', () => {
   it('derives service and cache-store checks from the provisioning table', () => {
     const provisioned = {
       ...base,
-      provisioning: { services: ['postgres'], cacheStoreIndex: true },
+      provisioning: {
+        services: ['postgres'],
+        repositories: [{ path: '.' }, { path: '../engine', cacheStoreIndex: true }],
+      },
     } as unknown as SeasonedSkillsConfig
     const binaries = deriveChecks(provisioned).map(checkTarget)
     expect(binaries).toContain('docker')

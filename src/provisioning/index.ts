@@ -8,6 +8,7 @@ export {
   type LaneProcess,
   type PortPlan,
   type ResolvedProvisioning,
+  type ResolvedRepository,
   resolveProvisioning,
   sessionEndCleansUpProcesses,
   type TemplateFingerprint,
@@ -21,6 +22,7 @@ export {
 export {
   type LaneWorktree,
   type ProvisionedDatabase,
+  type ProvisionedRepository,
   type ProvisionOptions,
   type ProvisionResult,
   provisionLane,

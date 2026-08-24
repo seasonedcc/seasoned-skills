@@ -12,7 +12,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type pg from 'pg'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resolveProvisioning } from '../../src/provisioning/common.js'
+import {
+  type ResolvedRepository,
+  resolveProvisioning,
+} from '../../src/provisioning/common.js'
 import { provisionLane, teardownLane } from '../../src/provisioning/index.js'
 import { provisionLaneDatabases } from '../../src/provisioning/setup.js'
 import {
@@ -77,7 +80,7 @@ describe('lane setup and teardown without databases', () => {
     })
     expect(result.slug).toBe('quick_fix')
     expect(existsSync(join(root, 'project-worktrees/quick-fix/.git'))).toBe(true)
-    expect(result.seed).toContain('skipped')
+    expect(result.repositories[0]?.seed).toContain('skipped')
     expect(result.summary).toContain('Lane quick-fix ready')
     // Idempotent: a re-run reuses the registered worktree.
     await provisionLane(repo, undefined, 'quick-fix', { skipProvision: true })
@@ -85,8 +88,13 @@ describe('lane setup and teardown without databases', () => {
 
   it('provisions a full lane, running steps with the allocation environment', async () => {
     const config = {
-      repositories: [{ path: '.', provisionSteps: ['echo "PORT=$APP" > step-ran.txt'] }],
-      portBases: { app: 4600 },
+      repositories: [
+        {
+          path: '.',
+          provisionSteps: ['echo "PORT=$APP" > step-ran.txt'],
+          portBases: { app: 4600 },
+        },
+      ],
     }
     const result = await provisionLane(repo, config, 'feature-lane')
     const worktree = join(root, 'project-worktrees/feature-lane')
@@ -97,7 +105,7 @@ describe('lane setup and teardown without databases', () => {
     expect(readFileSync(join(worktree, 'step-ran.txt'), 'utf8')).toBe(
       `PORT=${result.ports.app}\n`,
     )
-    expect(result.seed).toBe('not applicable (no databases declared)')
+    expect(result.repositories[0]?.seed).toBe('not applicable (no databases declared)')
 
     // The second run keeps the recorded allocation instead of reallocating.
     const again = await provisionLane(repo, config, 'feature-lane')
@@ -142,17 +150,22 @@ describe('lane setup and teardown without databases', () => {
       'SESSION_SECRET=s\nAPP_URL=http://localhost:4700/app\nAPP_PORT=4700\n',
     )
     const config = {
-      portBases: { app: 4700, testApp: 4800 },
-      envFiles: [
+      repositories: [
         {
-          path: '.env',
-          ports: { APP_PORT: 'app' },
-          extra: { TELEMETRY_ENABLED: 'false' },
-        },
-        {
-          path: 'apps/web/.env.test',
-          ports: { APP_PORT: 'testApp' },
-          extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}' },
+          path: '.',
+          portBases: { app: 4700, testApp: 4800 },
+          envFiles: [
+            {
+              path: '.env',
+              ports: { APP_PORT: 'app' },
+              extra: { TELEMETRY_ENABLED: 'false' },
+            },
+            {
+              path: 'apps/web/.env.test',
+              ports: { APP_PORT: 'testApp' },
+              extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}' },
+            },
+          ],
         },
       ],
     }
@@ -193,10 +206,15 @@ describe('lane setup and teardown without databases', () => {
 
   it('restores a deleted later env file from the allocation the marked files record', async () => {
     const config = {
-      portBases: { app: 4900 },
-      envFiles: [
-        { path: '.env', ports: { APP_PORT: 'app' } },
-        { path: '.env.extra', extra: { LANE: '{slug}' } },
+      repositories: [
+        {
+          path: '.',
+          portBases: { app: 4900 },
+          envFiles: [
+            { path: '.env', ports: { APP_PORT: 'app' } },
+            { path: '.env.extra', extra: { LANE: '{slug}' } },
+          ],
+        },
       ],
     }
     const result = await provisionLane(repo, config, 'restore-lane')
@@ -291,11 +309,17 @@ describe('lane database provisioning', () => {
       'test -f project_wt_lane_main.created && test -f project_wt_lane_message.created && echo migrated >> migrations.txt'
     const resolved = resolveProvisioning(
       {
-        repositories: [{ path: '.', migrateCommand }],
-        databases: [{ name: 'main' }, { name: 'message' }],
+        repositories: [
+          {
+            path: '.',
+            migrateCommand,
+            databases: [{ name: 'main' }, { name: 'message' }],
+          },
+        ],
       },
       { databasePrefix: 'project_wt_' },
     )
+    const repository = resolved.repositories[0] as ResolvedRepository
     const createdDatabases = new Set<string>()
     const client = {
       query: vi.fn(async (sql: string, values?: string[]) => {
@@ -314,6 +338,7 @@ describe('lane database provisioning', () => {
     const databases = await provisionLaneDatabases({
       client,
       resolved,
+      repository,
       allocation: { ports: {}, databaseUrls: { main: mainUrl, message: messageUrl } },
       slug: 'lane',
       worktreePath: root,
