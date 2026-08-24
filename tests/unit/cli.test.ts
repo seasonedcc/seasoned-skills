@@ -102,6 +102,20 @@ describe('the CLI program', () => {
     expect(process.exitCode).toBe(1)
   })
 
+  it('provision collects every --repo and refuses an undeclared one', async () => {
+    scaffoldProject()
+    execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+      cwd: root,
+    })
+
+    await run('provision', 'my-lane', '--repo', '.', '--repo', '../engine')
+
+    expect(process.exitCode).toBe(1)
+    expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+      '--repo ../engine matches no repository declared in seasoned-skills.config.ts; it declares "."',
+    )
+  })
+
   it('teardown fails loud without a configuration', async () => {
     await run('teardown', 'my-lane')
     expect(process.exitCode).toBe(1)

@@ -230,6 +230,178 @@ describe('lane setup and teardown without databases', () => {
   })
 })
 
+describe('the repositories a lane covers', () => {
+  let root: string
+  let project: string
+  let engine: string
+
+  const workspace = {
+    repositories: [
+      {
+        path: '.',
+        portBases: { app: 5600 },
+        provisionSteps: ['echo "$APP" > app-port.txt'],
+      },
+      {
+        path: '../engine',
+        portBases: { engine: 5700 },
+        provisionSteps: ['echo "$ENGINE" > engine-port.txt'],
+      },
+    ],
+  }
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-selection-')))
+    project = join(root, 'project')
+    engine = join(root, 'engine')
+    initRepo(project)
+    initRepo(engine)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('covers the first declared repository when none is asked for', async () => {
+    const result = await provisionLane(project, workspace, 'default-selection')
+
+    expect(result.repositories.map((one) => one.worktree.repository.path)).toEqual(['.'])
+    expect(existsSync(join(root, 'project-worktrees/default-selection'))).toBe(true)
+    expect(existsSync(join(root, 'engine-worktrees/default-selection'))).toBe(false)
+    expect(result.ports).toEqual({ app: result.ports.app })
+  })
+
+  it('covers exactly the repository asked for, first or not', async () => {
+    const result = await provisionLane(project, workspace, 'engine-only', {
+      repositoryPaths: ['../engine'],
+    })
+
+    expect(result.repositories.map((one) => one.worktree.repository.path)).toEqual([
+      '../engine',
+    ])
+    expect(existsSync(join(root, 'project-worktrees/engine-only'))).toBe(false)
+    const worktree = join(root, 'engine-worktrees/engine-only')
+    expect(readFileSync(join(worktree, 'engine-port.txt'), 'utf8')).toBe(
+      `${result.ports.engine}\n`,
+    )
+    expect(result.ports.app).toBeUndefined()
+  })
+
+  it('anchors each covered repository to its own worktree, env file, and ports', async () => {
+    const result = await provisionLane(project, workspace, 'both-repos', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    const projectWorktree = join(root, 'project-worktrees/both-repos')
+    const engineWorktree = join(root, 'engine-worktrees/both-repos')
+    const appPort = result.ports.app as number
+    const enginePort = result.ports.engine as number
+    expect(appPort).toBeGreaterThanOrEqual(5600)
+    expect(enginePort).toBeGreaterThanOrEqual(5700)
+
+    // Each repository's env file carries its own ports and only its own.
+    const projectEnv = readFileSync(join(projectWorktree, '.env'), 'utf8')
+    const engineEnv = readFileSync(join(engineWorktree, '.env'), 'utf8')
+    expect(projectEnv).toContain(`APP=${appPort}`)
+    expect(projectEnv).not.toContain('ENGINE=')
+    expect(engineEnv).toContain(`ENGINE=${enginePort}`)
+    expect(engineEnv).not.toContain('APP=')
+
+    // Each repository's provision steps run in its own worktree, under its
+    // own slice of the allocation.
+    expect(readFileSync(join(projectWorktree, 'app-port.txt'), 'utf8')).toBe(
+      `${appPort}\n`,
+    )
+    expect(readFileSync(join(engineWorktree, 'engine-port.txt'), 'utf8')).toBe(
+      `${enginePort}\n`,
+    )
+    expect(existsSync(join(projectWorktree, 'engine-port.txt'))).toBe(false)
+  })
+
+  it('refuses a --repo value the table does not declare', async () => {
+    await expect(
+      provisionLane(project, workspace, 'typo', { repositoryPaths: ['../engin'] }),
+    ).rejects.toThrow(
+      /--repo \.\.\/engin matches no repository declared in seasoned-skills\.config\.ts; it declares "\.", "\.\.\/engine"/,
+    )
+    expect(existsSync(join(root, 'project-worktrees/typo'))).toBe(false)
+    expect(existsSync(join(root, 'engine-worktrees/typo'))).toBe(false)
+  })
+
+  it('refuses a port name two covered repositories both declare', async () => {
+    const colliding = {
+      repositories: [
+        { path: '.', portBases: { app: 5600 } },
+        { path: '../engine', portBases: { app: 5700 } },
+      ],
+    }
+
+    await expect(
+      provisionLane(project, colliding, 'collision', {
+        repositoryPaths: ['.', '../engine'],
+      }),
+    ).rejects.toThrow(/both declare the port "app"/)
+
+    // Either repository alone is a perfectly good lane.
+    const alone = await provisionLane(project, colliding, 'engine-alone', {
+      repositoryPaths: ['../engine'],
+    })
+    expect(alone.ports.app).toBeGreaterThanOrEqual(5700)
+  })
+
+  it('keeps the ports a live lane holds when a repository joins it later', async () => {
+    const first = await provisionLane(project, workspace, 'grown-lane')
+    // A port the lane holds is the lane's, whatever the hash would pick now.
+    const projectEnvPath = join(root, 'project-worktrees/grown-lane/.env')
+    const held = (first.ports.app as number) + 37
+    writeFileSync(
+      projectEnvPath,
+      readFileSync(projectEnvPath, 'utf8').replace(
+        `APP=${first.ports.app}`,
+        `APP=${held}`,
+      ),
+    )
+
+    const grown = await provisionLane(project, workspace, 'grown-lane', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    expect(grown.ports.app).toBe(held)
+    expect(readFileSync(projectEnvPath, 'utf8')).toContain(`APP=${held}`)
+    expect(grown.ports.engine).toBeGreaterThanOrEqual(5700)
+    expect(
+      readFileSync(join(root, 'engine-worktrees/grown-lane/.env'), 'utf8'),
+    ).toContain(`ENGINE=${grown.ports.engine}`)
+  })
+
+  it('tears a lane down across the whole table, whatever subset it covered', async () => {
+    await provisionLane(project, workspace, 'subset-lane')
+    expect(existsSync(join(root, 'engine-worktrees/subset-lane'))).toBe(false)
+
+    const result = await teardownLane(project, workspace, 'subset-lane', {
+      force: true,
+    })
+
+    expect(result.removedWorktrees).toEqual([join(root, 'project-worktrees/subset-lane')])
+    expect(existsSync(join(root, 'project-worktrees/subset-lane'))).toBe(false)
+  })
+
+  it('tears down every worktree a lane spread across', async () => {
+    await provisionLane(project, workspace, 'wide-lane', {
+      repositoryPaths: ['.', '../engine'],
+    })
+
+    const result = await teardownLane(project, workspace, 'wide-lane', { force: true })
+
+    expect(result.removedWorktrees).toEqual([
+      join(root, 'project-worktrees/wide-lane'),
+      join(root, 'engine-worktrees/wide-lane'),
+    ])
+  })
+})
+
 describe('lane worktrees against an origin remote', () => {
   let root: string
   let origin: string
