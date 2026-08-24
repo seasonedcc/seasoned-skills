@@ -112,6 +112,9 @@ describe('renderConfig', () => {
       expect(source).toContain('outOfScopeFindings:')
       expect(source).toContain('additionalCriteria: []')
       expect(source).toContain('quickDisqualifiers: []')
+      // Provisioning has no ruled default, so the scaffold states it as a
+      // commented example rather than leaving the option silently absent.
+      expect(source).toContain('// provisioning: {')
       // The scaffold must be a valid configuration the loader would accept.
       const withoutImport = source
         .replace("import { defineConfig } from 'seasoned-skills'", '')
