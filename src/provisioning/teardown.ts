@@ -303,9 +303,10 @@ async function teardownLane(
     }
   }
 
-  const removedWorktrees = worktrees
-    .filter(removeWorktree)
-    .map((worktree) => worktree.worktreePath)
+  const removedWorktrees: string[] = []
+  for (const worktree of worktrees) {
+    if (removeWorktree(worktree)) removedWorktrees.push(worktree.worktreePath)
+  }
 
   log(`teardown complete for ${lane}`)
   return { lane, removedWorktrees, droppedDatabases, killedProcessIds }

@@ -16,6 +16,7 @@ import {
   mergedLaneEnvValues,
   type PortPlan,
   parseLaneAllocationFromFiles,
+  portsHeldBy,
   type ResolvedDatabase,
   type ResolvedEnvFile,
   type ResolvedProvisioning,
@@ -327,11 +328,16 @@ function mainDatabaseUrl(
   return url
 }
 
-/** What one repository's lane worktree already records, before anything is assigned. */
+/**
+ * What one repository already holds before anything is assigned: its main
+ * checkout's env files, this lane's own, the allocation they record, and every
+ * sibling lane's — the claims a fresh allocation has to steer around.
+ */
 type RepositoryLaneState = {
   worktree: LaneWorktree
   mainFiles: MainEnvFile[]
   laneFileContents: (string | null)[]
+  siblingFileContents: (string | null)[][]
   existing: LaneAllocation | null
 }
 
@@ -345,6 +351,11 @@ function readRepositoryLaneState(worktree: LaneWorktree): RepositoryLaneState {
     worktree,
     mainFiles: readMainEnvFiles(worktree.repositoryPath, repository),
     laneFileContents,
+    siblingFileContents: siblingLaneEnvFileContents(
+      worktree.repositoryPath,
+      worktree.worktreePath,
+      repository.envFiles,
+    ),
     existing: parseLaneAllocationFromFiles(laneFileContents, repository),
   }
 }
@@ -369,14 +380,14 @@ async function resolveLanePorts(
     Object.entries(pool.portBases).filter(([name]) => recorded[name] === undefined),
   )
   if (Object.keys(unassigned).length === 0) return recorded
-  const reserved = new Set<number>(Object.values(recorded))
+  const reserved = new Set<number>(
+    Object.entries(recorded).flatMap(([name, port]) =>
+      portsHeldBy(name, port, pool.portBlocks),
+    ),
+  )
   for (const state of states) {
     const sibling = reservedPortsFromLaneEnvFiles(
-      siblingLaneEnvFileContents(
-        state.worktree.repositoryPath,
-        state.worktree.worktreePath,
-        state.worktree.repository.envFiles,
-      ),
+      state.siblingFileContents,
       state.worktree.repository,
     )
     for (const port of sibling) reserved.add(port)
@@ -410,17 +421,11 @@ function resolveLaneCacheStoreIndex(slug: string, states: RepositoryLaneState[])
   const taken = declaring.flatMap((state) => {
     const key = state.worktree.repository.cacheStoreEnvKeys[0]
     if (key === undefined) return []
-    return siblingLaneEnvFileContents(
-      state.worktree.repositoryPath,
-      state.worktree.worktreePath,
-      state.worktree.repository.envFiles,
-    )
-      .flat()
-      .flatMap((contents) => {
-        const url = contents === null ? undefined : readEnvValues(contents)[key]
-        const index = url === undefined ? null : cacheStoreIndexFromUrl(url)
-        return index === null ? [] : [index]
-      })
+    return state.siblingFileContents.flat().flatMap((contents) => {
+      const url = contents === null ? undefined : readEnvValues(contents)[key]
+      const index = url === undefined ? null : cacheStoreIndexFromUrl(url)
+      return index === null ? [] : [index]
+    })
   })
   const index = allocateCacheStoreIndex(slug, taken)
   if (index === null) {
