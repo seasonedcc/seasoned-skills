@@ -36,9 +36,11 @@ import { type LaneWorktree, laneWorktrees } from './setup.js'
  * cache-store index, drops the lane's whole derived-database family via the
  * declared derived-name patterns, and removes the worktrees. Teardown takes no
  * selection: it sweeps the lane across every declared repository, whichever
- * subset of them the lane was provisioned for, skipping the ones that never
- * registered a worktree. It never touches the branch — it may back a pull
- * request.
+ * subset of them the lane was provisioned for. A repository the lane never
+ * reached is passed over whole — it holds none of the lane's resources, and
+ * reading its main checkout for an admin URL would make an unrelated
+ * repository's database server a prerequisite for tearing this lane down. It
+ * never touches the branch — it may back a pull request.
  */
 
 type TeardownOptions = {
@@ -268,6 +270,13 @@ async function teardownLane(
   const droppedDatabases: string[] = []
   for (const worktree of worktrees) {
     const { repository } = worktree
+    if (
+      !existsSync(worktree.worktreePath) &&
+      !isRegisteredWorktree(worktree.repositoryPath, worktree.worktreePath)
+    ) {
+      log(`no lane worktree at ${worktree.worktreePath}; nothing to clean up there`)
+      continue
+    }
     const laneFiles = readLaneEnvFiles(worktree.worktreePath, repository.envFiles)
     killedProcessIds.push(
       ...killLanePortListeners(
