@@ -140,3 +140,7 @@ This repository is consumer number zero: it holds itself to the same adopter's
 bar this README states, in the form that applies to a command-line package —
 its own CI running both test tiers as required checks, comprehensive coverage
 behind them, and the workflow installed from the package it ships.
+
+## License
+
+[MIT](LICENSE).

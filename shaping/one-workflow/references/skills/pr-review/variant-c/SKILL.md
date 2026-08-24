@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Review a GitHub pull request with full context — the description, every comment, review, and inline thread, then the diff — judging the big picture personally before multi-angle finding and adversarial verification. Use when asked to review a PR, analyze a pull request, or assess a teammate's changes — including a PR by the-founder, whose PRs the team takes over; use this instead of the native /review command.
+description: Review a GitHub pull request with full context — the description, every comment, review, and inline thread, then the diff — judging the big picture personally before multi-angle finding and adversarial verification. Use when asked to review a PR, analyze a pull request, or assess a teammate's changes — including a PR by the founder, whose PRs the team takes over; use this instead of the native /review command.
 ---
 
 # PR review
@@ -30,11 +30,11 @@ The PR's diff is the review scope. When surrounding code is needed, Read files i
 
 A re-review is a full review of the PR as it now stands: every phase, the whole diff, at full rigor. Prior rounds never narrow the scope — whether earlier findings got fixed is not the question; whether the PR is right as a whole is. Load the history anyway, for communication's sake: credit what got fixed, answer open threads, and don't re-ask what's already ruled — but form the judgment fresh against the current head.
 
-## When the author is the-founder
+## When the author is the founder
 
-the founder is the CEO — an engineer without time to drive a feature to the end. By agreement, he contributes PRs instead of filing feature requests, and the team takes them over: the review runs at full rigor (every phase, unchanged), but its frame changes from "requests to the author" to "the takeover work list".
+The founder is the CEO — an engineer without time to drive a feature to the end. By agreement, they contribute PRs instead of filing feature requests, and the team takes them over: the review runs at full rigor (every phase, unchanged), but its frame changes from "requests to the author" to "the takeover work list".
 
-- His PR body usually embeds the original spec he gave his agent (a "Prompt inicial" block). Read it as the authoritative record of intent: where the diff drifts from his own stated spec, the default resolution is toward the spec, and the drift is a finding.
+- Their PR body usually embeds the original spec they gave their agent (a "Prompt inicial" block). Read it as the authoritative record of intent: where the diff drifts from their own stated spec, the default resolution is toward the spec, and the drift is a finding.
 - A finding with more than one defensible resolution is a decision for the user, not a review comment offering options. Collect these decisions during the review and put them to the user as questions — with a recommendation — before any solution is built.
 - The verdict is what it takes to make the PR merge-ready ourselves, not a list of change requests. Posting and executing that takeover is the `post-review` skill's job.
 

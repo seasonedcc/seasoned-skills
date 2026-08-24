@@ -1,6 +1,6 @@
 ---
 name: post-review
-description: Post a completed code review on a teammate's GitHub PR as inline comments anchored to the diff, with the verdict and blocking rationale in the review summary. Use when posting review findings to GitHub, requesting changes or approving a PR, taking over a PR by the-founder, or after analyzing a PR (the pr-review skill covers the analysis) when the findings should land on the PR itself.
+description: Post a completed code review on a teammate's GitHub PR as inline comments anchored to the diff, with the verdict and blocking rationale in the review summary. Use when posting review findings to GitHub, requesting changes or approving a PR, taking over a PR by the founder, or after analyzing a PR (the pr-review skill covers the analysis) when the findings should land on the PR itself.
 ---
 
 # Post review
@@ -53,9 +53,9 @@ Unless the review was an `APPROVE`, submitting it is not the end of the job: fol
 
 A review delivered through this skill is a complete task: once the review, the follow-up PRs, and the thread replies have landed, run the `self-improvement` skill over the whole effort before calling it done.
 
-## the founder's PRs: take over instead of posting a review
+## The founder's PRs: take over instead of posting a review
 
-When the PR's author is the-founder, nothing above applies as written. the founder contributes PRs in place of feature requests and does not return to work review feedback; by agreement, the user takes his PRs over. Never post a review asking him to change anything, and never open follow-up PRs for him to accept — the resolutions land on his PR directly:
+When the PR's author is the founder, nothing above applies as written. The founder contributes PRs in place of feature requests and does not return to work review feedback; by agreement, the user takes their PRs over. Never post a review asking them to change anything, and never open follow-up PRs for them to accept — the resolutions land on their PR directly:
 
 - Put every open decision to the user as a question — with a recommendation — and build only the chosen option. Batch decisions of the same shape into one question set.
 - Work lands as commits on the PR's own branch: merge its base branch in (never rebase — the branch backs an open PR), fix every confirmed finding, and finish the feature to the full Definition of Done. That includes live-browser verification of any behavior the automated suites never execute — a static read of frontend code validates its APIs but not its dynamics, and the one real bug of the first takeover was exactly there.
