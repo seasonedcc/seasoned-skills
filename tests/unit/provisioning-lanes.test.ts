@@ -30,6 +30,31 @@ function initRepo(path: string) {
   })
 }
 
+function cloneRepo(origin: string, path: string) {
+  execFileSync('git', ['clone', '--quiet', origin, path])
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: path })
+  execFileSync('git', ['config', 'user.name', 'Test'], { cwd: path })
+}
+
+function commitEmpty(path: string, message: string) {
+  execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', message], {
+    cwd: path,
+  })
+}
+
+function revisionOf(path: string, reference: string) {
+  return execFileSync('git', ['rev-parse', reference], {
+    cwd: path,
+    encoding: 'utf8',
+  }).trim()
+}
+
+function createOriginBranchAheadOfMain(origin: string, branch: string) {
+  execFileSync('git', ['checkout', '--quiet', '-b', branch], { cwd: origin })
+  commitEmpty(origin, `work on ${branch}`)
+  execFileSync('git', ['checkout', '--quiet', 'main'], { cwd: origin })
+}
+
 describe('lane setup and teardown without databases', () => {
   let root: string
   let repo: string
@@ -184,6 +209,67 @@ describe('lane setup and teardown without databases', () => {
     const again = await provisionLane(repo, config, 'restore-lane')
     expect(again.ports).toEqual(result.ports)
     expect(readFileSync(extraPath, 'utf8')).toBe(original)
+  })
+})
+
+describe('lane worktrees against an origin remote', () => {
+  let root: string
+  let origin: string
+  let clone: string
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-origin-')))
+    origin = join(root, 'origin')
+    initRepo(origin)
+    clone = join(root, 'clone')
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('adopts an origin-only lane branch without setting an upstream', async () => {
+    createOriginBranchAheadOfMain(origin, 'worktree/pr-takeover')
+    cloneRepo(origin, clone)
+
+    await provisionLane(clone, undefined, 'pr-takeover', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/pr-takeover')
+    expect(revisionOf(worktree, 'HEAD')).toBe(revisionOf(origin, 'worktree/pr-takeover'))
+    expect(() =>
+      execFileSync('git', ['config', '--get', 'branch.worktree/pr-takeover.merge'], {
+        cwd: clone,
+      }),
+    ).toThrow()
+  })
+
+  it('fast-forwards a stale local lane branch to the origin tip', async () => {
+    createOriginBranchAheadOfMain(origin, 'worktree/stale-lane')
+    cloneRepo(origin, clone)
+    execFileSync('git', ['branch', 'worktree/stale-lane', 'main'], { cwd: clone })
+
+    await provisionLane(clone, undefined, 'stale-lane', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/stale-lane')
+    expect(revisionOf(worktree, 'HEAD')).toBe(revisionOf(origin, 'worktree/stale-lane'))
+  })
+
+  it('keeps a diverged local lane branch as it is', async () => {
+    createOriginBranchAheadOfMain(origin, 'worktree/diverged-lane')
+    cloneRepo(origin, clone)
+    execFileSync('git', ['checkout', '--quiet', '-b', 'worktree/diverged-lane'], {
+      cwd: clone,
+    })
+    commitEmpty(clone, 'local divergence')
+    const localTip = revisionOf(clone, 'worktree/diverged-lane')
+    execFileSync('git', ['checkout', '--quiet', 'main'], { cwd: clone })
+
+    await provisionLane(clone, undefined, 'diverged-lane', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/diverged-lane')
+    expect(revisionOf(worktree, 'HEAD')).toBe(localTip)
   })
 })
 
