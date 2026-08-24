@@ -38,7 +38,7 @@
           with one command and kept current by upgrading a version.
         </p>
         <!-- Flip data-built to "true" the day it ships. There is no third state. -->
-        <p class="status" data-built="false">
+        <p class="status" data-built="true">
           <span class="status-dot" aria-hidden="true"></span>
           <span class="status-label-unbuilt">Not built yet</span>
           <span class="status-label-built">Built</span>
@@ -599,7 +599,8 @@
               the same change, and the coverage register &mdash; the shrink-only
               list of unreached surfaces &mdash; stays empty.
               When the coverage gate is installed into a project that already has
-              unreached surfaces, the install seeds the register with them; it only
+              unreached surfaces, the agent adopting the workflow seeds the
+              register with them; it only
               ever shrinks, and once empty it is held empty forever. A surface
               that genuinely cannot be reached by a spec is <em>excused</em>
               instead, on a separate committed list that admits an entry only
@@ -655,7 +656,8 @@
               that lists and kills processes by lane, the only one wired to run at
               session end and also runnable by hand &mdash; and both kill only by exact process id, so every kill
               passes through a tool that enforces the rule. Lane teardown also kills
-              whatever listens on the lane&rsquo;s ports, so a worker stack orphaned
+              whatever lane-owned process listens on the lane&rsquo;s ports, so a
+              worker stack orphaned
               by a killed run cannot outlive its lane.
             </p>
             <p>
@@ -732,7 +734,8 @@
               the project, so the discipline survives the one expansion path
               that happens in a different repository. Calibration updates are lessons about the
               project itself, so they travel as pull requests on the project;
-              installing into an existing project seeds the calibration file from
+              the agent adopting the workflow into an existing project seeds the
+              calibration file from
               whatever calibration text the project already carries.
             </p>
             <p>
