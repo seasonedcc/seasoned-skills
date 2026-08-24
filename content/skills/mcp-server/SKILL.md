@@ -32,7 +32,7 @@ app/routes/well-known/*         RFC 8414 + RFC 9728 discovery docs
 A tool's `execute` is a **single business-function call, passing the real app context**. No authorization lives in `app/mcp/` — every gate is the app's own gate, reused:
 
 - **Scope** filters visibility (an OAuth concern the app has no analog for).
-- **Permission** is mirrored by `isAvailable`, which calls the same `hasPermission` / `hasStaffPermission` the route getter calls.
+- **Permission** is mirrored by `isAvailable`, which calls the same permission helpers the route getter calls.
 - **Module** entitlement is the `modules` field, checked against the resolved company's `enabledModules`.
 - **Data scoping + final say** is the business function's own `applySchema(input, contextSchema)` — the enriched domain-cap context schema re-validates and scopes the query. If the app would deny it, the schema denies it here too, with the identical error message.
 
