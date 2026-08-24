@@ -9,6 +9,7 @@ import {
   planTemplateUsage,
   type ResolvedDatabase,
   type ResolvedProvisioning,
+  type ResolvedRepository,
   type TemplateFingerprint,
   templateDatabaseName,
   todaysSeedDate,
@@ -53,20 +54,22 @@ function collectSources(worktreePath: string, relativePaths: string[]) {
 /**
  * The current fingerprint for one database resource: migrations always, seed
  * hash and date only for a seeded resource — the fingerprint of a
- * migrate-only template never goes stale on the calendar.
+ * migrate-only template never goes stale on the calendar. Sources are read
+ * from the declaring repository's own lane worktree.
  */
 function templateFingerprint(
   worktreePath: string,
   resolved: ResolvedProvisioning,
+  repository: ResolvedRepository,
   database: ResolvedDatabase,
 ): TemplateFingerprint {
   const migrationsHash = fingerprintSources(
-    collectSources(worktreePath, resolved.migrationSources),
+    collectSources(worktreePath, repository.migrationSources),
   )
   if (!database.seeded) return { migrationsHash }
   return {
     migrationsHash,
-    seedHash: fingerprintSources(collectSources(worktreePath, resolved.seedSources)),
+    seedHash: fingerprintSources(collectSources(worktreePath, repository.seedSources)),
     seedDate: todaysSeedDate(new Date(), resolved.seedDateTimezone),
   }
 }
@@ -109,12 +112,14 @@ type TemplateContext = {
   adminUrl: string
   worktreePath: string
   resolved: ResolvedProvisioning
+  /** The repository that declares this database. */
+  repository: ResolvedRepository
   database: ResolvedDatabase
-  /** The primary repository's migrate command. */
+  /** The declaring repository's migrate command. */
   migrateCommand: string
-  /** The primary repository's seed command, when the resource is seeded. */
+  /** The declaring repository's seed command, when the resource is seeded. */
   seedCommand: string | undefined
-  /** The lane's full allocation values, handed to every step's environment. */
+  /** The repository's slice of the allocation, handed to every step's environment. */
   stepEnv: Record<string, string>
 }
 

@@ -12,6 +12,7 @@ import {
   portsClaimedByEnvFile,
   type ResolvedDatabase,
   type ResolvedEnvFile,
+  type ResolvedRepository,
   readEnvValues,
   resolveProvisioning,
   withDatabaseName,
@@ -26,15 +27,20 @@ import {
   resolveMainRepository,
   withAdminClient,
 } from './runtime.js'
-import { laneWorktrees } from './setup.js'
+import { type LaneWorktree, laneWorktrees } from './setup.js'
 
 /**
  * Lane teardown: refuses a dirty tree unless forced, kills only processes
  * that both listen on the lane's managed ports and run from inside the lane's
  * worktrees — by exact process id, after listing — flushes the lane's
  * cache-store index, drops the lane's whole derived-database family via the
- * declared derived-name patterns, and removes the worktrees. It never touches
- * the branch — it may back a pull request.
+ * declared derived-name patterns, and removes the worktrees. Teardown takes no
+ * selection: it sweeps the lane across every declared repository, whichever
+ * subset of them the lane was provisioned for. A repository the lane never
+ * reached is passed over whole — it holds none of the lane's resources, and
+ * reading its main checkout for an admin URL would make an unrelated
+ * repository's database server a prerequisite for tearing this lane down. It
+ * never touches the branch — it may back a pull request.
  */
 
 type TeardownOptions = {
@@ -144,6 +150,88 @@ async function dropLaneDatabase(adminUrl: string, name: string, prefix: string) 
   return true
 }
 
+/**
+ * The admin URL one repository's databases are dropped through: what the lane
+ * recorded, else what the main checkout carries, else any Postgres URL the
+ * lane's env files hold.
+ */
+function adminDatabaseUrl(
+  repository: ResolvedRepository,
+  laneFiles: LaneEnvFileValues,
+  mainFiles: LaneEnvFileValues,
+) {
+  const [firstDatabase] = repository.databases
+  if (firstDatabase === undefined) return undefined
+  return (
+    recordedDatabaseUrl(laneFiles, firstDatabase) ??
+    recordedDatabaseUrl(mainFiles, firstDatabase) ??
+    laneFiles
+      .flatMap(({ values }) => Object.values(values))
+      .find((value) => value.startsWith('postgres'))
+  )
+}
+
+/** Drop one repository's whole lane database family, guarded by the lane prefix. */
+async function dropRepositoryDatabases({
+  repository,
+  laneFiles,
+  mainFiles,
+  slug,
+  databasePrefix,
+}: {
+  repository: ResolvedRepository
+  laneFiles: LaneEnvFileValues
+  mainFiles: LaneEnvFileValues
+  slug: string
+  databasePrefix: string
+}) {
+  const adminUrl = adminDatabaseUrl(repository, laneFiles, mainFiles)
+  if (!adminUrl) {
+    log(`no database URL available for "${repository.path}"; skipping database cleanup`)
+    return []
+  }
+  const laneDatabases = repository.databases.map((database) => ({
+    baseName: laneDatabaseName(databasePrefix, slug, database.name),
+    derivedPatterns: database.derivedPatterns,
+  }))
+  const existingNames = await withAdminClient(adminUrl, async (client) => {
+    const result = await client.query<{ datname: string }>(
+      'select datname from pg_database',
+    )
+    return result.rows.map((row) => row.datname)
+  })
+  const family = new Set([
+    ...laneDatabaseFamily(existingNames, laneDatabases),
+    // Names the env files record, in case a hand-tuned allocation strayed
+    // from the derived names — still guarded by the lane-owned prefix.
+    ...repository.databases
+      .map((database) => recordedDatabaseUrl(laneFiles, database))
+      .filter((url): url is string => Boolean(url))
+      .map(databaseNameFromUrl)
+      .filter((name) => isLaneOwnedDatabaseName(databasePrefix, name)),
+  ])
+  const dropped: string[] = []
+  for (const name of family) {
+    if (await dropLaneDatabase(withDatabaseName(adminUrl, name), name, databasePrefix)) {
+      dropped.push(name)
+    }
+  }
+  return dropped
+}
+
+function removeWorktree(worktree: LaneWorktree) {
+  if (isRegisteredWorktree(worktree.repositoryPath, worktree.worktreePath)) {
+    git(['worktree', 'remove', '--force', worktree.worktreePath], {
+      cwd: worktree.repositoryPath,
+    })
+    log(`removed worktree at ${worktree.worktreePath}`)
+    return true
+  }
+  gitSucceeds(['worktree', 'prune'], { cwd: worktree.repositoryPath })
+  log(`no worktree registered at ${worktree.worktreePath}`)
+  return false
+}
+
 async function teardownLane(
   projectRoot: string,
   config: ProvisioningConfig | undefined,
@@ -157,9 +245,12 @@ async function teardownLane(
   const slug = laneSlug(lane)
   if (!slug) throw new Error(`cannot derive a slug from "${lane}"`)
 
-  const worktrees = laneWorktrees(mainRepository, resolved, lane, `worktree/${lane}`)
-  const primary = worktrees[0]
-  if (!primary) throw new Error('the resource table resolved to no repositories')
+  const worktrees = laneWorktrees(
+    mainRepository,
+    resolved.repositories,
+    lane,
+    `worktree/${lane}`,
+  )
 
   // The dirty check comes before anything destructive: a lane holding
   // uncommitted work is refused whole, not half torn down.
@@ -171,93 +262,59 @@ async function teardownLane(
     }
   }
 
-  // Ports and recorded URLs come from every declared env file, each read
-  // with its own key→port mapping — the same key name in two files claims
-  // both values.
-  const laneFiles = readLaneEnvFiles(primary.worktreePath, resolved.envFiles)
+  // Ports and recorded URLs come from every declared env file of every
+  // declared repository, each read with its own key→port mapping — the same
+  // key name in two files claims both values.
   const laneWorktreePaths = worktrees.map((worktree) => worktree.worktreePath)
-  const killedProcessIds = killLanePortListeners(
-    laneFiles.flatMap(({ file, values }) =>
-      portsClaimedByEnvFile(values, file, resolved.portBlocks),
-    ),
-    laneWorktreePaths,
-  )
-
-  const cacheKey = resolved.cacheStoreEnvKeys[0]
-  const cacheUrl =
-    cacheKey === undefined
-      ? undefined
-      : laneFiles
-          .filter(({ file }) => file.cacheStore)
-          .map(({ values }) => values[cacheKey])
-          .find(Boolean)
-  if (resolved.cacheStoreIndex && cacheUrl && isFlushableCacheStoreUrl(cacheUrl)) {
-    flushCacheStore(cacheUrl)
-  }
-
+  const killedProcessIds: number[] = []
   const droppedDatabases: string[] = []
-  if (resolved.databases.length > 0) {
-    const mainFiles = readLaneEnvFiles(primary.repositoryPath, resolved.envFiles)
-    const primaryDatabase = resolved.databases[0]
-    const adminUrl =
-      (primaryDatabase === undefined
+  for (const worktree of worktrees) {
+    const { repository } = worktree
+    if (
+      !existsSync(worktree.worktreePath) &&
+      !isRegisteredWorktree(worktree.repositoryPath, worktree.worktreePath)
+    ) {
+      log(`no lane worktree at ${worktree.worktreePath}; nothing to clean up there`)
+      continue
+    }
+    const laneFiles = readLaneEnvFiles(worktree.worktreePath, repository.envFiles)
+    killedProcessIds.push(
+      ...killLanePortListeners(
+        laneFiles.flatMap(({ file, values }) =>
+          portsClaimedByEnvFile(values, file, repository.portBlocks),
+        ),
+        laneWorktreePaths,
+      ),
+    )
+
+    const cacheKey = repository.cacheStoreEnvKeys[0]
+    const cacheUrl =
+      cacheKey === undefined
         ? undefined
-        : recordedDatabaseUrl(laneFiles, primaryDatabase)) ??
-      (primaryDatabase === undefined
-        ? undefined
-        : recordedDatabaseUrl(mainFiles, primaryDatabase)) ??
-      laneFiles
-        .flatMap(({ values }) => Object.values(values))
-        .find((value) => value.startsWith('postgres'))
-    if (adminUrl) {
-      const laneDatabases = resolved.databases.map((database) => ({
-        baseName: laneDatabaseName(resolved.databasePrefix, slug, database.name),
-        derivedPatterns: database.derivedPatterns,
-      }))
-      const existingNames = await withAdminClient(adminUrl, async (client) => {
-        const result = await client.query<{ datname: string }>(
-          'select datname from pg_database',
-        )
-        return result.rows.map((row) => row.datname)
-      })
-      const family = new Set([
-        ...laneDatabaseFamily(existingNames, laneDatabases),
-        // Names the env files record, in case a hand-tuned allocation strayed
-        // from the derived names — still guarded by the lane-owned prefix.
-        ...resolved.databases
-          .map((database) => recordedDatabaseUrl(laneFiles, database))
-          .filter((url): url is string => Boolean(url))
-          .map(databaseNameFromUrl)
-          .filter((name) => isLaneOwnedDatabaseName(resolved.databasePrefix, name)),
-      ])
-      for (const name of family) {
-        if (
-          await dropLaneDatabase(
-            withDatabaseName(adminUrl, name),
-            name,
-            resolved.databasePrefix,
-          )
-        ) {
-          droppedDatabases.push(name)
-        }
-      }
-    } else {
-      log('no database URL available; skipping database cleanup')
+        : laneFiles
+            .filter(({ file }) => file.cacheStore)
+            .map(({ values }) => values[cacheKey])
+            .find(Boolean)
+    if (repository.cacheStoreIndex && cacheUrl && isFlushableCacheStoreUrl(cacheUrl)) {
+      flushCacheStore(cacheUrl)
+    }
+
+    if (repository.databases.length > 0) {
+      droppedDatabases.push(
+        ...(await dropRepositoryDatabases({
+          repository,
+          laneFiles,
+          mainFiles: readLaneEnvFiles(worktree.repositoryPath, repository.envFiles),
+          slug,
+          databasePrefix: resolved.databasePrefix,
+        })),
+      )
     }
   }
 
   const removedWorktrees: string[] = []
   for (const worktree of worktrees) {
-    if (isRegisteredWorktree(worktree.repositoryPath, worktree.worktreePath)) {
-      git(['worktree', 'remove', '--force', worktree.worktreePath], {
-        cwd: worktree.repositoryPath,
-      })
-      removedWorktrees.push(worktree.worktreePath)
-      log(`removed worktree at ${worktree.worktreePath}`)
-    } else {
-      gitSucceeds(['worktree', 'prune'], { cwd: worktree.repositoryPath })
-      log(`no worktree registered at ${worktree.worktreePath}`)
-    }
+    if (removeWorktree(worktree)) removedWorktrees.push(worktree.worktreePath)
   }
 
   log(`teardown complete for ${lane}`)

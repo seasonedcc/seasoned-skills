@@ -249,11 +249,17 @@ export function renderConfig(answers: InstallAnswers): string {
   }
   lines.push(
     '  // The resource table isolated worktree lanes are provisioned from. Uncomment',
-    '  // and describe what a lane owns; without it, a lane is a worktree and nothing else.',
+    '  // and describe what each repository owns; without it, a lane is a worktree and',
+    '  // nothing else. `provision <lane> --repo <path>` picks which entries a lane covers.',
     '  // provisioning: {',
-    "  //   databases: [{ name: 'primary', seeded: true }],",
-    '  //   portBases: { web: 3000 },',
-    "  //   repositories: [{ path: '.', migrateCommand: 'pnpm migrate' }],",
+    '  //   repositories: [',
+    '  //     {',
+    "  //       path: '.',",
+    "  //       migrateCommand: 'pnpm migrate',",
+    "  //       databases: [{ name: 'primary', seeded: true }],",
+    '  //       portBases: { web: 3000 },',
+    '  //     },',
+    '  //   ],',
     '  // },',
   )
   lines.push(

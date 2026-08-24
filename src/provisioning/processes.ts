@@ -35,8 +35,8 @@ function laneWorktreesRoots(
   })
   return {
     resolved,
-    roots: laneWorktrees(mainRepository, resolved, 'any', 'any').map((worktree) =>
-      worktreesRoot(worktree.repositoryPath),
+    roots: laneWorktrees(mainRepository, resolved.repositories, 'any', 'any').map(
+      (worktree) => worktreesRoot(worktree.repositoryPath),
     ),
   }
 }
