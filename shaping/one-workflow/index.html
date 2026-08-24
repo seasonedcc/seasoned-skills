@@ -980,7 +980,9 @@
               Worktree provisioning, no option: one TypeScript implementation in the
               package replaces the three divergent copies, driven entirely by the
               resource table the project&rsquo;s configuration declares &mdash; which
-              databases, which port bases, which services, which repositories. The
+              repositories a lane can cover, and what each one owns: its databases,
+              its port bases, its env files &mdash; alongside the shared services
+              the machine provides. The
               lifecycle contract is the part all three copies already agreed on:
               resources allocated by deterministic hash of the lane name and recorded
               in a managed environment block that doubles as the idempotency
@@ -998,14 +1000,26 @@
             </p>
             <p>
               That one implementation absorbs the richest behavior any project
-              reached, configuration-driven, with no extension points: per-repository
-              provision steps and seed commands declared in the resource table;
-              seeding only the databases created in that same run, so a re-run never
+              reached, configuration-driven, with no extension points: every
+              resource declared on the repository entry that owns it &mdash;
+              databases, ports, env files, provision steps, seed commands &mdash;
+              so a workspace of sibling repositories declares each one with
+              exactly what it needs, and a repository that needs nothing beyond
+              its dependencies declares only its provision steps; a lane covers
+              the declared repositories a provisioning run selects with a
+              repeatable <code>--repo</code>, the first entry alone by default,
+              every covered repository getting the same worktree-and-branch
+              handling; ports and the cache-store index staying lane-wide,
+              pooled across the lane&rsquo;s whole footprint, so two covered
+              repositories can never be handed the same one; seeding only the
+              databases created in that same run, so a re-run never
               overwrites a lane&rsquo;s data; skip flags for provisioning and for
               seeding; probing before starting shared services the machine may
               already run; a cache-store index allocated per lane and flushed at
               allocation, so no lane inherits another&rsquo;s leftovers; and a
-              teardown that refuses a dirty tree unless forced
+              teardown that takes no selection &mdash; it sweeps the lane across
+              the whole declared table, passing over repositories it never
+              reached &mdash; refuses a dirty tree unless forced,
               and drops the lane&rsquo;s whole derived-database family &mdash; the
               derived-name patterns live in the same table, so nothing derived is
               ever orphaned. Template-database caching is a core capability keyed
