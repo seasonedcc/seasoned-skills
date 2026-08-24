@@ -57,12 +57,13 @@ import {
  * repository, allocate the lane's resources by deterministic hash of the lane
  * name, record them in each repository's managed env block, and provision
  * databases, dependencies, and seed data from what that repository declares.
- * Ports and the cache-store index are pooled across the selection — a lane
- * holds one set — while every other resource is anchored to the repository
- * that owns it. Idempotent: the managed block is the allocation record, so a
- * re-run reuses the registered worktrees, their databases, their ports, and
- * the lane's cache-store index — and a re-run never overwrites a lane's data,
- * because seeding belongs only to databases created in that same run.
+ * Ports and the cache-store index are pooled lane-wide — a lane holds one set,
+ * read back from every declared repository and not only the ones a run covers
+ * — while every other resource is anchored to the repository that owns it.
+ * Idempotent: the managed block is the allocation record, so a re-run reuses
+ * the registered worktrees, their databases, their ports, and the lane's
+ * cache-store index — and a re-run never overwrites a lane's data, because
+ * seeding belongs only to databases created in that same run.
  */
 
 type ProvisionOptions = {
@@ -361,14 +362,43 @@ function readRepositoryLaneState(worktree: LaneWorktree): RepositoryLaneState {
 }
 
 /**
- * The lane's port plan: whatever the lane already records stands, and only the
- * names no marked env file carries yet are assigned — so adding a repository
- * to a live lane never moves the ports its siblings are already serving on.
+ * What the lane already holds in every declared repository whose main checkout
+ * is on this machine, in declaration order. Ports and the cache-store index
+ * are lane-wide, so an allocation recorded in a repository this run leaves out
+ * is still the lane's, and the sibling lanes recorded there still hold theirs.
+ * A declared repository nobody cloned is left out with a log line: provisioning
+ * a selection must not die because an unrelated sibling is absent.
+ */
+function readTableLaneStates(
+  mainRepository: string,
+  resolved: ResolvedProvisioning,
+  lane: string,
+  branch: string,
+) {
+  const worktrees = laneWorktrees(mainRepository, resolved.repositories, lane, branch)
+  return worktrees.flatMap((worktree) => {
+    if (existsSync(worktree.repositoryPath)) return [readRepositoryLaneState(worktree)]
+    log(
+      `no checkout at ${worktree.repositoryPath}; leaving "${worktree.repository.path}" out of the lane's allocation`,
+    )
+    return []
+  })
+}
+
+/**
+ * The lane's port plan: whatever the covered repositories already record
+ * stands, and only the names no marked env file carries yet are assigned — so
+ * adding a repository to a live lane never moves the ports its siblings are
+ * already serving on. A port name is unique only within a selection, so a name
+ * an uncovered repository records is never reused by name; that repository's
+ * whole recorded blocks are reserved instead, alongside every sibling lane's
+ * across the whole table.
  */
 async function resolveLanePorts(
   slug: string,
   pool: { portBases: Record<string, number>; portBlocks: Record<string, number> },
   states: RepositoryLaneState[],
+  uncoveredStates: RepositoryLaneState[],
 ) {
   const recorded: PortPlan = {}
   for (const state of states) {
@@ -385,7 +415,13 @@ async function resolveLanePorts(
       portsHeldBy(name, port, pool.portBlocks),
     ),
   )
-  for (const state of states) {
+  for (const state of uncoveredStates) {
+    const { portBlocks } = state.worktree.repository
+    for (const [name, port] of Object.entries(state.existing?.ports ?? {})) {
+      for (const held of portsHeldBy(name, port, portBlocks)) reserved.add(held)
+    }
+  }
+  for (const state of [...states, ...uncoveredStates]) {
     const sibling = reservedPortsFromLaneEnvFiles(
       state.siblingFileContents,
       state.worktree.repository,
@@ -404,14 +440,21 @@ async function resolveLanePorts(
 
 /**
  * The lane's cache-store index — one per lane, shared by every repository that
- * asks for one. An index the lane already records is kept; a fresh one is
- * allocated against the indexes sibling lanes claim in every declaring
- * repository, and flushed before first use, since a recycled index carries the
- * previous tenant's keys.
+ * asks for one. The index a lane already records in any declared repository is
+ * kept, whether or not this run covers that repository; a fresh one is
+ * allocated against the indexes sibling lanes claim across the whole table, and
+ * flushed before first use, since a recycled index carries the previous
+ * tenant's keys.
  */
-function resolveLaneCacheStoreIndex(slug: string, states: RepositoryLaneState[]) {
-  const declaring = states.filter((state) => state.worktree.repository.cacheStoreIndex)
-  if (declaring.length === 0) return null
+function resolveLaneCacheStoreIndex(
+  slug: string,
+  states: RepositoryLaneState[],
+  uncoveredStates: RepositoryLaneState[],
+) {
+  if (!states.some((state) => state.worktree.repository.cacheStoreIndex)) return null
+  const declaring = [...states, ...uncoveredStates].filter(
+    (state) => state.worktree.repository.cacheStoreIndex,
+  )
   const recorded = declaring
     .map((state) => state.existing?.cacheStoreUrl)
     .filter((url): url is string => url !== undefined)
@@ -543,6 +586,57 @@ function writeLaneEnvFiles({
     )
     log(`wrote ${envPath} with the lane's allocation`)
   }
+}
+
+/**
+ * Write one repository's lane env files: all of them for a fresh lane
+ * worktree, and for a lane that already records the managed block only the
+ * declared files that lost theirs — restored from the allocation the marked
+ * files still record.
+ */
+function writeRepositoryLaneEnvFiles(
+  state: RepositoryLaneState,
+  allocation: LaneAllocation,
+  slug: string,
+) {
+  const { repository, worktreePath } = state.worktree
+  const target = {
+    repository,
+    allocation,
+    slug,
+    mainFiles: state.mainFiles,
+    worktreePath,
+  }
+  if (!state.existing) {
+    writeLaneEnvFiles(target)
+    return
+  }
+  log(
+    `${repository.path}: the env files already carry the managed block; keeping the existing allocation`,
+  )
+  const missing = new Set(
+    repository.envFiles
+      .filter((_, index) => !state.laneFileContents[index]?.includes(ENV_MARKER))
+      .map((file) => file.path),
+  )
+  if (missing.size > 0) writeLaneEnvFiles({ ...target, only: missing })
+}
+
+/**
+ * Flush every cache-store database the lane has just claimed, once each, before
+ * the first provision step of any repository runs. A freshly allocated index
+ * may have belonged to a lane that died without teardown, and its keys and
+ * queue backlogs would leak into this one; two repositories sharing the lane's
+ * index share one database, so a flush per repository would wipe what the
+ * first one's steps and seed already wrote.
+ */
+function flushNewCacheStoreDatabases(allocations: LaneAllocation[]) {
+  const urls = new Set(
+    allocations
+      .map((allocation) => allocation.cacheStoreUrl)
+      .filter((url): url is string => url !== undefined),
+  )
+  for (const url of urls) flushCacheStore(url)
 }
 
 /**
@@ -775,65 +869,46 @@ async function provisionLane(
     })
   }
 
-  const states = worktrees.map(readRepositoryLaneState)
-  const [first] = states
-  if (!first) throw new Error('the resource table resolved to no repositories')
+  const tableStates = readTableLaneStates(mainRepository, resolved, lane, branch)
+  const stateByPath = new Map(
+    tableStates.map((state) => [state.worktree.repository.path, state]),
+  )
+  const states = selection.map((repository) => {
+    const state = stateByPath.get(repository.path)
+    if (!state) throw new Error(`no checkout to provision for "${repository.path}"`)
+    return state
+  })
+  const uncoveredStates = tableStates.filter((state) => !states.includes(state))
+
   await startDeclaredServices(
-    first.worktree.repositoryPath,
+    mainRepository,
     resolved,
-    mergedMainEnvValues(states.flatMap((state) => state.mainFiles)),
+    mergedMainEnvValues(tableStates.flatMap((state) => state.mainFiles)),
   )
 
-  const ports = await resolveLanePorts(slug, pool, states)
-  const cacheStoreIndex = resolveLaneCacheStoreIndex(slug, states)
+  const ports = await resolveLanePorts(slug, pool, states, uncoveredStates)
+  const cacheStoreIndex = resolveLaneCacheStoreIndex(slug, states, uncoveredStates)
 
-  const repositories: ProvisionedRepository[] = []
-  for (const state of states) {
-    const { repository, worktreePath } = state.worktree
-    const allocation = repositoryAllocation(
+  const planned = states.map((state) => ({
+    state,
+    allocation: repositoryAllocation(
       state,
       ports,
       cacheStoreIndex,
       slug,
       resolved.databasePrefix,
-    )
-    if (state.existing) {
-      log(
-        `${repository.path}: the env files already carry the managed block; keeping the existing allocation`,
-      )
-      // Partial state: a declared file without the block is re-written from
-      // the allocation the marked files still record.
-      const missing = new Set(
-        repository.envFiles
-          .filter((_, index) => !state.laneFileContents[index]?.includes(ENV_MARKER))
-          .map((file) => file.path),
-      )
-      if (missing.size > 0) {
-        writeLaneEnvFiles({
-          repository,
-          allocation,
-          slug,
-          mainFiles: state.mainFiles,
-          worktreePath,
-          only: missing,
-        })
-      }
-    } else {
-      writeLaneEnvFiles({
-        repository,
-        allocation,
-        slug,
-        mainFiles: state.mainFiles,
-        worktreePath,
-      })
-    }
+    ),
+  }))
+  for (const { state, allocation } of planned) {
+    writeRepositoryLaneEnvFiles(state, allocation, slug)
+  }
+  if (cacheStoreIndex?.isNew) {
+    flushNewCacheStoreDatabases(planned.map(({ allocation }) => allocation))
+  }
 
-    // A freshly allocated index may have belonged to a lane that died without
-    // teardown — flush before first use so its keys and queues cannot leak in.
-    if (cacheStoreIndex?.isNew && allocation.cacheStoreUrl !== undefined) {
-      flushCacheStore(allocation.cacheStoreUrl)
-    }
-
+  const repositories: ProvisionedRepository[] = []
+  for (const { state, allocation } of planned) {
+    const { repository, worktreePath } = state.worktree
     const stepEnv = mergedLaneEnvValues(allocation, repository, slug)
     for (const step of repository.provisionSteps) {
       runStep(step, { cwd: worktreePath, env: stepEnv })
