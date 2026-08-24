@@ -3,6 +3,7 @@
 node_modules/
 dist/
 coverage/
+.env
 # >>> seasoned-skills (managed block, do not edit) >>>
 .claude/hooks/block-git-stash.sh
 .claude/hooks/isolation-guard.sh
