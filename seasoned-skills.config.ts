@@ -4,8 +4,7 @@ export default defineConfig({
   projectName: 'seasoned-skills',
   contentDir: 'workflow-content',
   mergeStrategy: 'merge-commit',
-  // Agents never merge to the base branch during a goal unless the project opts in.
-  agentMergesDuringGoal: false,
+  agentMergesDuringGoal: true,
   outOfScopeFindings: 'bank',
   release: {
     target: 'published-package',

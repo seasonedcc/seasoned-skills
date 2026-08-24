@@ -39,4 +39,4 @@ Any banked evidence measured before the sync — gate numbers, audit passes, QA 
 
 ## The sync is a lane
 
-The sync is a lane like any other: its result gets its own review audit — the `pr-review` loop's angles, scoped to what the sync changed — BEFORE the sync is declared landed, and the standing rules hold — merging the feature branch itself into `main` remains the user's act.
+The sync is a lane like any other: its result gets its own review audit — the `pr-review` loop's angles, scoped to what the sync changed — BEFORE the sync is declared landed, and the standing rules hold — merging the feature branch itself into `main` follows the project's standing merge rule.
