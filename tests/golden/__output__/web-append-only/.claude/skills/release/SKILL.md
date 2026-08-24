@@ -57,7 +57,7 @@ Releases here are big, so the release is audited as a PR before it is published.
 - Open every link — shaping documents, request entries — and confirm each resolves and says what the citing sentence claims.
 - Re-justify every badge added: name the PR(s) that address the entry's ask. Also re-check a sample of entries left unbadged — the misses matter as much as the stamps.
 - Every question raised to the user during the span has an answer, and every finding surfaced during the span has a disposition they have seen. Publishing is the irreversible act, and it never happens over an open adjudication.
-- `python3 requests-from-meetings/verify.py --all` still exits clean after the badge edits.
+- `python3 .claude/skills/requests-from-meetings/scripts/verify.py --all` still exits clean after the badge edits.
 - The usual gates: the project's lint, typecheck, and unit-test commands.
 - The infrastructure the span assumes is already in production: review the span for newly-required infrastructure — env keys, vendor settings, migrations that need a hand — and hand the user any newly-required env keys with their values. This is the release's job because the release is what deploys, and it belongs in the audit because the user needs the list before the publish, not after it. CI passing on this PR says nothing about it — CI does not talk to production infrastructure.
 
