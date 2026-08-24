@@ -637,6 +637,20 @@ describe('lane worktrees against an origin remote', () => {
     ).toThrow()
   })
 
+  it('creates a fresh lane branch without setting an upstream', async () => {
+    cloneRepo(origin, clone)
+
+    await provisionLane(clone, undefined, 'fresh-lane', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/fresh-lane')
+    expect(revisionOf(worktree, 'HEAD')).toBe(revisionOf(origin, 'main'))
+    expect(() =>
+      execFileSync('git', ['config', '--get', 'branch.worktree/fresh-lane.merge'], {
+        cwd: clone,
+      }),
+    ).toThrow()
+  })
+
   it('fast-forwards a stale local lane branch to the origin tip', async () => {
     createOriginBranchAheadOfMain(origin, 'worktree/stale-lane')
     cloneRepo(origin, clone)
