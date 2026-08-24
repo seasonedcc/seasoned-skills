@@ -248,6 +248,15 @@ export function renderConfig(answers: InstallAnswers): string {
     lines.push('  },')
   }
   lines.push(
+    '  // The resource table isolated worktree lanes are provisioned from. Uncomment',
+    '  // and describe what a lane owns; without it, a lane is a worktree and nothing else.',
+    '  // provisioning: {',
+    "  //   databases: [{ name: 'primary', seeded: true }],",
+    '  //   portBases: { web: 3000 },',
+    "  //   repositories: [{ path: '.', migrateCommand: 'pnpm migrate' }],",
+    '  // },',
+  )
+  lines.push(
     '  // Whole criteria the project injects beyond the core, each backed by its own gate.',
   )
   lines.push('  additionalCriteria: [],')

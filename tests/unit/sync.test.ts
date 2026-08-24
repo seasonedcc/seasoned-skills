@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { readManifest } from '../../src/sync/manifest.js'
-import { degrade, SyncInputError, sync } from '../../src/sync/sync.js'
+import { degrade, ignoreEntries, SyncInputError, sync } from '../../src/sync/sync.js'
 
 const fixture = fileURLToPath(new URL('../golden/fixtures/cli-package/', import.meta.url))
 
@@ -109,5 +109,29 @@ describe('sync', () => {
     expect(doctrine).toContain('could not be generated')
     expect(doctrine).toContain('Standing order')
     expect(doctrine).toContain('workflow-content/quick.md')
+  })
+})
+
+describe('ignoreEntries', () => {
+  it('compacts generated paths into skill folders and keeps the manifest', () => {
+    const entries = ignoreEntries([
+      'CLAUDE.md',
+      '.claude/skills/quick/SKILL.md',
+      '.claude/skills/quick/reference.md',
+      'shaping/assets/style.css',
+    ])
+    expect(entries).toContain('CLAUDE.md')
+    expect(entries).toContain('.claude/skills/quick/')
+    expect(entries).toContain('shaping/assets/')
+    expect(entries).toContain('.claude/seasoned-skills-manifest.json')
+    expect(entries).not.toContain('.claude/skills/quick/SKILL.md')
+  })
+
+  it("carries the meeting skill's per-user configuration", () => {
+    expect(ignoreEntries([])).toContain('requests-from-meetings/config.local.json')
+  })
+
+  it('carries the finished demo video copied beside its screenplay', () => {
+    expect(ignoreEntries([])).toContain('/demo-videos/*/*.mp4')
   })
 })

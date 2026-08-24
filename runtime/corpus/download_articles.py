@@ -23,7 +23,7 @@ RETRIEVED_PATH = SOURCES_DIR / "retrieved.json"
 SITE_ROOT = "https://www.ryansinger.co"
 INDEX_URL = SITE_ROOT + "/posts/"
 INDEX_KEY = "index"
-USER_AGENT = "shaping-skill corpus builder (+https://github.com/seasonedcc/shaping-skill)"
+USER_AGENT = "seasoned-skills corpus builder (+https://github.com/seasonedcc/seasoned-skills)"
 REQUEST_DELAY_SECONDS = 1.5
 
 

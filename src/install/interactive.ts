@@ -1,7 +1,33 @@
 import { basename } from 'node:path'
-import { createInterface } from 'node:readline/promises'
+import { createInterface } from 'node:readline'
 import type { Readable, Writable } from 'node:stream'
 import type { InstallAnswers } from './install.js'
+
+export interface InterviewOptions {
+  input?: Readable
+  output?: Writable
+  /**
+   * Ask for the user's own copy of the commercial book: this machine's shaping
+   * corpus cache is missing or stale, so the install has to build it.
+   */
+  corpusNeedsBuilding?: boolean
+}
+
+export interface InstallInterview {
+  answers: InstallAnswers
+  /** The path the user gave for their own copy of the book, when they have one. */
+  bookPath?: string
+}
+
+/** An interview that ran out of input before it had every answer it needs. */
+export class InstallInterviewAborted extends Error {
+  constructor(readonly question: string) {
+    super(
+      `the install interview ended before it was answered: "${question}". Run \`seasoned-skills install\` in a terminal, or pipe one line for every question it asks.`,
+    )
+    this.name = 'InstallInterviewAborted'
+  }
+}
 
 /**
  * The install interview. An option the rulings give a default is stated in
@@ -10,18 +36,28 @@ import type { InstallAnswers } from './install.js'
  * skills' required declarations (key types, application root, time-zone
  * model) are asked here too, so the first sync never fails on an empty
  * required section.
+ *
+ * Answers are read through readline's async iterator, which buffers whole
+ * lines: an install driven by piped input answers in order, exactly as a
+ * person typing would, and input that runs out before the last answer aborts
+ * loudly instead of leaving the interview hanging.
  */
 export async function collectAnswers(
   projectRoot: string,
-  streams: { input?: Readable; output?: Writable } = {},
-): Promise<InstallAnswers> {
+  options: InterviewOptions = {},
+): Promise<InstallInterview> {
+  const output = options.output ?? process.stdout
   const rl = createInterface({
-    input: streams.input ?? process.stdin,
-    output: streams.output ?? process.stdout,
+    input: options.input ?? process.stdin,
+    output,
   })
+  const lines = rl[Symbol.asyncIterator]()
   const ask = async (question: string, fallback?: string): Promise<string> => {
-    const suffix = fallback === undefined ? '' : ` [${fallback}]`
-    const answer = (await rl.question(`${question}${suffix} `)).trim()
+    const suffix = fallback ? ` [${fallback}]` : ''
+    output.write(`${question}${suffix} `)
+    const line = await lines.next()
+    if (line.done) throw new InstallInterviewAborted(question)
+    const answer = line.value.trim()
     if (answer) return answer
     if (fallback !== undefined) return fallback
     return ask(question, fallback)
@@ -32,9 +68,7 @@ export async function collectAnswers(
   ): Promise<T> => {
     const answer = await ask(`${question} (${choices.join(' | ')})`, choices[0])
     if ((choices as readonly string[]).includes(answer)) return answer as T
-    ;(streams.output ?? process.stdout).write(
-      `Answer must be one of: ${choices.join(', ')}\n`,
-    )
+    output.write(`Answer must be one of: ${choices.join(', ')}\n`)
     return askChoice(question, choices)
   }
   const askYesNo = async (question: string): Promise<boolean> =>
@@ -156,7 +190,12 @@ export async function collectAnswers(
         ),
       }
     }
-    return answers
+    if (!options.corpusNeedsBuilding) return { answers }
+    const bookPath = await ask(
+      "Path to your own compiled copy of Demand-Side Sales 101, for the shaping corpus? (empty answer: the workflow's distilled account stands in)",
+      '',
+    )
+    return bookPath ? { answers, bookPath } : { answers }
   } finally {
     rl.close()
   }

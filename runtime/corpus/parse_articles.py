@@ -35,7 +35,7 @@ POST_HOSTS = {"www.ryansinger.co", "ryansinger.co"}
 FORMER_SITE_HOSTS = {"feltpresence.com", "www.feltpresence.com"}
 FORMER_SITE_ARTICLE = re.compile(r"^articles/\d+-(?P<slug>.+?)/?$")
 METHOD = "scripts/parse_articles.py"
-USER_AGENT = "shaping-skill corpus builder (+https://github.com/seasonedcc/shaping-skill)"
+USER_AGENT = "seasoned-skills corpus builder (+https://github.com/seasonedcc/seasoned-skills)"
 REQUEST_DELAY_SECONDS = 0.5
 
 VOID_TAGS = {"area", "base", "br", "col", "hr", "img", "input", "link", "meta", "source"}

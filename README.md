@@ -63,14 +63,28 @@ first, or leave the matching option off until it exists.
   README documents the contract). The narration model's weights are fetched
   once per machine by the rig's own `setup.sh` — never by the install.
 
+**Your pipeline provides**, per enabled criterion — workflow files are
+project-owned machinery the package never generates, so this is a contract,
+not a template:
+
+- the **gate jobs**: the lint, typecheck, and test commands your configuration
+  declares, each a required check;
+- the **end-to-end job** where `webSurface` is on — the acceptance gate the
+  Definition of Done reads before a change counts as done;
+- the **seed-manifest job** where `demoSeed` is on — the check that fails a
+  user-facing surface nobody claimed a seed section for.
+
 **The machine** needs the binaries the enabled workflow depends on — `git`,
-`gh`, `jq`, and `python3` always; `agent-browser` and `ffmpeg` where there is
-a web surface; the service starter (`docker` by default) and `redis-cli` where
-provisioning declares services and a cache store. Run
-`seasoned-skills doctor` for the mechanical version of this list, derived from
-your configuration, with install pointers for anything missing. Doctor is
-advisory everywhere: it never blocks, because enforcement lives in the gates
-that need the tools.
+`gh`, `jq`, and `python3`, plus the toolchains the always-shipping practices
+run on: `whisper-cli` with the pinned `ggml-large-v3` model for meeting
+transcription, and `uv` and `ffmpeg` for demo-video narration. Beyond those,
+`agent-browser` where there is a web surface, and the service starter
+(`docker` by default) and `redis-cli` where provisioning declares services and
+a cache store. A project with needs of its own adds them to
+`machinePrerequisites` in its configuration. Run `seasoned-skills doctor` for
+the mechanical version of this list, derived from your configuration, with
+install pointers for anything missing. Doctor is advisory everywhere: it never
+blocks, because enforcement lives in the gates that need the tools.
 
 ## Installing
 
@@ -84,8 +98,11 @@ has no ruled default — nothing defaults silently — then creates the
 committed artifacts: `seasoned-skills.config.ts` stating every option
 explicitly, the content files (empty — they are where your project's own
 rules accumulate), the calibration file, the shaping folder, and the registers
-the enabled options need. It never overwrites anything that exists. It
-finishes by running a sync and printing the doctor report.
+the enabled options need. It never overwrites anything that exists. When this
+machine has no current shaping corpus, it asks for your own copy of the one
+commercial book (an empty answer takes the distilled account instead) and
+builds the corpus before finishing. It finishes by running a sync and printing
+the doctor report.
 
 After that, `seasoned-skills sync` is the only moving part: it regenerates
 every generated file from the configuration and content, deletes what a
@@ -103,7 +120,8 @@ Fix the inputs and sync again.
 
 The shaping skill carries the verbatim texts of the books and posts the method
 comes from — but those texts never enter any repository. They are built into
-a per-machine cache:
+a per-machine cache, which the install builds for you the first time. To
+rebuild it — a new machine, or a package upgrade that moved the corpus:
 
 ```sh
 seasoned-skills corpus

@@ -5,7 +5,12 @@ import { loadProjectContent } from '../../src/generation/content.js'
 import { requiredContentNames } from '../../src/generation/skills/index.js'
 import type { GenerationContext } from '../../src/generation/types.js'
 
-export const FIXTURES = ['cli-package', 'web-append-only']
+export const FIXTURES = [
+  'cli-package',
+  'service-squash',
+  'web-append-only',
+  'web-mutable',
+]
 
 export async function loadFixture(name: string): Promise<GenerationContext> {
   const root = fileURLToPath(new URL(`fixtures/${name}/`, import.meta.url))

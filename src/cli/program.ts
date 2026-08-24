@@ -6,7 +6,7 @@ import { Command } from 'commander'
 import { loadConfig } from '../config/load.js'
 import { buildCorpus } from '../corpus/build.js'
 import { corpusBuiltBy, corpusCacheRoot } from '../corpus/cache.js'
-import { deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
+import { checkTarget, deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
 import {
@@ -44,7 +44,7 @@ export function buildProgram(): Command {
         const missing = runChecks(deriveChecks(result.config)).filter((f) => !f.ok)
         for (const finding of missing) {
           console.warn(
-            `warning: ${finding.check.binary} is missing — ${finding.check.reason}. Install: ${finding.check.hint}`,
+            `warning: ${checkTarget(finding.check)} is missing — ${finding.check.reason}. Install: ${finding.check.hint}`,
           )
         }
       } catch (error) {
@@ -60,16 +60,22 @@ export function buildProgram(): Command {
   program
     .command('install')
     .description(
-      'Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default), the committed artifacts, and the empty content files — finishing with a sync and a doctor report. Never overwrites what exists.',
+      'Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default), the committed artifacts, and the empty content files, then the shaping corpus this machine still needs — finishing with a sync and a doctor report. Never overwrites what exists.',
     )
     .action(async () => {
       const root = process.cwd()
       try {
-        const answers = await collectAnswers(root)
+        const cacheRoot = corpusCacheRoot()
+        const corpusNeedsBuilding = corpusBuiltBy(cacheRoot) !== version
+        const { answers, bookPath } = await collectAnswers(root, { corpusNeedsBuilding })
         const plan = planInstall(root, answers)
         applyInstall(root, plan)
         for (const file of plan.files) console.log(`created ${file.path}`)
         for (const path of plan.skipped) console.log(`kept existing ${path}`)
+        if (corpusNeedsBuilding) {
+          console.log(`Building the shaping corpus at ${cacheRoot}.`)
+          buildCorpus(cacheRoot, bookPath === undefined ? {} : { book: bookPath })
+        }
         const result = await sync(root)
         console.log(`Generated ${result.generated.length} files.`)
         console.log(renderReport(runChecks(deriveChecks(result.config))))

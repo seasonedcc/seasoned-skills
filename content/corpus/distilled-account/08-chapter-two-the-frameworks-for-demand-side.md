@@ -9,9 +9,9 @@ method: written in the workflow authors' own words; no text from the book is rep
 
 This is a stand-in for the book's chapter two, written in our own words. It
 teaches the frameworks the shaping skill cites from that chapter, at the depth
-the citations lean on. The short verbatim quotes the skill carries — the
-four-forces sentence and the built-to-be-bought-and-used sentence — are the
-book's own words and appear only in the skill; everything below is paraphrase.
+the citations lean on. Everything below is paraphrase, and so is every
+citation the skill makes into this chapter: no sentence of the book is
+reproduced anywhere in this package.
 
 ## Supply side versus demand side
 
@@ -56,9 +56,9 @@ struggling moment is — and the **pull** (the book calls it magnetism) of the
 new solution — how attractive the imagined better life looks. Two resist it:
 the **anxiety** of the new — will it work, what will it cost me, what if I
 choose wrong — and the **habit** of the present — the comfort, sunk learning,
-and inertia of the current way, however flawed. The chapter's rule, which the
-shaping skill quotes verbatim, is that the promoting pair has to outweigh the
-resisting pair before anyone buys. The force diagram is drawn as two arrows
+and inertia of the current way, however flawed. The chapter's rule is that the
+promoting pair has to outweigh the resisting pair before anyone buys. The
+force diagram is drawn as two arrows
 pushing toward the change and two pushing back; shaping reaches for it when
 adoption risk is real, because it turns a vague worry about "will they use it"
 into four nameable, addressable quantities.
@@ -70,8 +70,8 @@ is used. The **big hire** is the purchase or adoption decision — made once,
 often by someone weighing the four forces at their strongest. The **little
 hires** happen every time the person chooses to use the product again, day
 after day; each one is a small re-hiring, and a product that keeps losing them
-gets quietly fired no matter how the big hire went. The design consequence —
-the sentence the skill quotes verbatim — is that a product has to be built to
-win both: to be bought, and to be used. In shaping, this becomes a framing
+gets quietly fired no matter how the big hire went. The design consequence is
+that a product has to be built to win both: to be bought, and to be used. In
+shaping, this becomes a framing
 question with two answers by name: who approves this once, and who has to
 choose it again every working day.

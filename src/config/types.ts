@@ -94,6 +94,22 @@ export interface SeasonedSkillsConfig {
    * (a new route, table, permission, or product surface).
    */
   quickDisqualifiers?: string[]
+
+  /**
+   * Binaries this project's own content depends on, beyond the ones the
+   * enabled layers and skills already declare. Doctor checks them like every
+   * other prerequisite — advisory, never blocking.
+   */
+  machinePrerequisites?: MachinePrerequisite[]
+}
+
+export interface MachinePrerequisite {
+  /** The binary that must be on the PATH. */
+  binary: string
+  /** Why this project needs it, phrased to follow "Needed because …". */
+  reason: string
+  /** How to install it: a command, a URL, or both. */
+  hint: string
 }
 
 export type ReleaseConfig =

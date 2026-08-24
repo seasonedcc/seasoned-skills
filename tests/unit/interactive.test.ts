@@ -1,14 +1,17 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { describe, expect, it } from 'vitest'
+import { applyInstall, planInstall } from '../../src/install/install.js'
 import { collectAnswers } from '../../src/install/interactive.js'
 
 /**
- * Runs the interview against a scripted list of answers. Prompts end without a
- * newline, so each un-terminated output chunk is a question waiting for the
- * next answer; a line readline is not waiting for would be dropped, which is
- * why the answers cannot simply be written up front.
+ * Runs the interview against a scripted list of answers, one written each time
+ * a prompt appears — the way a person at a terminal answers. Prompts end
+ * without a newline, so an un-terminated output chunk is a question waiting.
  */
-function interview(root: string, answers: string[]) {
+async function interview(root: string, answers: string[]) {
   const input = new PassThrough()
   const output = new PassThrough()
   const queue = [...answers]
@@ -17,8 +20,36 @@ function interview(root: string, answers: string[]) {
     const answer = queue.shift()
     if (answer !== undefined) setImmediate(() => input.write(`${answer}\n`))
   })
+  return (await collectAnswers(root, { input, output })).answers
+}
+
+/** Runs the interview against answers piped in all at once, as a script does. */
+function pipedInterview(root: string, answers: string[]) {
+  const input = new PassThrough()
+  const output = new PassThrough()
+  output.resume()
+  input.end(answers.map((answer) => `${answer}\n`).join(''))
   return collectAnswers(root, { input, output })
 }
+
+const minimalAnswers = [
+  'consumer',
+  'workflow-content',
+  'merge-commit',
+  'bank',
+  'deployed-product',
+  'pnpm check',
+  '-',
+  'pnpm test:unit',
+  '-',
+  'pnpm test',
+  'no',
+  'workflow-content/calibrations.md',
+  'no',
+  'no',
+  'no',
+  'no',
+]
 
 describe('collectAnswers', () => {
   it('collects a minimal deployed-product project, honoring defaults', async () => {
@@ -108,6 +139,68 @@ describe('collectAnswers', () => {
       applicationRoot: 'app',
       timeZoneModel: 'Times display in the venue timezone.',
     })
+  })
+
+  it('answers in order from piped input, and the scaffold lands', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-piped-'))
+    try {
+      const { answers } = await pipedInterview(root, minimalAnswers)
+      expect(answers.projectName).toBe('consumer')
+      expect(answers.gates).toEqual({
+        lint: 'pnpm check',
+        unit: 'pnpm test:unit',
+        full: ['pnpm test'],
+      })
+      applyInstall(root, planInstall(root, answers))
+      expect(readFileSync(join(root, 'seasoned-skills.config.ts'), 'utf8')).toContain(
+        "projectName: 'consumer'",
+      )
+      expect(readFileSync(join(root, 'workflow-content/quick.md'), 'utf8')).toBe('')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('aborts loudly when the input ends before the last answer', async () => {
+    await expect(
+      pipedInterview('/tmp/consumer', minimalAnswers.slice(0, 4)),
+    ).rejects.toThrow(/install interview ended before it was answered/)
+  })
+
+  it('asks for the book only when the shaping corpus still has to be built', async () => {
+    const withoutCorpus = await pipedInterview('/tmp/consumer', [
+      ...minimalAnswers,
+      '/Users/someone/books/demand-side-sales',
+    ])
+    expect(withoutCorpus.bookPath).toBeUndefined()
+
+    const input = new PassThrough()
+    const output = new PassThrough()
+    output.resume()
+    input.end(
+      [...minimalAnswers, '/Users/someone/books/demand-side-sales']
+        .map((answer) => `${answer}\n`)
+        .join(''),
+    )
+    const asked = await collectAnswers('/tmp/consumer', {
+      input,
+      output,
+      corpusNeedsBuilding: true,
+    })
+    expect(asked.bookPath).toBe('/Users/someone/books/demand-side-sales')
+  })
+
+  it('takes an empty book answer as no copy of the book', async () => {
+    const input = new PassThrough()
+    const output = new PassThrough()
+    output.resume()
+    input.end([...minimalAnswers, ''].map((answer) => `${answer}\n`).join(''))
+    const asked = await collectAnswers('/tmp/consumer', {
+      input,
+      output,
+      corpusNeedsBuilding: true,
+    })
+    expect(asked.bookPath).toBeUndefined()
   })
 
   it('re-asks until an answer matches the offered choices', async () => {
