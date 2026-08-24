@@ -1,25 +1,44 @@
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { SeasonedSkillsConfig } from '../config/types.js'
 
 /**
  * Doctor: the machine-prerequisite checklist, derived from the configuration
- * — every enabled layer and skill declares the binaries it depends on — then
- * checked for presence and version, with install pointers for what is
- * missing. It is advisory everywhere: it never blocks an install or a sync;
- * enforcement lives in the gates that need the tools, which fail loudly on
- * their own.
+ * — every enabled layer and skill declares the binaries it depends on, and
+ * project content declares its extras as project facts — then checked for
+ * presence and version, with install pointers for what is missing. It is
+ * advisory everywhere: it never blocks an install or a sync; enforcement lives
+ * in the gates that need the tools, which fail loudly on their own.
  */
-export interface DoctorCheck {
+export interface BinaryCheck {
   binary: string
   reason: string
   hint: string
 }
+
+/** A prerequisite that is a file on this machine rather than a binary on the PATH. */
+export interface FileCheck {
+  file: string
+  reason: string
+  hint: string
+}
+
+export type DoctorCheck = BinaryCheck | FileCheck
 
 export interface DoctorFinding {
   check: DoctorCheck
   ok: boolean
   version?: string
 }
+
+/** What a check is about, for the report and for anything listing the checklist. */
+export function checkTarget(check: DoctorCheck): string {
+  return 'file' in check ? check.file : check.binary
+}
+
+const WHISPER_MODEL = join(homedir(), '.cache', 'whisper-cpp', 'ggml-large-v3.bin')
 
 export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
   const checks: DoctorCheck[] = [
@@ -45,17 +64,34 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       reason: 'the subagent watchdog and meeting-request verification run on Python 3',
       hint: 'https://www.python.org/downloads',
     },
+    {
+      binary: 'whisper-cli',
+      reason: 'meeting transcription decodes every recording with whisper.cpp',
+      hint: 'brew install whisper-cpp',
+    },
+    {
+      file: WHISPER_MODEL,
+      reason:
+        'meeting transcription is pinned to the ggml-large-v3 model, so every machine hears the same words',
+      hint: "fetch ggml-large-v3 with whisper.cpp's models/download-ggml-model.sh and keep it at this path",
+    },
+    {
+      binary: 'uv',
+      reason: "the demo-video narrator's virtualenv and dependencies are built with uv",
+      hint: 'https://docs.astral.sh/uv/getting-started/installation/',
+    },
+    {
+      binary: 'ffmpeg',
+      reason:
+        'the demo-video rig retimes narration and assembles its recordings with ffmpeg',
+      hint: 'brew install ffmpeg',
+    },
   ]
   if (config.webSurface) {
     checks.push({
       binary: 'agent-browser',
       reason: 'browser verification and the browser sweep drive the agent-browser CLI',
       hint: 'npm install -g agent-browser',
-    })
-    checks.push({
-      binary: 'ffmpeg',
-      reason: 'the demo-video rig assembles its recordings with ffmpeg',
-      hint: 'brew install ffmpeg',
     })
   }
   if (config.provisioning?.services?.length) {
@@ -77,11 +113,15 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       hint: 'brew install redis',
     })
   }
+  for (const prerequisite of config.machinePrerequisites ?? []) {
+    checks.push(prerequisite)
+  }
   return checks
 }
 
 export function runChecks(checks: DoctorCheck[]): DoctorFinding[] {
   return checks.map((check) => {
+    if ('file' in check) return { check, ok: existsSync(check.file) }
     const result = spawnSync(check.binary, ['--version'], { encoding: 'utf8' })
     if (result.error || result.status !== 0) return { check, ok: false }
     const version = `${result.stdout}${result.stderr}`.split('\n')[0]?.trim()
@@ -92,8 +132,8 @@ export function runChecks(checks: DoctorCheck[]): DoctorFinding[] {
 export function renderReport(findings: DoctorFinding[]): string {
   const lines = findings.map((finding) =>
     finding.ok
-      ? `✓ ${finding.check.binary} — ${finding.version ?? 'present'}`
-      : `✗ ${finding.check.binary} — missing. Needed because ${finding.check.reason}. Install: ${finding.check.hint}`,
+      ? `✓ ${checkTarget(finding.check)} — ${finding.version ?? 'present'}`
+      : `✗ ${checkTarget(finding.check)} — missing. Needed because ${finding.check.reason}. Install: ${finding.check.hint}`,
   )
   const missing = findings.filter((finding) => !finding.ok).length
   lines.push(

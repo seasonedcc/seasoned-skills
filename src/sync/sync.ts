@@ -154,9 +154,21 @@ function isManagedPath(path: string): boolean {
   )
 }
 
+/**
+ * The entries the managed block carries beyond the generated paths: the
+ * per-user meeting configuration and the finished demo video every assembly
+ * copies beside its screenplay. Neither is generated, and the generated skills
+ * promise both are kept out of the project's history — so the ignore manager
+ * is what has to keep that promise true.
+ */
+const PROMISED_ENTRIES = [
+  '/demo-videos/*/*.mp4',
+  'requests-from-meetings/config.local.json',
+]
+
 /** Compact gitignore entries: whole generated skill folders, single files otherwise. */
 export function ignoreEntries(paths: string[]): string[] {
-  const entries = new Set<string>([MANIFEST_PATH])
+  const entries = new Set<string>([MANIFEST_PATH, ...PROMISED_ENTRIES])
   for (const path of paths) {
     const skillMatch = path.match(/^(\.claude\/skills\/[^/]+)\//)
     if (skillMatch?.[1]) {

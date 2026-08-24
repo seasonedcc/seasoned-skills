@@ -49,16 +49,28 @@ export function isEffectivelyIgnored(projectRoot: string, path: string): boolean
 }
 
 /**
+ * A glob entry stands for a family of files rather than one path, and
+ * `git check-ignore` answers about pathnames — asked about a glob it fails
+ * outright. Glob entries are therefore listed unconditionally and never
+ * verified; the paths beside them still are.
+ */
+function isGlob(entry: string): boolean {
+  return entry.includes('*')
+}
+
+/**
  * Ensures every generated path is effectively ignored, listing the missing
  * ones in the managed block. Returns the entries the block now carries.
  */
-export function ensureIgnored(projectRoot: string, paths: string[]): string[] {
+export function ensureIgnored(projectRoot: string, entries: string[]): string[] {
+  const globs = entries.filter(isGlob)
+  const paths = entries.filter((entry) => !isGlob(entry))
   const missing = paths.filter((path) => !isEffectivelyIgnored(projectRoot, path))
   const file = join(projectRoot, '.gitignore')
   const existing = existsSync(file) ? readFileSync(file, 'utf8') : ''
   const currentBlock = readManagedBlock(existing)
-  const entries = [...new Set([...currentBlock, ...missing])]
-  const updated = updateManagedBlock(existing, entries)
+  const listed = [...new Set([...currentBlock, ...globs, ...missing])]
+  const updated = updateManagedBlock(existing, listed)
   if (updated !== existing) writeFileSync(file, updated)
 
   const stillExposed = paths.filter((path) => !isEffectivelyIgnored(projectRoot, path))
@@ -67,7 +79,7 @@ export function ensureIgnored(projectRoot: string, paths: string[]): string[] {
       `these generated paths are still not ignored after updating .gitignore — a negation elsewhere is re-exposing them: ${stillExposed.join(', ')}`,
     )
   }
-  return entries
+  return listed
 }
 
 export function readManagedBlock(existing: string): string[] {

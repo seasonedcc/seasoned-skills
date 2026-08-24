@@ -102,6 +102,17 @@ export function validateConfig(value: unknown): string[] {
       )
     }
   }
+  for (const [index, prerequisite] of (config.machinePrerequisites ?? []).entries()) {
+    if (!isNonEmptyString(prerequisite?.binary)) {
+      issues.push(`machinePrerequisites[${index}].binary must be a non-empty string`)
+    }
+    if (!isNonEmptyString(prerequisite?.reason)) {
+      issues.push(`machinePrerequisites[${index}].reason must be a non-empty string`)
+    }
+    if (!isNonEmptyString(prerequisite?.hint)) {
+      issues.push(`machinePrerequisites[${index}].hint must be a non-empty string`)
+    }
+  }
   return issues
 }
 

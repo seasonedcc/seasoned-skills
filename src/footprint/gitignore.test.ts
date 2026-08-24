@@ -3,7 +3,12 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { ensureIgnored, readManagedBlock, updateManagedBlock } from './gitignore.js'
+import {
+  ensureIgnored,
+  isEffectivelyIgnored,
+  readManagedBlock,
+  updateManagedBlock,
+} from './gitignore.js'
 
 describe('updateManagedBlock', () => {
   it('appends a managed block to an existing file', () => {
@@ -56,6 +61,17 @@ describe('ensureIgnored', () => {
     const file = readFileSync(join(root, '.gitignore'), 'utf8')
     expect(file).toContain('already-ignored.md')
     expect(file).toContain('CLAUDE.md')
+  })
+
+  it('lists a glob entry without asking git about it as a path', () => {
+    const entries = ensureIgnored(root, ['/demo-videos/*/*.mp4', 'CLAUDE.md'])
+    expect(entries).toEqual(['/demo-videos/*/*.mp4', 'CLAUDE.md'])
+    expect(readFileSync(join(root, '.gitignore'), 'utf8')).toContain(
+      '/demo-videos/*/*.mp4',
+    )
+    expect(
+      isEffectivelyIgnored(root, 'demo-videos/launch/2026-08-24-launch-full.mp4'),
+    ).toBe(true)
   })
 
   it('is idempotent', () => {
