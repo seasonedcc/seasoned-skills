@@ -116,9 +116,7 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       hint: 'brew install redis',
     })
   }
-  for (const prerequisite of config.machinePrerequisites ?? []) {
-    checks.push(prerequisite)
-  }
+  checks.push(...(config.machinePrerequisites ?? []))
   return checks
 }
 
