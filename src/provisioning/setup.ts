@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
+import type pg from 'pg'
 import type { ProvisioningConfig, RepositoryResource } from '../config/types.js'
 import {
   allocateCacheStoreIndex,
@@ -377,6 +378,95 @@ function writeLaneEnvFiles({
   }
 }
 
+/**
+ * Create every missing plain database before any migration runs: a project's
+ * migrateCommand may migrate all of its databases in one invocation, so each
+ * database it touches must already exist. Template-provisioned databases are
+ * not pre-created — the template copy creates them itself.
+ */
+async function provisionLaneDatabases({
+  client,
+  resolved,
+  allocation,
+  slug,
+  worktreePath,
+  migrateCommand,
+  seedCommand,
+  stepEnv,
+  options,
+}: {
+  client: pg.Client
+  resolved: ResolvedProvisioning
+  allocation: LaneAllocation
+  slug: string
+  worktreePath: string
+  migrateCommand: string
+  seedCommand: string | undefined
+  stepEnv: Record<string, string>
+  options: ProvisionOptions
+}): Promise<ProvisionedDatabase[]> {
+  const declared: {
+    database: ResolvedDatabase
+    url: string
+    databaseName: string
+    exists: boolean
+    useTemplate: boolean
+  }[] = []
+  for (const database of resolved.databases) {
+    const url = allocation.databaseUrls[database.name]
+    if (url === undefined) continue
+    const databaseName = laneDatabaseName(resolved.databasePrefix, slug, database.name)
+    const existing = await client.query('select 1 from pg_database where datname = $1', [
+      databaseName,
+    ])
+    const exists = Boolean(existing.rowCount)
+    const useTemplate =
+      resolved.templateCaching && (!database.seeded || !options.skipSeed)
+    if (!exists && !useTemplate) {
+      await client.query(`create database "${databaseName}"`)
+    }
+    declared.push({ database, url, databaseName, exists, useTemplate })
+  }
+  const databases: ProvisionedDatabase[] = []
+  for (const { database, url, databaseName, exists, useTemplate } of declared) {
+    if (exists) {
+      log(`database ${databaseName} already exists`)
+      runStep(migrateCommand, {
+        cwd: worktreePath,
+        env: { ...stepEnv, [database.envKey]: url },
+      })
+      databases.push({ name: database.name, databaseName, url, created: false })
+      continue
+    }
+    if (useTemplate) {
+      const context: TemplateContext = {
+        client,
+        adminUrl: url,
+        worktreePath,
+        resolved,
+        database,
+        migrateCommand,
+        seedCommand,
+        stepEnv,
+      }
+      await provisionDatabaseFromTemplate(
+        context,
+        databaseName,
+        templateFingerprint(worktreePath, resolved, database),
+        { freshSeed: options.freshSeed ?? false },
+      )
+    } else {
+      runStep(migrateCommand, {
+        cwd: worktreePath,
+        env: { ...stepEnv, [database.envKey]: url },
+      })
+    }
+    log(`created database ${databaseName}`)
+    databases.push({ name: database.name, databaseName, url, created: true })
+  }
+  return databases
+}
+
 function summaryText(result: Omit<ProvisionResult, 'summary'>) {
   const lines = [
     `Lane ${result.lane} ready`,
@@ -500,7 +590,7 @@ async function provisionLane(
     }
   }
 
-  const databases: ProvisionedDatabase[] = []
+  let databases: ProvisionedDatabase[] = []
   let seed = 'not applicable (no databases declared)'
   if (resolved.databases.length > 0) {
     const migrateCommand = primary.repository.migrateCommand
@@ -515,58 +605,19 @@ async function provisionLane(
         : allocation.databaseUrls[firstDatabase.name]
     if (adminUrl === undefined) throw new Error('no admin database URL resolved')
     await waitForDatabaseServer(adminUrl)
-    await withAdminClient(adminUrl, async (client) => {
-      for (const database of resolved.databases) {
-        const url = allocation.databaseUrls[database.name]
-        if (url === undefined) continue
-        const databaseName = laneDatabaseName(
-          resolved.databasePrefix,
-          slug,
-          database.name,
-        )
-        const existing = await client.query(
-          'select 1 from pg_database where datname = $1',
-          [databaseName],
-        )
-        const useTemplate =
-          resolved.templateCaching && (!database.seeded || !options.skipSeed)
-        const context: TemplateContext = {
-          client,
-          adminUrl: url,
-          worktreePath: primary.worktreePath,
-          resolved,
-          database,
-          migrateCommand,
-          seedCommand,
-          stepEnv,
-        }
-        if (existing.rowCount) {
-          log(`database ${databaseName} already exists`)
-          runStep(migrateCommand, {
-            cwd: primary.worktreePath,
-            env: { ...stepEnv, [database.envKey]: url },
-          })
-          databases.push({ name: database.name, databaseName, url, created: false })
-          continue
-        }
-        if (useTemplate) {
-          await provisionDatabaseFromTemplate(
-            context,
-            databaseName,
-            templateFingerprint(primary.worktreePath, resolved, database),
-            { freshSeed: options.freshSeed ?? false },
-          )
-        } else {
-          await client.query(`create database "${databaseName}"`)
-          runStep(migrateCommand, {
-            cwd: primary.worktreePath,
-            env: { ...stepEnv, [database.envKey]: url },
-          })
-        }
-        log(`created database ${databaseName}`)
-        databases.push({ name: database.name, databaseName, url, created: true })
-      }
-    })
+    databases = await withAdminClient(adminUrl, (client) =>
+      provisionLaneDatabases({
+        client,
+        resolved,
+        allocation,
+        slug,
+        worktreePath: primary.worktreePath,
+        migrateCommand,
+        seedCommand,
+        stepEnv,
+        options,
+      }),
+    )
 
     if (resolved.templateCaching) {
       seed = 'carried by the template copy'
@@ -617,5 +668,6 @@ export {
   ensureWorktree,
   laneWorktrees,
   provisionLane,
+  provisionLaneDatabases,
   worktreesRoot,
 }

@@ -12,7 +12,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type pg from 'pg'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { resolveProvisioning } from '../../src/provisioning/common.js'
 import { provisionLane, teardownLane } from '../../src/provisioning/index.js'
+import { provisionLaneDatabases } from '../../src/provisioning/setup.js'
 import {
   readTemplateFingerprint,
   writeTemplateFingerprint,
@@ -182,6 +184,76 @@ describe('lane setup and teardown without databases', () => {
     const again = await provisionLane(repo, config, 'restore-lane')
     expect(again.ports).toEqual(result.ports)
     expect(readFileSync(extraPath, 'utf8')).toBe(original)
+  })
+})
+
+describe('lane database provisioning', () => {
+  let root: string
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-databases-')))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('creates every declared database before running any migration', async () => {
+    const migrateCommand =
+      'test -f project_wt_lane_main.created && test -f project_wt_lane_message.created && echo migrated >> migrations.txt'
+    const resolved = resolveProvisioning(
+      {
+        repositories: [{ path: '.', migrateCommand }],
+        databases: [{ name: 'main' }, { name: 'message' }],
+      },
+      { databasePrefix: 'project_wt_' },
+    )
+    const createdDatabases = new Set<string>()
+    const client = {
+      query: vi.fn(async (sql: string, values?: string[]) => {
+        if (sql.startsWith('select 1 from pg_database')) {
+          return { rowCount: createdDatabases.has(values?.[0] ?? '') ? 1 : 0 }
+        }
+        const databaseName = sql.slice('create database "'.length, -1)
+        createdDatabases.add(databaseName)
+        writeFileSync(join(root, `${databaseName}.created`), '')
+        return { rowCount: 0 }
+      }),
+    } as unknown as pg.Client
+    const mainUrl = 'postgres://user@localhost:5432/project_wt_lane_main'
+    const messageUrl = 'postgres://user@localhost:5432/project_wt_lane_message'
+
+    const databases = await provisionLaneDatabases({
+      client,
+      resolved,
+      allocation: { ports: {}, databaseUrls: { main: mainUrl, message: messageUrl } },
+      slug: 'lane',
+      worktreePath: root,
+      migrateCommand,
+      seedCommand: undefined,
+      stepEnv: {},
+      options: {},
+    })
+
+    expect(readFileSync(join(root, 'migrations.txt'), 'utf8')).toBe(
+      'migrated\nmigrated\n',
+    )
+    expect(databases).toEqual([
+      {
+        name: 'main',
+        databaseName: 'project_wt_lane_main',
+        url: mainUrl,
+        created: true,
+      },
+      {
+        name: 'message',
+        databaseName: 'project_wt_lane_message',
+        url: messageUrl,
+        created: true,
+      },
+    ])
   })
 })
 
