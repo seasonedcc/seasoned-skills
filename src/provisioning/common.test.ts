@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RepositoryResource } from '../config/types.js'
+import type { ProvisioningConfig, RepositoryResource } from '../config/types.js'
 import {
   allocateCacheStoreIndex,
   assignPortPlan,
@@ -1136,6 +1136,39 @@ describe('resolveProvisioning', () => {
       ),
     ).toThrow(/repository "\." is declared twice/)
   })
+
+  it('rejects a database name two declared repositories share, covered together or not', () => {
+    expect(() =>
+      resolveProvisioning(
+        {
+          repositories: [
+            {
+              path: '.',
+              migrateCommand: 'pnpm migrate',
+              databases: [{ name: 'development' }],
+            },
+            {
+              path: '../api',
+              migrateCommand: 'alembic upgrade head',
+              databases: [{ name: 'development' }],
+            },
+          ],
+        },
+        { databasePrefix: 'app_wt_' },
+      ),
+    ).toThrow(/"\." and "\.\.\/api" both declare the database "development"/)
+  })
+
+  it('refuses the relocated resource options at the top level, naming them', () => {
+    const legacy = {
+      portBases: { app: 4100 },
+      envFile: '.env',
+      repositories: [{ path: '.' }],
+    } as unknown as ProvisioningConfig
+    expect(() => resolveProvisioning(legacy, { databasePrefix: 'app_wt_' })).toThrow(
+      /no longer carries "portBases", "envFile" at the top level; move each into the repositories entry that owns it/,
+    )
+  })
 })
 
 describe('resolveProvisioning repository entries', () => {
@@ -1262,18 +1295,7 @@ describe('laneResourcePool', () => {
     )
   })
 
-  it('refuses a database name two covered repositories both declare', () => {
-    const other = resolveRepositoryEntry({
-      path: '../api',
-      migrateCommand: 'alembic upgrade head',
-      databases: [{ name: 'development' }],
-    })
-    expect(() => laneResourcePool([web, other])).toThrow(
-      /"\." and "\.\.\/api" both declare the database "development"/,
-    )
-  })
-
-  it('leaves repositories that never share a lane free to reuse a name', () => {
+  it('leaves repositories that never share a lane free to reuse a port name', () => {
     const other = resolveRepositoryEntry({ path: '../api', portBases: { webPort: 7100 } })
     expect(laneResourcePool([other]).portBases).toEqual({ webPort: 7100 })
   })

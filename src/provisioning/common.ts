@@ -125,6 +125,55 @@ function defaultDatabasePrefix(projectDirectoryName: string) {
   return `${slug}_wt_`
 }
 
+/** Resource options that used to sit at the top level and now belong to a repository entry. */
+const RELOCATED_TOP_LEVEL_OPTIONS = [
+  'databases',
+  'portBases',
+  'portBlocks',
+  'envFile',
+  'envFiles',
+  'templateCaching',
+  'cacheStoreIndex',
+  'cacheStoreEnvKeys',
+  'migrationSources',
+  'seedSources',
+]
+
+/**
+ * Refuse a table still carrying the relocated options at the top level. Nothing
+ * reads them any more, so a silently ignored `databases` or `envFile` would
+ * leave the lane running its steps against the developer's own databases.
+ */
+function refuseRelocatedTopLevelOptions(provisioning: ProvisioningConfig) {
+  const present = RELOCATED_TOP_LEVEL_OPTIONS.filter((option) => option in provisioning)
+  if (present.length === 0) return
+  throw new Error(
+    `provisioning no longer carries ${present.map((option) => `"${option}"`).join(', ')} at the top level; move each into the repositories entry that owns it`,
+  )
+}
+
+/**
+ * Refuse a database name two declared repositories share. The namespace is
+ * project-global: a lane database is named from the prefix, the lane slug, and
+ * the resource name, and a template database from the prefix and the resource
+ * name — neither carries the repository, so two entries sharing a name would
+ * migrate one another's databases across successive runs of one lane.
+ */
+function refuseSharedDatabaseNames(repositories: ResolvedRepository[]) {
+  const declaredBy = new Map<string, string>()
+  for (const repository of repositories) {
+    for (const database of repository.databases) {
+      const other = declaredBy.get(database.name)
+      if (other !== undefined) {
+        throw new Error(
+          `repositories "${other}" and "${repository.path}" both declare the database "${database.name}"; lane and template database names carry no repository, so a database name is unique across the whole table`,
+        )
+      }
+      declaredBy.set(database.name, repository.path)
+    }
+  }
+}
+
 /**
  * Normalize the resource table: apply every default, validate names, and fail
  * loud on a table the implementation cannot honor. `databasePrefix` falls back
@@ -135,6 +184,7 @@ function resolveProvisioning(
   defaults: { databasePrefix: string },
 ): ResolvedProvisioning {
   const provisioning = config ?? {}
+  refuseRelocatedTopLevelOptions(provisioning)
   const databasePrefix = provisioning.databasePrefix ?? defaults.databasePrefix
   if (!/^[a-z][a-z0-9_]*_$/.test(databasePrefix)) {
     throw new Error(
@@ -151,8 +201,10 @@ function resolveProvisioning(
     }
     seenPaths.add(repository.path)
   }
+  const repositories = declared.map(resolveRepository)
+  refuseSharedDatabaseNames(repositories)
   return {
-    repositories: declared.map(resolveRepository),
+    repositories,
     services: provisioning.services ?? [],
     serviceStartCommand:
       provisioning.serviceStartCommand ?? DEFAULT_SERVICE_START_COMMAND,
@@ -234,18 +286,16 @@ function resolveRepository(repository: RepositoryResource): ResolvedRepository {
 
 /**
  * The lane's shared port pool, collected across the repositories one
- * provisioning run covers. Allocation is lane-wide, so a name two selected
- * repositories both declare would hand them the same port — and a database
- * name they share would hand them the same lane database. Both are refused
+ * provisioning run covers. Port allocation is lane-wide, so a name two covered
+ * repositories both declare would hand them the same port. That is refused
  * here, where the selection is known, rather than in the table: repositories
- * that never land in one lane together are free to name their own resources
- * however they like.
+ * that never land in one lane together are free to reuse each other's port
+ * names.
  */
 function laneResourcePool(repositories: ResolvedRepository[]) {
   const portBases: Record<string, number> = {}
   const portBlocks: Record<string, number> = {}
   const portDeclaredBy = new Map<string, string>()
-  const databaseDeclaredBy = new Map<string, string>()
   for (const repository of repositories) {
     for (const [name, base] of Object.entries(repository.portBases)) {
       const other = portDeclaredBy.get(name)
@@ -259,15 +309,6 @@ function laneResourcePool(repositories: ResolvedRepository[]) {
     }
     for (const [name, span] of Object.entries(repository.portBlocks)) {
       portBlocks[name] = span
-    }
-    for (const database of repository.databases) {
-      const other = databaseDeclaredBy.get(database.name)
-      if (other !== undefined) {
-        throw new Error(
-          `repositories "${other}" and "${repository.path}" both declare the database "${database.name}"; a lane covering both needs distinct database names`,
-        )
-      }
-      databaseDeclaredBy.set(database.name, repository.path)
     }
   }
   return { portBases, portBlocks }
