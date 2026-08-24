@@ -55,8 +55,8 @@ Every frame answers three things:
 
 Two more tools to reach for when the situation calls for them, never as mandatory sections — "there's a difference between a process and a toolbox" (`references/03-articles/small-tools-for-shaping.md`):
 
-- **The four forces**, drawn lo-fi, when adoption risk is real: the push of the situation and the pull of the new way against the anxiety it creates and the habit of the old way. "The push of the situation and the magnetism of the new solution need to be stronger than their anxieties and habits before they will buy" (`references/02-demand-side-sales-101/08-chapter-two-the-frameworks-for-demand-side.md`).
-- **Big hire versus little hires**: who approves this once, and who has to choose it again every working day. "When you design a product, you need to build it to be bought and used" (same chapter).
+- **The four forces**, drawn lo-fi, when adoption risk is real: the push of the situation and the pull of the new way against the anxiety it creates and the habit of the old way. Nobody switches until the promoting pair outweighs the resisting pair (`references/02-demand-side-sales-101/08-chapter-two-the-frameworks-for-demand-side.md`).
+- **Big hire versus little hires**: who approves this once, and who has to choose it again every working day. A product has to be designed to win both — to be bought, and then to be used again tomorrow (same chapter).
 
 ### Size and time bombs
 
@@ -145,8 +145,6 @@ The corpus spans years and the vocabulary evolved. Every document's front matter
 - `references/03-articles/` — Ryan Singer's posts, one file per post, spanning 2004 to today: the thinking on shaping, framing, and demand that led to the book, and how it moved afterward.
 
 The corpus is built on each machine by `seasoned-skills corpus` and is never committed: the freely published sources are fetched from their authors' own sites, and the commercial book is vendored only from the user's own compiled copy — when none is given, `02-demand-side-sales-101/` instead carries the workflow's distilled account of the book's method, in our own words.
-
-Every transcript is a single unattributed stream — nothing in them says who is speaking, so never attribute a quoted line to a person. Cite the timestamp instead: it is a position in the video, and the reader can check it there.
 
 ## The shaping folder
 

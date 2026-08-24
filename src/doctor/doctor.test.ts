@@ -93,6 +93,13 @@ describe('doctor', () => {
     }
   })
 
+  it('asks a tool for its version the way that tool spells the flag', () => {
+    const findings = runChecks([
+      { binary: 'git', reason: 'r', hint: 'h', versionFlag: '--bogus-flag' },
+    ])
+    expect(findings[0]?.ok).toBe(false)
+  })
+
   it('reports a missing binary with its reason and install pointer', () => {
     const findings = runChecks([
       {

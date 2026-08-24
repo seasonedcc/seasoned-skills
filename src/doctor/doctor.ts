@@ -16,6 +16,8 @@ export interface BinaryCheck {
   binary: string
   reason: string
   hint: string
+  /** The flag that prints the version, for a tool that does not answer `--version`. */
+  versionFlag?: string
 }
 
 /** A prerequisite that is a file on this machine rather than a binary on the PATH. */
@@ -85,6 +87,7 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       reason:
         'the demo-video rig retimes narration and assembles its recordings with ffmpeg',
       hint: 'brew install ffmpeg',
+      versionFlag: '-version',
     },
   ]
   if (config.webSurface) {
@@ -122,7 +125,9 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
 export function runChecks(checks: DoctorCheck[]): DoctorFinding[] {
   return checks.map((check) => {
     if ('file' in check) return { check, ok: existsSync(check.file) }
-    const result = spawnSync(check.binary, ['--version'], { encoding: 'utf8' })
+    const result = spawnSync(check.binary, [check.versionFlag ?? '--version'], {
+      encoding: 'utf8',
+    })
     if (result.error || result.status !== 0) return { check, ok: false }
     const version = `${result.stdout}${result.stderr}`.split('\n')[0]?.trim()
     return version ? { check, ok: true, version } : { check, ok: true }

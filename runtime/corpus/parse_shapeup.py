@@ -28,7 +28,7 @@ PAGE_URL = SITE_ROOT + "/shapeup/{page}"
 IMAGE_PATH_PREFIX = "/assets/images/books/shapeup/"
 METHOD = "scripts/parse_shapeup.py"
 BOOK_PUBLISHED = "2019"
-USER_AGENT = "shaping-skill corpus builder (+https://github.com/seasonedcc/shaping-skill)"
+USER_AGENT = "seasoned-skills corpus builder (+https://github.com/seasonedcc/seasoned-skills)"
 REQUEST_DELAY_SECONDS = 0.5
 
 VOID_TAGS = {"area", "base", "br", "col", "hr", "img", "input", "link", "meta", "source"}

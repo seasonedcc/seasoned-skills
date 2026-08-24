@@ -28,4 +28,6 @@ coverage/
 CLAUDE.md
 requests-from-meetings/assets/style.css
 shaping/assets/
+/demo-videos/*/*.mp4
+requests-from-meetings/config.local.json
 # <<< seasoned-skills <<<

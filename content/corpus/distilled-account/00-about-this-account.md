@@ -15,9 +15,9 @@ skill makes into this collection resolves to a real explanation.
 
 Two things this account is not:
 
-- **It is not the book.** No sentence here is the book's. Where the shaping
-  skill quotes the book verbatim, those short quotes live in the skill itself;
-  this account only teaches the surrounding ideas.
+- **It is not the book.** No sentence here is the book's, and none is anywhere
+  else in the package either: the shaping skill cites this collection in its
+  own words, and this account teaches the ideas behind those citations.
 - **It is not a summary of the whole book.** It covers exactly the ground the
   skill cites — the frameworks chapter — and nothing more.
 

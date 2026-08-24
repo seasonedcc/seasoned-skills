@@ -18,6 +18,8 @@ This project's workflow — the doctrine file, the generated skills, the hooks, 
 
 Adoption runs once, interactively: `seasoned-skills install`. It writes the configuration scaffold (asking for every option the rulings give no default), creates the committed artifacts, scaffolds the content files empty, builds the shaping corpus (asking for the one commercial book, falling back to the distilled account), wires the sync into the prepare script, and finishes by running sync and doctor.
 
+The committed artifacts arrive as templates, and templates are all a CLI can write: seeding them is the adopting agent's work, because only reading the project answers what belongs in them. Seed the option-gated registers from what the project already carries — above all the coverage register, which starts as the list of surfaces its specs do not reach today — and the calibration file from whatever calibration text the project kept elsewhere. A register left at its template says the project has nothing to declare, which is almost never true.
+
 ## Upgrading
 
 Versions are exact-pinned; pre-1.0 releases may break in any release. An upgrade is agent work:
