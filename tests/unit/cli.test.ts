@@ -26,6 +26,9 @@ describe('the CLI program', () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'seasoned-skills-cli-'))
     process.chdir(root)
+    // Sync weaves in whatever the machine's corpus cache holds; pointing the
+    // cache root inside the temp project keeps these runs off the real one.
+    vi.stubEnv('XDG_CACHE_HOME', join(root, 'cache'))
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -34,6 +37,7 @@ describe('the CLI program', () => {
   afterEach(() => {
     process.chdir(startDirectory)
     process.exitCode = undefined
+    vi.unstubAllEnvs()
     vi.restoreAllMocks()
     rmSync(root, { recursive: true, force: true })
   })
