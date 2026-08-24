@@ -50,10 +50,13 @@ first, or leave the matching option off until it exists.
   mutability stance (`append-only` or `mutable-when-not-derivable`); the
   stack skills are generated around that stance.
 - `provisioning` — the resource table describing your isolated worktree
-  lanes: the databases (the primary repository must declare a migrate
-  command), the port bases, the shared services, the repositories. It assumes
-  a reachable Postgres server, and a Redis server when `cacheStoreIndex` is
-  on.
+  lanes: the repositories a lane can cover, and what each of them owns — its
+  databases (an entry with databases declares its own migrate command), its
+  port bases, its env files — plus the shared services the machine provides.
+  `provision <lane> --repo <path>` picks which declared repositories a lane
+  covers, defaulting to the first; teardown always sweeps the whole table. It
+  assumes a reachable Postgres server, and a Redis server for any entry with
+  `cacheStoreIndex` on.
 - **Demo videos** (projects with a web surface) — the generated rig records
   narrated product demos, and it needs three things from the project: a
   `demo:video` script running
@@ -148,8 +151,8 @@ exact pin and the migration notes are what make that safe.
 | `sync` | Regenerate everything from configuration and content. Idempotent; fails loud. |
 | `doctor` | Check the machine against the configured workflow's needs. Advisory. |
 | `corpus` | Build the shaping corpus into this machine's cache. |
-| `provision <lane>` | Set up an isolated worktree lane from the resource table. |
-| `teardown <lane>` | Remove a lane: processes, databases, cache index, worktrees. |
+| `provision <lane>` | Set up an isolated worktree lane over the repositories `--repo` names. |
+| `teardown <lane>` | Remove a lane across every declared repository: processes, databases, cache index, worktrees. |
 | `sweep` | Sweep leftover automated browsers or lane processes. |
 
 ## This repository
