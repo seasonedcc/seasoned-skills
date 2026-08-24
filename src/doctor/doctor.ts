@@ -41,6 +41,13 @@ export function checkTarget(check: DoctorCheck): string {
 }
 
 const WHISPER_MODEL = join(homedir(), '.cache', 'whisper-cpp', 'ggml-large-v3.bin')
+const WHISPER_VOICE_ACTIVITY_MODEL = join(
+  homedir(),
+  '.cache',
+  'whisper-cpp',
+  'ggml-silero-v5.1.2.bin',
+)
+const NARRATION_WEIGHTS = '.claude/skills/demo-videos/scripts/models'
 
 export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
   const checks: DoctorCheck[] = [
@@ -78,6 +85,12 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       hint: "fetch ggml-large-v3 with whisper.cpp's models/download-ggml-model.sh and keep it at this path",
     },
     {
+      file: WHISPER_VOICE_ACTIVITY_MODEL,
+      reason:
+        'a degenerate decode is re-run behind voice-activity detection, pinned to the silero-v5.1.2 model',
+      hint: "fetch ggml-silero-v5.1.2 with whisper.cpp's models/download-vad-model.sh and keep it at this path",
+    },
+    {
       binary: 'uv',
       reason: "the demo-video narrator's virtualenv and dependencies are built with uv",
       hint: 'https://docs.astral.sh/uv/getting-started/installation/',
@@ -88,6 +101,12 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
         'the demo-video rig retimes narration and assembles its recordings with ffmpeg',
       hint: 'brew install ffmpeg',
       versionFlag: '-version',
+    },
+    {
+      file: NARRATION_WEIGHTS,
+      reason:
+        "the demo-video narrator speaks from model weights the package never ships — the skill's own setup step caches them beside its generated scripts",
+      hint: 'run .claude/skills/demo-videos/scripts/setup.sh once on this machine',
     },
   ]
   if (config.webSurface) {

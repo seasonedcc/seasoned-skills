@@ -15,6 +15,14 @@ const base = {
   calibrationFile: 'calibration.md',
 } as unknown as SeasonedSkillsConfig
 
+const WHISPER_VOICE_ACTIVITY_MODEL = join(
+  homedir(),
+  '.cache',
+  'whisper-cpp',
+  'ggml-silero-v5.1.2.bin',
+)
+const NARRATION_WEIGHTS = '.claude/skills/demo-videos/scripts/models'
+
 describe('doctor', () => {
   it('derives the core checklist from any configuration', () => {
     expect(deriveChecks(base).map(checkTarget)).toEqual([
@@ -24,9 +32,33 @@ describe('doctor', () => {
       'python3',
       'whisper-cli',
       join(homedir(), '.cache', 'whisper-cpp', 'ggml-large-v3.bin'),
+      WHISPER_VOICE_ACTIVITY_MODEL,
       'uv',
       'ffmpeg',
+      NARRATION_WEIGHTS,
     ])
+  })
+
+  it('checks the pinned voice-activity model beside the decode model', () => {
+    const check = deriveChecks(base).find(
+      (candidate) => checkTarget(candidate) === WHISPER_VOICE_ACTIVITY_MODEL,
+    )
+    expect(check).toEqual({
+      file: WHISPER_VOICE_ACTIVITY_MODEL,
+      reason: expect.stringContaining('voice-activity detection'),
+      hint: expect.stringContaining('download-vad-model.sh'),
+    })
+  })
+
+  it('checks the narration weights where the demo-videos setup caches them', () => {
+    const check = deriveChecks(base).find(
+      (candidate) => checkTarget(candidate) === NARRATION_WEIGHTS,
+    )
+    expect(check).toEqual({
+      file: NARRATION_WEIGHTS,
+      reason: expect.stringContaining('weights the package never ships'),
+      hint: expect.stringContaining('setup.sh'),
+    })
   })
 
   it('adds agent-browser only where a web surface exists', () => {
