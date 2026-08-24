@@ -1,5 +1,16 @@
 # seasoned-skills
 
+## 0.0.3
+
+### Patch Changes
+
+- 3d5d31b: `seasoned-skills install` now works when its answers are piped in: the interview reads through a buffering line reader instead of dropping every line that arrived while no question was pending, so a scripted adoption scaffolds the project instead of exiting silently having created nothing. An interview whose input ends before the last answer now fails loudly and exits non-zero. The install also builds the shaping corpus when this machine's cache is missing or stale — asking for your own compiled copy of the one commercial book, taking the distilled account when the answer is empty — so adoption no longer leaves the shaping skill without references until someone runs `seasoned-skills corpus` by hand. A present, current cache is left alone and the question is not asked.
+  
+  The managed gitignore block gains the two entries the generated skills already promise: `requests-from-meetings/config.local.json` (the per-user meetings path) and `/demo-videos/*/*.mp4` (the finished video copied beside its screenplay). Doctor gains the toolchains the always-shipping practices run on — `whisper-cli` and both pinned model files meeting transcription decodes with, `ggml-large-v3` for the first pass and `ggml-silero-v5.1.2` for the voice-activity re-decode; `uv` and `ffmpeg` for demo-video narration, together with the narration weights that skill's own setup step caches beside its generated scripts, so a machine that never ran setup surfaces in the report rather than mid-render — and `ffmpeg` is no longer gated behind a web surface, nor reported missing when it is installed (it answers `-version`, not `--version`). A project with prerequisites of its own declares them in `machinePrerequisites`, each entry a `binary`, a `reason`, and a `hint`; doctor stays advisory. The configuration scaffold states `provisioning` as a commented resource table rather than omitting the option.
+  
+  Content: the shaping skill paraphrases the two sentences it had quoted verbatim from the commercial book, so no copyrighted text ships under `content/`, and it drops a stale paragraph teaching transcript citation for a corpus that has no transcripts. The package's own skill now states that the adopting agent seeds the option-gated registers and the calibration file from what the project already carries — the CLI scaffolds templates and cannot judge either. The README documents the install's corpus build, the CI contract's per-criterion jobs, and the corrected machine list.
+- The merge-authority doctrine now holds under either goal-merge mode: the orchestration fragment no longer lists goals among the things that never authorize a merge — the `agentMergesDuringGoal` option decides that, and each goal fragment states its answer explicitly — and the main-sync and review-fixes skills defer to the project's standing merge rule instead of restating the opt-out variant of it.
+
 ## 0.0.2
 
 ### Patch Changes
