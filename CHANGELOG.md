@@ -1,8 +1,8 @@
 # seasoned-skills
 
-## 0.1.0
+## 0.0.4
 
-### Minor Changes
+### Patch Changes
 
 - ee91fe2: Provisioning resources now belong to the repository that owns them, and a lane
   chooses which repositories it covers. `provisioning.repositories` entries carry
