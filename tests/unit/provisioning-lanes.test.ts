@@ -12,7 +12,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type pg from 'pg'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { resolveProvisioning } from '../../src/provisioning/common.js'
 import { provisionLane, teardownLane } from '../../src/provisioning/index.js'
+import { provisionLaneDatabases } from '../../src/provisioning/setup.js'
 import {
   readTemplateFingerprint,
   writeTemplateFingerprint,
@@ -26,6 +28,31 @@ function initRepo(path: string) {
   execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
     cwd: path,
   })
+}
+
+function cloneRepo(origin: string, path: string) {
+  execFileSync('git', ['clone', '--quiet', origin, path])
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: path })
+  execFileSync('git', ['config', 'user.name', 'Test'], { cwd: path })
+}
+
+function commitEmpty(path: string, message: string) {
+  execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', message], {
+    cwd: path,
+  })
+}
+
+function revisionOf(path: string, reference: string) {
+  return execFileSync('git', ['rev-parse', reference], {
+    cwd: path,
+    encoding: 'utf8',
+  }).trim()
+}
+
+function createOriginBranchAheadOfMain(origin: string, branch: string) {
+  execFileSync('git', ['checkout', '--quiet', '-b', branch], { cwd: origin })
+  commitEmpty(origin, `work on ${branch}`)
+  execFileSync('git', ['checkout', '--quiet', 'main'], { cwd: origin })
 }
 
 describe('lane setup and teardown without databases', () => {
@@ -107,6 +134,212 @@ describe('lane setup and teardown without databases', () => {
   it('teardown of an unprovisioned lane prunes quietly', async () => {
     const result = await teardownLane(repo, undefined, 'never-existed')
     expect(result.removedWorktrees).toEqual([])
+  })
+
+  it('provisions declared env files, each carrying its own slice of the allocation', async () => {
+    writeFileSync(
+      join(repo, '.env'),
+      'SESSION_SECRET=s\nAPP_URL=http://localhost:4700/app\nAPP_PORT=4700\n',
+    )
+    const config = {
+      portBases: { app: 4700, testApp: 4800 },
+      envFiles: [
+        {
+          path: '.env',
+          ports: { APP_PORT: 'app' },
+          extra: { TELEMETRY_ENABLED: 'false' },
+        },
+        {
+          path: 'apps/web/.env.test',
+          ports: { APP_PORT: 'testApp' },
+          extra: { STORAGE_BUCKET: 'uploads-{slug-dashed}' },
+        },
+      ],
+    }
+    const result = await provisionLane(repo, config, 'two-env-files')
+    const worktree = join(root, 'project-worktrees/two-env-files')
+    const appPort = result.ports.app as number
+    const testAppPort = result.ports.testApp as number
+    expect(testAppPort).not.toBe(appPort)
+
+    // The dev file seeds from the main checkout's file, repoints its own
+    // localhost URLs, and records the dev slice of the allocation.
+    const devEnv = readFileSync(join(worktree, '.env'), 'utf8')
+    expect(devEnv).toContain('managed by seasoned-skills worktree provisioning')
+    expect(devEnv).toContain('SESSION_SECRET=s')
+    expect(devEnv).toContain(`APP_URL=http://localhost:${appPort}/app`)
+    expect(devEnv).toContain(`APP_PORT=${appPort}`)
+    expect(devEnv).toContain('TELEMETRY_ENABLED=false')
+    expect(devEnv).not.toContain('STORAGE_BUCKET')
+
+    // The nested test file (no main counterpart) records the SAME key name
+    // pointing at the test allocation, plus the slug-derived extra value.
+    const testEnv = readFileSync(join(worktree, 'apps/web/.env.test'), 'utf8')
+    expect(testEnv).toContain('managed by seasoned-skills worktree provisioning')
+    expect(testEnv).toContain(`APP_PORT=${testAppPort}`)
+    expect(testEnv).toContain('STORAGE_BUCKET=uploads-two-env-files')
+    expect(testEnv).not.toContain('TELEMETRY_ENABLED')
+
+    // Idempotent: the recorded allocation is parsed back from the files.
+    const again = await provisionLane(repo, config, 'two-env-files')
+    expect(again.ports).toEqual(result.ports)
+    expect(readFileSync(join(worktree, '.env'), 'utf8')).toBe(devEnv)
+
+    const teardown = await teardownLane(repo, config, 'two-env-files', { force: true })
+    expect(teardown.removedWorktrees).toEqual([worktree])
+    expect(teardown.droppedDatabases).toEqual([])
+    expect(existsSync(worktree)).toBe(false)
+  })
+
+  it('restores a deleted later env file from the allocation the marked files record', async () => {
+    const config = {
+      portBases: { app: 4900 },
+      envFiles: [
+        { path: '.env', ports: { APP_PORT: 'app' } },
+        { path: '.env.extra', extra: { LANE: '{slug}' } },
+      ],
+    }
+    const result = await provisionLane(repo, config, 'restore-lane')
+    const worktree = join(root, 'project-worktrees/restore-lane')
+    const extraPath = join(worktree, '.env.extra')
+    const original = readFileSync(extraPath, 'utf8')
+    expect(original).toContain('LANE=restore_lane')
+    rmSync(extraPath)
+
+    const again = await provisionLane(repo, config, 'restore-lane')
+    expect(again.ports).toEqual(result.ports)
+    expect(readFileSync(extraPath, 'utf8')).toBe(original)
+  })
+})
+
+describe('lane worktrees against an origin remote', () => {
+  let root: string
+  let origin: string
+  let clone: string
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-origin-')))
+    origin = join(root, 'origin')
+    initRepo(origin)
+    clone = join(root, 'clone')
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('adopts an origin-only lane branch without setting an upstream', async () => {
+    createOriginBranchAheadOfMain(origin, 'worktree/pr-takeover')
+    cloneRepo(origin, clone)
+
+    await provisionLane(clone, undefined, 'pr-takeover', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/pr-takeover')
+    expect(revisionOf(worktree, 'HEAD')).toBe(revisionOf(origin, 'worktree/pr-takeover'))
+    expect(() =>
+      execFileSync('git', ['config', '--get', 'branch.worktree/pr-takeover.merge'], {
+        cwd: clone,
+      }),
+    ).toThrow()
+  })
+
+  it('fast-forwards a stale local lane branch to the origin tip', async () => {
+    createOriginBranchAheadOfMain(origin, 'worktree/stale-lane')
+    cloneRepo(origin, clone)
+    execFileSync('git', ['branch', 'worktree/stale-lane', 'main'], { cwd: clone })
+
+    await provisionLane(clone, undefined, 'stale-lane', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/stale-lane')
+    expect(revisionOf(worktree, 'HEAD')).toBe(revisionOf(origin, 'worktree/stale-lane'))
+  })
+
+  it('keeps a diverged local lane branch as it is', async () => {
+    createOriginBranchAheadOfMain(origin, 'worktree/diverged-lane')
+    cloneRepo(origin, clone)
+    execFileSync('git', ['checkout', '--quiet', '-b', 'worktree/diverged-lane'], {
+      cwd: clone,
+    })
+    commitEmpty(clone, 'local divergence')
+    const localTip = revisionOf(clone, 'worktree/diverged-lane')
+    execFileSync('git', ['checkout', '--quiet', 'main'], { cwd: clone })
+
+    await provisionLane(clone, undefined, 'diverged-lane', { skipProvision: true })
+
+    const worktree = join(root, 'clone-worktrees/diverged-lane')
+    expect(revisionOf(worktree, 'HEAD')).toBe(localTip)
+  })
+})
+
+describe('lane database provisioning', () => {
+  let root: string
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-databases-')))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('creates every declared database before running any migration', async () => {
+    const migrateCommand =
+      'test -f project_wt_lane_main.created && test -f project_wt_lane_message.created && echo migrated >> migrations.txt'
+    const resolved = resolveProvisioning(
+      {
+        repositories: [{ path: '.', migrateCommand }],
+        databases: [{ name: 'main' }, { name: 'message' }],
+      },
+      { databasePrefix: 'project_wt_' },
+    )
+    const createdDatabases = new Set<string>()
+    const client = {
+      query: vi.fn(async (sql: string, values?: string[]) => {
+        if (sql.startsWith('select 1 from pg_database')) {
+          return { rowCount: createdDatabases.has(values?.[0] ?? '') ? 1 : 0 }
+        }
+        const databaseName = sql.slice('create database "'.length, -1)
+        createdDatabases.add(databaseName)
+        writeFileSync(join(root, `${databaseName}.created`), '')
+        return { rowCount: 0 }
+      }),
+    } as unknown as pg.Client
+    const mainUrl = 'postgres://user@localhost:5432/project_wt_lane_main'
+    const messageUrl = 'postgres://user@localhost:5432/project_wt_lane_message'
+
+    const databases = await provisionLaneDatabases({
+      client,
+      resolved,
+      allocation: { ports: {}, databaseUrls: { main: mainUrl, message: messageUrl } },
+      slug: 'lane',
+      worktreePath: root,
+      migrateCommand,
+      seedCommand: undefined,
+      stepEnv: {},
+      options: {},
+    })
+
+    expect(readFileSync(join(root, 'migrations.txt'), 'utf8')).toBe(
+      'migrated\nmigrated\n',
+    )
+    expect(databases).toEqual([
+      {
+        name: 'main',
+        databaseName: 'project_wt_lane_main',
+        url: mainUrl,
+        created: true,
+      },
+      {
+        name: 'message',
+        databaseName: 'project_wt_lane_message',
+        url: messageUrl,
+        created: true,
+      },
+    ])
   })
 })
 

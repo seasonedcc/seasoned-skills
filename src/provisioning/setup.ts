@@ -1,20 +1,24 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
+import type pg from 'pg'
 import type { ProvisioningConfig, RepositoryResource } from '../config/types.js'
 import {
   allocateCacheStoreIndex,
   cacheStoreIndexFromUrl,
   defaultDatabasePrefix,
-  envKeyForPort,
+  ENV_MARKER,
   type LaneAllocation,
   laneDatabaseName,
-  laneEnvValues,
+  laneEnvValuesForFile,
   laneSlug,
-  parseLaneAllocation,
+  mergedLaneEnvValues,
+  parseLaneAllocationFromFiles,
+  type ResolvedDatabase,
+  type ResolvedEnvFile,
   type ResolvedProvisioning,
   readEnvValues,
   repointLocalhostUrls,
-  reservedPortsFromEnvFiles,
+  reservedPortsFromLaneEnvFiles,
   resolvePortPlan,
   resolveProvisioning,
   seedRefusal,
@@ -140,13 +144,30 @@ function ensureWorktree({
     )
   }
   mkdirSync(dirname(worktreePath), { recursive: true })
-  if (
-    gitSucceeds(['rev-parse', '--verify', '--quiet', `refs/heads/${branchName}`], {
-      cwd: repositoryPath,
-    })
-  ) {
+  const localBranchExists = gitSucceeds(
+    ['rev-parse', '--verify', '--quiet', `refs/heads/${branchName}`],
+    { cwd: repositoryPath },
+  )
+  const originBranch = `origin/${branchName}`
+  const originBranchExists = gitSucceeds(
+    ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${branchName}`],
+    { cwd: repositoryPath },
+  )
+  if (localBranchExists) {
+    if (originBranchExists && localBranchIsStrictlyBehind(repositoryPath, branchName)) {
+      git(['branch', '--force', branchName, originBranch], { cwd: repositoryPath })
+      log(`fast-forwarded stale local branch ${branchName} to ${originBranch}`)
+    }
     git(['worktree', 'add', worktreePath, branchName], { cwd: repositoryPath })
     log(`created worktree at ${worktreePath} on existing branch ${branchName}`)
+    return
+  }
+  if (originBranchExists) {
+    git(['branch', '--no-track', branchName, originBranch], { cwd: repositoryPath })
+    git(['worktree', 'add', worktreePath, branchName], { cwd: repositoryPath })
+    log(
+      `created worktree at ${worktreePath} on branch ${branchName} adopted from ${originBranch}`,
+    )
     return
   }
   git(['worktree', 'add', '-b', branchName, worktreePath, baseReference], {
@@ -155,6 +176,19 @@ function ensureWorktree({
   log(
     `created worktree at ${worktreePath} on new branch ${branchName} from ${baseReference}`,
   )
+}
+
+function localBranchIsStrictlyBehind(repositoryPath: string, branchName: string) {
+  const localTip = git(['rev-parse', `refs/heads/${branchName}`], {
+    cwd: repositoryPath,
+  })
+  const originTip = git(['rev-parse', `refs/remotes/origin/${branchName}`], {
+    cwd: repositoryPath,
+  })
+  if (localTip === originTip) return false
+  return gitSucceeds(['merge-base', '--is-ancestor', localTip, originTip], {
+    cwd: repositoryPath,
+  })
 }
 
 function worktreesRoot(repositoryPath: string) {
@@ -178,30 +212,74 @@ function laneWorktrees(
   })
 }
 
-function siblingEnvFileContents(
-  mainRepository: string,
-  currentWorktreePath: string,
-  envFile: string,
-) {
-  const listing = git(['worktree', 'list', '--porcelain'], { cwd: mainRepository })
-  return worktreePathsFromPorcelain(listing, currentWorktreePath).map((path) => {
-    const envPath = join(path, envFile)
-    return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+/** One declared env file with the main checkout's contents at its path. */
+type MainEnvFile = {
+  file: ResolvedEnvFile
+  contents: string
+  values: Record<string, string>
+}
+
+function readMainEnvFiles(primaryRepositoryPath: string, resolved: ResolvedProvisioning) {
+  return resolved.envFiles.map((file): MainEnvFile => {
+    const path = join(primaryRepositoryPath, file.path)
+    const contents = existsSync(path) ? readFileSync(path, 'utf8') : ''
+    return { file, contents, values: readEnvValues(contents) }
   })
 }
 
-/** The main checkout's URL for a database resource, with the primary as fallback. */
-function mainDatabaseUrl(
-  mainEnvValues: Record<string, string>,
-  resolved: ResolvedProvisioning,
-  envKey: string,
+/** Main env values merged across the declared files; the first file wins. */
+function mergedMainEnvValues(mainFiles: MainEnvFile[]) {
+  const merged: Record<string, string> = {}
+  for (const { values } of mainFiles) {
+    for (const [key, value] of Object.entries(values)) {
+      if (!(key in merged)) merged[key] = value
+    }
+  }
+  return merged
+}
+
+/**
+ * Every declared env file of every sibling worktree (the main checkout
+ * included), one contents entry per declared file, in declaration order.
+ */
+function siblingLaneEnvFileContents(
+  mainRepository: string,
+  currentWorktreePath: string,
+  envFiles: ResolvedEnvFile[],
 ) {
+  const listing = git(['worktree', 'list', '--porcelain'], { cwd: mainRepository })
+  return worktreePathsFromPorcelain(listing, currentWorktreePath).map((path) =>
+    envFiles.map((file) => {
+      const envPath = join(path, file.path)
+      return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+    }),
+  )
+}
+
+/**
+ * The main checkout's URL a lane database is derived from: read under the
+ * database's env key from the files that carry that database — the same key
+ * name may point at a different database in another file — falling back to
+ * the primary database's key within those same files.
+ */
+function mainDatabaseUrl(
+  mainFiles: MainEnvFile[],
+  resolved: ResolvedProvisioning,
+  database: ResolvedDatabase,
+) {
+  const carrying = mainFiles.filter(({ file }) =>
+    file.databases.some((candidate) => candidate.name === database.name),
+  )
   const primaryKey = resolved.databases[0]?.envKey
   const url =
-    mainEnvValues[envKey] ?? (primaryKey ? mainEnvValues[primaryKey] : undefined)
+    carrying.map(({ values }) => values[database.envKey]).find(Boolean) ??
+    (primaryKey === undefined
+      ? undefined
+      : carrying.map(({ values }) => values[primaryKey]).find(Boolean))
   if (!url) {
+    const where = carrying[0]?.file.path ?? resolved.envFile
     throw new Error(
-      `the main checkout's ${resolved.envFile} carries no ${envKey}; provisioning needs it to derive lane database URLs`,
+      `the main checkout's ${where} carries no ${database.envKey}; provisioning needs it to derive lane database URLs`,
     )
   }
   return url
@@ -210,19 +288,15 @@ function mainDatabaseUrl(
 async function allocateLane({
   resolved,
   slug,
-  mainEnvValues,
-  siblingEnvFiles,
+  mainFiles,
+  siblingLaneFiles,
 }: {
   resolved: ResolvedProvisioning
   slug: string
-  mainEnvValues: Record<string, string>
-  siblingEnvFiles: (string | null)[]
+  mainFiles: MainEnvFile[]
+  siblingLaneFiles: (string | null)[][]
 }) {
-  const reserved = reservedPortsFromEnvFiles(
-    siblingEnvFiles,
-    resolved.portBases,
-    resolved.portBlocks,
-  )
+  const reserved = reservedPortsFromLaneEnvFiles(siblingLaneFiles, resolved)
   const ports = await resolvePortPlan(
     slug,
     resolved.portBases,
@@ -233,7 +307,7 @@ async function allocateLane({
   const databaseUrls: Record<string, string> = {}
   for (const database of resolved.databases) {
     databaseUrls[database.name] = withDatabaseName(
-      mainDatabaseUrl(mainEnvValues, resolved, database.envKey),
+      mainDatabaseUrl(mainFiles, resolved, database),
       laneDatabaseName(resolved.databasePrefix, slug, database.name),
     )
   }
@@ -241,13 +315,15 @@ async function allocateLane({
   let cacheIndexIsNew = false
   if (resolved.cacheStoreIndex) {
     const primaryKey = resolved.cacheStoreEnvKeys[0]
-    const mainCacheUrl = primaryKey === undefined ? undefined : mainEnvValues[primaryKey]
+    const cacheFile = mainFiles.find(({ file }) => file.cacheStore)
+    const mainCacheUrl =
+      primaryKey === undefined ? undefined : cacheFile?.values[primaryKey]
     if (!mainCacheUrl) {
       throw new Error(
-        `the main checkout's ${resolved.envFile} carries no ${primaryKey ?? 'cache-store URL'}; cacheStoreIndex needs it`,
+        `the main checkout's ${cacheFile?.file.path ?? resolved.envFile} carries no ${primaryKey ?? 'cache-store URL'}; cacheStoreIndex needs it`,
       )
     }
-    const taken = siblingEnvFiles.flatMap((contents) => {
+    const taken = siblingLaneFiles.flat().flatMap((contents) => {
       if (!contents || primaryKey === undefined) return []
       const url = readEnvValues(contents)[primaryKey]
       const index = url === undefined ? null : cacheStoreIndexFromUrl(url)
@@ -292,26 +368,133 @@ async function startDeclaredServices(
   })
 }
 
-function writeLaneEnvFile({
+/**
+ * Write the lane's declared env files. Each seeds from the main checkout's
+ * file at the same relative path, repoints localhost URLs using its own port
+ * entries (the main file's value for each managed key is the from-port), and
+ * upserts its slice of the managed allocation block. `only` limits the write
+ * to the named paths — used to restore files missing from a partial lane.
+ */
+function writeLaneEnvFiles({
   resolved,
   allocation,
-  mainEnvContents,
-  mainEnvValues,
-  envPath,
+  slug,
+  mainFiles,
+  worktreePath,
+  only,
 }: {
   resolved: ResolvedProvisioning
   allocation: LaneAllocation
-  mainEnvContents: string
-  mainEnvValues: Record<string, string>
-  envPath: string
+  slug: string
+  mainFiles: MainEnvFile[]
+  worktreePath: string
+  only?: ReadonlySet<string>
 }) {
-  let contents = mainEnvContents
-  for (const [name, port] of Object.entries(allocation.ports)) {
-    const mainPort = Number(mainEnvValues[envKeyForPort(name)])
-    contents = repointLocalhostUrls(contents, mainPort, port)
+  for (const { file, contents: mainContents, values: mainValues } of mainFiles) {
+    if (only && !only.has(file.path)) continue
+    let contents = mainContents
+    for (const [envKey, portName] of Object.entries(file.ports)) {
+      const port = allocation.ports[portName]
+      if (port === undefined) continue
+      contents = repointLocalhostUrls(contents, Number(mainValues[envKey]), port)
+    }
+    const envPath = join(worktreePath, file.path)
+    mkdirSync(dirname(envPath), { recursive: true })
+    writeFileSync(
+      envPath,
+      upsertEnvValues(contents, laneEnvValuesForFile(allocation, resolved, file, slug)),
+    )
+    log(`wrote ${envPath} with the lane's allocation`)
   }
-  writeFileSync(envPath, upsertEnvValues(contents, laneEnvValues(allocation, resolved)))
-  log(`wrote ${envPath} with the lane's allocation`)
+}
+
+/**
+ * Create every missing plain database before any migration runs: a project's
+ * migrateCommand may migrate all of its databases in one invocation, so each
+ * database it touches must already exist. Template-provisioned databases are
+ * not pre-created — the template copy creates them itself.
+ */
+async function provisionLaneDatabases({
+  client,
+  resolved,
+  allocation,
+  slug,
+  worktreePath,
+  migrateCommand,
+  seedCommand,
+  stepEnv,
+  options,
+}: {
+  client: pg.Client
+  resolved: ResolvedProvisioning
+  allocation: LaneAllocation
+  slug: string
+  worktreePath: string
+  migrateCommand: string
+  seedCommand: string | undefined
+  stepEnv: Record<string, string>
+  options: ProvisionOptions
+}): Promise<ProvisionedDatabase[]> {
+  const declared: {
+    database: ResolvedDatabase
+    url: string
+    databaseName: string
+    exists: boolean
+    useTemplate: boolean
+  }[] = []
+  for (const database of resolved.databases) {
+    const url = allocation.databaseUrls[database.name]
+    if (url === undefined) continue
+    const databaseName = laneDatabaseName(resolved.databasePrefix, slug, database.name)
+    const existing = await client.query('select 1 from pg_database where datname = $1', [
+      databaseName,
+    ])
+    const exists = Boolean(existing.rowCount)
+    const useTemplate =
+      resolved.templateCaching && (!database.seeded || !options.skipSeed)
+    if (!exists && !useTemplate) {
+      await client.query(`create database "${databaseName}"`)
+    }
+    declared.push({ database, url, databaseName, exists, useTemplate })
+  }
+  const databases: ProvisionedDatabase[] = []
+  for (const { database, url, databaseName, exists, useTemplate } of declared) {
+    if (exists) {
+      log(`database ${databaseName} already exists`)
+      runStep(migrateCommand, {
+        cwd: worktreePath,
+        env: { ...stepEnv, [database.envKey]: url },
+      })
+      databases.push({ name: database.name, databaseName, url, created: false })
+      continue
+    }
+    if (useTemplate) {
+      const context: TemplateContext = {
+        client,
+        adminUrl: url,
+        worktreePath,
+        resolved,
+        database,
+        migrateCommand,
+        seedCommand,
+        stepEnv,
+      }
+      await provisionDatabaseFromTemplate(
+        context,
+        databaseName,
+        templateFingerprint(worktreePath, resolved, database),
+        { freshSeed: options.freshSeed ?? false },
+      )
+    } else {
+      runStep(migrateCommand, {
+        cwd: worktreePath,
+        env: { ...stepEnv, [database.envKey]: url },
+      })
+    }
+    log(`created database ${databaseName}`)
+    databases.push({ name: database.name, databaseName, url, created: true })
+  }
+  return databases
 }
 
 function summaryText(result: Omit<ProvisionResult, 'summary'>) {
@@ -372,38 +555,55 @@ async function provisionLane(
     return { ...base, seed, summary }
   }
 
-  const mainEnvPath = join(primary.repositoryPath, resolved.envFile)
-  const mainEnvContents = existsSync(mainEnvPath) ? readFileSync(mainEnvPath, 'utf8') : ''
-  const mainEnvValues = readEnvValues(mainEnvContents)
+  const mainFiles = readMainEnvFiles(primary.repositoryPath, resolved)
+  const mainEnvValues = mergedMainEnvValues(mainFiles)
 
   await startDeclaredServices(primary.repositoryPath, resolved, mainEnvValues)
 
-  const envPath = join(primary.worktreePath, resolved.envFile)
-  const existingContents = existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
-  const existing =
-    existingContents === null ? null : parseLaneAllocation(existingContents, resolved)
+  const laneFileContents = resolved.envFiles.map((file) => {
+    const envPath = join(primary.worktreePath, file.path)
+    return existsSync(envPath) ? readFileSync(envPath, 'utf8') : null
+  })
+  const existing = parseLaneAllocationFromFiles(laneFileContents, resolved)
   let allocation: LaneAllocation
   let cacheIndexIsNew = false
   if (existing) {
     log('env file already carries the managed block; keeping the existing allocation')
     allocation = existing
+    // Partial state: a declared file without the block is re-written from
+    // the allocation the marked files still record.
+    const missing = new Set(
+      resolved.envFiles
+        .filter((_, index) => !laneFileContents[index]?.includes(ENV_MARKER))
+        .map((file) => file.path),
+    )
+    if (missing.size > 0) {
+      writeLaneEnvFiles({
+        resolved,
+        allocation,
+        slug,
+        mainFiles,
+        worktreePath: primary.worktreePath,
+        only: missing,
+      })
+    }
   } else {
     ;({ allocation, cacheIndexIsNew } = await allocateLane({
       resolved,
       slug,
-      mainEnvValues,
-      siblingEnvFiles: siblingEnvFileContents(
+      mainFiles,
+      siblingLaneFiles: siblingLaneEnvFileContents(
         primary.repositoryPath,
         primary.worktreePath,
-        resolved.envFile,
+        resolved.envFiles,
       ),
     }))
-    writeLaneEnvFile({
+    writeLaneEnvFiles({
       resolved,
       allocation,
-      mainEnvContents,
-      mainEnvValues,
-      envPath,
+      slug,
+      mainFiles,
+      worktreePath: primary.worktreePath,
     })
   }
 
@@ -413,14 +613,14 @@ async function provisionLane(
     flushCacheStore(allocation.cacheStoreUrl)
   }
 
-  const stepEnv = laneEnvValues(allocation, resolved)
+  const stepEnv = mergedLaneEnvValues(allocation, resolved, slug)
   for (const worktree of worktrees) {
     for (const step of worktree.repository.provisionSteps ?? []) {
       runStep(step, { cwd: worktree.worktreePath, env: stepEnv })
     }
   }
 
-  const databases: ProvisionedDatabase[] = []
+  let databases: ProvisionedDatabase[] = []
   let seed = 'not applicable (no databases declared)'
   if (resolved.databases.length > 0) {
     const migrateCommand = primary.repository.migrateCommand
@@ -435,58 +635,19 @@ async function provisionLane(
         : allocation.databaseUrls[firstDatabase.name]
     if (adminUrl === undefined) throw new Error('no admin database URL resolved')
     await waitForDatabaseServer(adminUrl)
-    await withAdminClient(adminUrl, async (client) => {
-      for (const database of resolved.databases) {
-        const url = allocation.databaseUrls[database.name]
-        if (url === undefined) continue
-        const databaseName = laneDatabaseName(
-          resolved.databasePrefix,
-          slug,
-          database.name,
-        )
-        const existing = await client.query(
-          'select 1 from pg_database where datname = $1',
-          [databaseName],
-        )
-        const useTemplate =
-          resolved.templateCaching && (!database.seeded || !options.skipSeed)
-        const context: TemplateContext = {
-          client,
-          adminUrl: url,
-          worktreePath: primary.worktreePath,
-          resolved,
-          database,
-          migrateCommand,
-          seedCommand,
-          stepEnv,
-        }
-        if (existing.rowCount) {
-          log(`database ${databaseName} already exists`)
-          runStep(migrateCommand, {
-            cwd: primary.worktreePath,
-            env: { ...stepEnv, [database.envKey]: url },
-          })
-          databases.push({ name: database.name, databaseName, url, created: false })
-          continue
-        }
-        if (useTemplate) {
-          await provisionDatabaseFromTemplate(
-            context,
-            databaseName,
-            templateFingerprint(primary.worktreePath, resolved, database),
-            { freshSeed: options.freshSeed ?? false },
-          )
-        } else {
-          await client.query(`create database "${databaseName}"`)
-          runStep(migrateCommand, {
-            cwd: primary.worktreePath,
-            env: { ...stepEnv, [database.envKey]: url },
-          })
-        }
-        log(`created database ${databaseName}`)
-        databases.push({ name: database.name, databaseName, url, created: true })
-      }
-    })
+    databases = await withAdminClient(adminUrl, (client) =>
+      provisionLaneDatabases({
+        client,
+        resolved,
+        allocation,
+        slug,
+        worktreePath: primary.worktreePath,
+        migrateCommand,
+        seedCommand,
+        stepEnv,
+        options,
+      }),
+    )
 
     if (resolved.templateCaching) {
       seed = 'carried by the template copy'
@@ -503,7 +664,12 @@ async function provisionLane(
         hasSeedCommand: Boolean(seedCommand),
       })
       if (refusal === null && seedCommand) {
-        runStep(seedCommand, { cwd: primary.worktreePath, env: stepEnv })
+        const seedEnv = { ...stepEnv }
+        for (const database of seededDatabases) {
+          const url = allocation.databaseUrls[database.name]
+          if (url !== undefined) seedEnv[database.envKey] = url
+        }
+        runStep(seedCommand, { cwd: primary.worktreePath, env: seedEnv })
         seed = 'seeded (reseed by tearing the lane down and setting it up again)'
       } else {
         log(`skipping the seed: ${refusal}`)
@@ -532,5 +698,6 @@ export {
   ensureWorktree,
   laneWorktrees,
   provisionLane,
+  provisionLaneDatabases,
   worktreesRoot,
 }

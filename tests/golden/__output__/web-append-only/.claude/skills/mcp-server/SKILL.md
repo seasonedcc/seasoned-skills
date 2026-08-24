@@ -32,7 +32,7 @@ app/routes/well-known/*         RFC 8414 + RFC 9728 discovery docs
 A tool's `execute` is a **single business-function call, passing the real app context**. No authorization lives in `app/mcp/` — every gate is the app's own gate, reused:
 
 - **Scope** filters visibility (an OAuth concern the app has no analog for).
-- **Permission** is mirrored by `isAvailable`, which calls the same `hasPermission` / `hasStaffPermission` the route getter calls.
+- **Permission** is mirrored by `isAvailable`, which calls the same permission helpers the route getter calls.
 - **Module** entitlement is the `modules` field, checked against the resolved company's `enabledModules`.
 - **Data scoping + final say** is the business function's own `applySchema(input, contextSchema)` — the enriched domain-cap context schema re-validates and scopes the query. If the app would deny it, the schema denies it here too, with the identical error message.
 
@@ -147,7 +147,7 @@ Each manifest resolves a conflict its own way; a blind marker-strip corrupts two
 
 ## Parity check (the same-PR DoD)
 
-`parity.test.ts` uses the Babel AST to extract every business function a route module touches, by a **reference walk**: a business fn counts as route-invoked when the module holds ANY value reference to an identifier imported from `~/business/<module>.server` (or a non-computed member access on a namespace import of one), recorded as `module.exportName` and excluding names ending in `Context`/`Schema`. The walk skips `ImportDeclaration` subtrees (so the import binding itself never counts) and, on any other node, adds the reference the moment it resolves and stops descending. Five assertions: every extracted fn is **wrapped xor exempt xor pending**; no stale pending (already wrapped); no dangling `wraps` (fn no route invokes); never both exempt and pending; no duplicate tool names. The check also reads the exception register at `app/mcp/exceptions.ts`: a tool standing outside the wrap rule that is not listed there fails the gate.
+`parity.test.ts` walks each route module's AST (with whatever parser the project already carries) to extract every business function the module touches, by a **reference walk**: a business fn counts as route-invoked when the module holds ANY value reference to an identifier imported from `~/business/<module>.server` (or a non-computed member access on a namespace import of one), recorded as `module.exportName` and excluding names ending in `Context`/`Schema`. The walk skips `ImportDeclaration` subtrees (so the import binding itself never counts) and, on any other node, adds the reference the moment it resolves and stops descending. Five assertions: every extracted fn is **wrapped xor exempt xor pending**; no stale pending (already wrapped); no dangling `wraps` (fn no route invokes); never both exempt and pending; no duplicate tool names. The check also reads the exception register at `app/mcp/exceptions.ts`: a tool standing outside the wrap rule that is not listed there fails the gate.
 
 - **Wrapped** — a tool's `wraps` names it. This is the goal state for a user capability.
 - **Exempt** (`parity-exemptions.ts`, `{ functionName, reason }`) — a machine surface that is *not* a user capability: the OAuth authorization-server functions, third-party webhooks and their dev fakes, browser-only auth redirects. A bogus exemption ("I didn't get to it yet") is a lie the reviewer must reject — exemptions are forever, for genuine non-capabilities only.

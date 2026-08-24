@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type {
   DatabaseResource,
+  EnvFileResource,
   ProvisioningConfig,
   RepositoryResource,
 } from '../config/types.js'
@@ -55,6 +56,19 @@ type ResolvedDatabase = {
   derivedPatterns: string[]
 }
 
+type ResolvedEnvFile = {
+  /** Path relative to the primary repository's worktree. */
+  path: string
+  /** Declared database resources whose lane URLs this file carries. */
+  databases: ResolvedDatabase[]
+  /** Managed port entries: env key → declared port name. */
+  ports: Record<string, string>
+  /** Whether this file carries the lane's cache-store URL entries. */
+  cacheStore: boolean
+  /** Extra managed entries, slug tokens not yet replaced. */
+  extra: Record<string, string>
+}
+
 type ResolvedProvisioning = {
   databases: ResolvedDatabase[]
   portBases: Record<string, number>
@@ -67,6 +81,12 @@ type ResolvedProvisioning = {
   cacheStoreEnvKeys: string[]
   databasePrefix: string
   envFile: string
+  /**
+   * At least one entry; the absent case is synthesized as one file at
+   * `envFile` carrying the whole allocation, so downstream code has one code
+   * path over a list.
+   */
+  envFiles: ResolvedEnvFile[]
   migrationSources: string[]
   seedSources: string[]
   seedDateTimezone: string | undefined
@@ -150,6 +170,16 @@ function resolveProvisioning(
       'the primary repository must declare migrateCommand when the lane owns databases',
     )
   }
+  const envFile = provisioning.envFile ?? DEFAULT_ENV_FILE
+  const cacheStoreIndex = provisioning.cacheStoreIndex ?? false
+  const cacheStoreEnvKeys = provisioning.cacheStoreEnvKeys ?? DEFAULT_CACHE_STORE_ENV_KEYS
+  const envFiles = resolveEnvFiles(provisioning.envFiles, {
+    envFile,
+    databases,
+    portBases,
+    cacheStoreIndex,
+    cacheStoreEnvKeys,
+  })
   return {
     databases,
     portBases,
@@ -157,10 +187,11 @@ function resolveProvisioning(
     services: provisioning.services ?? [],
     repositories,
     templateCaching,
-    cacheStoreIndex: provisioning.cacheStoreIndex ?? false,
-    cacheStoreEnvKeys: provisioning.cacheStoreEnvKeys ?? DEFAULT_CACHE_STORE_ENV_KEYS,
+    cacheStoreIndex,
+    cacheStoreEnvKeys,
     databasePrefix,
-    envFile: provisioning.envFile ?? DEFAULT_ENV_FILE,
+    envFile,
+    envFiles,
     migrationSources,
     seedSources: provisioning.seedSources ?? [],
     seedDateTimezone: provisioning.seedDateTimezone,
@@ -183,6 +214,125 @@ function resolveDatabase(database: DatabaseResource): ResolvedDatabase {
     seeded: database.seeded ?? false,
     derivedPatterns: database.derivedPatterns ?? [],
   }
+}
+
+const ENV_KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/
+
+/**
+ * Normalize the declared env files. When none are declared, the single-file
+ * behavior is synthesized as one entry at `envFile` carrying every database,
+ * every port under its derived key, and the cache-store URL — so every
+ * consumer walks the same list. Declared entries fully replace that, and are
+ * validated loudly: every referenced resource must exist, and every allocated
+ * resource must be recorded in some file, or its value would be unreachable
+ * (and lost on an idempotent re-run).
+ */
+function resolveEnvFiles(
+  declared: EnvFileResource[] | undefined,
+  context: {
+    envFile: string
+    databases: ResolvedDatabase[]
+    portBases: Record<string, number>
+    cacheStoreIndex: boolean
+    cacheStoreEnvKeys: string[]
+  },
+): ResolvedEnvFile[] {
+  const { envFile, databases, portBases, cacheStoreIndex, cacheStoreEnvKeys } = context
+  if (declared === undefined) {
+    return [
+      {
+        path: envFile,
+        databases,
+        ports: Object.fromEntries(
+          Object.keys(portBases).map((name) => [envKeyForPort(name), name]),
+        ),
+        cacheStore: true,
+        extra: {},
+      },
+    ]
+  }
+  if (declared.length === 0) {
+    throw new Error('envFiles must declare at least one file')
+  }
+  const byName = new Map(databases.map((database) => [database.name, database]))
+  const seenPaths = new Set<string>()
+  const envFiles = declared.map((file): ResolvedEnvFile => {
+    if (seenPaths.has(file.path)) {
+      throw new Error(`envFiles declares "${file.path}" twice`)
+    }
+    seenPaths.add(file.path)
+    const fileDatabases = (file.databases ?? []).map((name) => {
+      const database = byName.get(name)
+      if (!database) {
+        throw new Error(
+          `envFiles entry "${file.path}" names database "${name}" but no database resource declares it`,
+        )
+      }
+      return database
+    })
+    for (const [envKey, portName] of Object.entries(file.ports ?? {})) {
+      if (!ENV_KEY_PATTERN.test(envKey)) {
+        throw new Error(
+          `envFiles entry "${file.path}" uses env key "${envKey}"; keys must be SCREAMING_SNAKE_CASE`,
+        )
+      }
+      if (!Object.hasOwn(portBases, portName)) {
+        throw new Error(
+          `envFiles entry "${file.path}" maps ${envKey} to port "${portName}" but portBases does not declare it`,
+        )
+      }
+    }
+    for (const envKey of Object.keys(file.extra ?? {})) {
+      if (!ENV_KEY_PATTERN.test(envKey)) {
+        throw new Error(
+          `envFiles entry "${file.path}" uses env key "${envKey}"; keys must be SCREAMING_SNAKE_CASE`,
+        )
+      }
+    }
+    const writtenKeys = [
+      ...(file.cacheStore && cacheStoreIndex ? cacheStoreEnvKeys : []),
+      ...fileDatabases.map((database) => database.envKey),
+      ...Object.keys(file.ports ?? {}),
+      ...Object.keys(file.extra ?? {}),
+    ]
+    const duplicate = writtenKeys.find((key, index) => writtenKeys.indexOf(key) !== index)
+    if (duplicate !== undefined) {
+      throw new Error(
+        `envFiles entry "${file.path}" writes env key "${duplicate}" more than once`,
+      )
+    }
+    return {
+      path: file.path,
+      databases: fileDatabases,
+      ports: file.ports ?? {},
+      cacheStore: file.cacheStore ?? false,
+      extra: file.extra ?? {},
+    }
+  })
+  for (const database of databases) {
+    const carried = envFiles.some((file) =>
+      file.databases.some((candidate) => candidate.name === database.name),
+    )
+    if (!carried) {
+      throw new Error(
+        `database "${database.name}" is listed in no envFiles entry; its lane URL would be recorded nowhere`,
+      )
+    }
+  }
+  for (const portName of Object.keys(portBases)) {
+    const carried = envFiles.some((file) => Object.values(file.ports).includes(portName))
+    if (!carried) {
+      throw new Error(
+        `port "${portName}" is mapped in no envFiles entry; its lane port would be recorded nowhere`,
+      )
+    }
+  }
+  if (cacheStoreIndex && !envFiles.some((file) => file.cacheStore)) {
+    throw new Error(
+      'cacheStoreIndex is on but no envFiles entry carries cacheStore; the lane cache-store URL would be recorded nowhere',
+    )
+  }
+  return envFiles
 }
 
 function screamingSnakeCase(name: string) {
@@ -345,6 +495,49 @@ function reservedPortsFromEnvFiles(
   return reserved
 }
 
+/**
+ * Ports an env-value record claims under one declared file's own key→port
+ * mapping, whole blocks included. The same env key name in two files maps to
+ * different ports, so claims are always read per file.
+ */
+function portsClaimedByEnvFile(
+  values: Record<string, string>,
+  file: ResolvedEnvFile,
+  portBlocks: Record<string, number> = {},
+) {
+  return Object.entries(file.ports).flatMap(([envKey, portName]) => {
+    const port = Number(values[envKey])
+    if (!Number.isInteger(port) || port <= 0) return []
+    return portsHeldBy(portName, port, portBlocks)
+  })
+}
+
+/**
+ * Every port sibling lanes hold, scanned across every declared env file of
+ * each sibling — one contents entry per declared file, in declaration order.
+ * A colliding key name (e.g. PORT in two files) contributes both values.
+ */
+function reservedPortsFromLaneEnvFiles(
+  laneContents: Iterable<readonly (string | null | undefined)[]>,
+  resolved: ResolvedProvisioning,
+) {
+  const reserved = new Set<number>()
+  for (const contentsByFile of laneContents) {
+    resolved.envFiles.forEach((file, index) => {
+      const contents = contentsByFile[index]
+      if (!contents?.includes(ENV_MARKER)) return
+      for (const port of portsClaimedByEnvFile(
+        readEnvValues(contents),
+        file,
+        resolved.portBlocks,
+      )) {
+        reserved.add(port)
+      }
+    })
+  }
+  return reserved
+}
+
 function worktreePathsFromPorcelain(listing: string, excludePath: string) {
   const paths: string[] = []
   for (const line of listing.split('\n')) {
@@ -449,42 +642,166 @@ function laneEnvValues(allocation: LaneAllocation, resolved: ResolvedProvisionin
   return values
 }
 
+/** Replace the slug tokens an extra managed entry's value may carry. */
+function replaceSlugTokens(value: string, slug: string) {
+  return value
+    .replaceAll('{slug}', slug)
+    .replaceAll('{slug-dashed}', slug.replaceAll('_', '-'))
+}
+
 /**
- * Read a lane's allocation back from its env file. No marker means no
- * allocation (a fresh lane). A marker with a missing key is a hand-edit the
- * implementation refuses to guess about.
+ * The slice of the allocation one declared env file records: its databases'
+ * URLs under their env keys, its port entries under the declared keys, the
+ * cache-store URL when the file carries it, and its extra entries with the
+ * slug tokens replaced.
+ */
+function laneEnvValuesForFile(
+  allocation: LaneAllocation,
+  resolved: ResolvedProvisioning,
+  file: ResolvedEnvFile,
+  slug: string,
+) {
+  const values: Record<string, string> = {}
+  for (const database of file.databases) {
+    const url = allocation.databaseUrls[database.name]
+    if (url === undefined) {
+      throw new Error(`allocation carries no URL for database "${database.name}"`)
+    }
+    values[database.envKey] = url
+  }
+  for (const [envKey, portName] of Object.entries(file.ports)) {
+    const port = allocation.ports[portName]
+    if (port === undefined) {
+      throw new Error(`allocation carries no port for "${portName}"`)
+    }
+    values[envKey] = String(port)
+  }
+  if (file.cacheStore && resolved.cacheStoreIndex) {
+    if (allocation.cacheStoreUrl === undefined) {
+      throw new Error('allocation carries no cache-store URL')
+    }
+    for (const key of resolved.cacheStoreEnvKeys) {
+      values[key] = allocation.cacheStoreUrl
+    }
+  }
+  for (const [key, value] of Object.entries(file.extra)) {
+    values[key] = replaceSlugTokens(value, slug)
+  }
+  return values
+}
+
+/**
+ * Every declared file's slice of the allocation merged into one record, in
+ * declaration order, the first file winning on a colliding key — the
+ * environment provisioning steps run under. For the synthesized single-file
+ * case this equals `laneEnvValues`.
+ */
+function mergedLaneEnvValues(
+  allocation: LaneAllocation,
+  resolved: ResolvedProvisioning,
+  slug: string,
+) {
+  const merged: Record<string, string> = {}
+  for (const file of resolved.envFiles) {
+    for (const [key, value] of Object.entries(
+      laneEnvValuesForFile(allocation, resolved, file, slug),
+    )) {
+      if (!(key in merged)) merged[key] = value
+    }
+  }
+  return merged
+}
+
+/**
+ * Read a lane's allocation back from its env files — one contents entry per
+ * declared file, in declaration order, null where a file is absent. A managed
+ * block in ANY file is the sentinel: with none, the lane is fresh. With one,
+ * the allocation is merged from every marked file using that file's own
+ * key→port mapping; a file may be missing its block (the caller re-writes it
+ * from the merged allocation), but a value recorded nowhere — or recorded
+ * twice with a disagreement — is a hand-edit the implementation refuses to
+ * guess about.
+ */
+function parseLaneAllocationFromFiles(
+  contentsByFile: readonly (string | null | undefined)[],
+  resolved: ResolvedProvisioning,
+): LaneAllocation | null {
+  if (!contentsByFile.some((contents) => contents?.includes(ENV_MARKER))) return null
+  const complain = (what: string): never => {
+    throw new Error(
+      `the managed env block is present but ${what} is missing; fix or delete the managed blocks and re-run`,
+    )
+  }
+  const disagree = (what: string): never => {
+    throw new Error(
+      `the managed env blocks disagree about ${what}; fix or delete the managed blocks and re-run`,
+    )
+  }
+  const ports: PortPlan = {}
+  const databaseUrls: Record<string, string> = {}
+  let cacheStoreUrl: string | undefined
+  resolved.envFiles.forEach((file, index) => {
+    const contents = contentsByFile[index]
+    if (!contents?.includes(ENV_MARKER)) return
+    const values = readEnvValues(contents)
+    for (const [envKey, portName] of Object.entries(file.ports)) {
+      const port = Number(values[envKey])
+      if (!Number.isInteger(port) || port <= 0) complain(`${envKey} (in ${file.path})`)
+      if (ports[portName] !== undefined && ports[portName] !== port) {
+        disagree(`the port "${portName}"`)
+      }
+      ports[portName] = port
+    }
+    for (const database of file.databases) {
+      const url = values[database.envKey]
+      if (!url) complain(`${database.envKey} (in ${file.path})`)
+      else {
+        const known = databaseUrls[database.name]
+        if (known !== undefined && known !== url) {
+          disagree(`the URL for database "${database.name}"`)
+        }
+        databaseUrls[database.name] = url
+      }
+    }
+    if (file.cacheStore && resolved.cacheStoreIndex) {
+      const key = resolved.cacheStoreEnvKeys[0]
+      const url = key === undefined ? undefined : values[key]
+      if (!url) complain(`${key ?? 'the cache-store env key'} (in ${file.path})`)
+      else {
+        if (cacheStoreUrl !== undefined && cacheStoreUrl !== url) {
+          disagree('the cache-store URL')
+        }
+        cacheStoreUrl = url
+      }
+    }
+  })
+  for (const name of Object.keys(resolved.portBases)) {
+    if (ports[name] === undefined) complain(`a value for port "${name}"`)
+  }
+  for (const database of resolved.databases) {
+    if (databaseUrls[database.name] === undefined) complain(database.envKey)
+  }
+  const allocation: LaneAllocation = { ports, databaseUrls }
+  if (resolved.cacheStoreIndex) {
+    if (cacheStoreUrl === undefined) {
+      complain(resolved.cacheStoreEnvKeys[0] ?? 'the cache-store env key')
+    } else {
+      allocation.cacheStoreUrl = cacheStoreUrl
+    }
+  }
+  return allocation
+}
+
+/**
+ * Read a lane's allocation back from its (single) env file. No marker means
+ * no allocation (a fresh lane). A marker with a missing key is a hand-edit
+ * the implementation refuses to guess about.
  */
 function parseLaneAllocation(
   contents: string,
   resolved: ResolvedProvisioning,
 ): LaneAllocation | null {
-  if (!contents.includes(ENV_MARKER)) return null
-  const values = readEnvValues(contents)
-  const complain = (what: string): never => {
-    throw new Error(
-      `the managed env block is present but ${what} is missing; fix or delete the block and re-run`,
-    )
-  }
-  const ports: PortPlan = {}
-  for (const name of Object.keys(resolved.portBases)) {
-    const port = Number(values[envKeyForPort(name)])
-    if (!Number.isInteger(port) || port <= 0) complain(envKeyForPort(name))
-    ports[name] = port
-  }
-  const databaseUrls: Record<string, string> = {}
-  for (const database of resolved.databases) {
-    const url = values[database.envKey]
-    if (!url) complain(database.envKey)
-    else databaseUrls[database.name] = url
-  }
-  const allocation: LaneAllocation = { ports, databaseUrls }
-  if (resolved.cacheStoreIndex) {
-    const key = resolved.cacheStoreEnvKeys[0]
-    const url = key === undefined ? undefined : values[key]
-    if (!url) complain(key ?? 'the cache-store env key')
-    else allocation.cacheStoreUrl = url
-  }
-  return allocation
+  return parseLaneAllocationFromFiles([contents], resolved)
 }
 
 /** Strip a trailing database index: redis://host:6379/2 -> redis://host:6379 */
@@ -736,6 +1053,7 @@ export type {
   LaneProcess,
   PortPlan,
   ResolvedDatabase,
+  ResolvedEnvFile,
   ResolvedProvisioning,
   TemplateFingerprint,
 }
@@ -762,17 +1080,23 @@ export {
   laneDatabaseFamily,
   laneDatabaseName,
   laneEnvValues,
+  laneEnvValuesForFile,
   laneProcessesFromLsofOutput,
   laneSlug,
+  mergedLaneEnvValues,
   PORT_OFFSET_RANGE,
   parseLaneAllocation,
+  parseLaneAllocationFromFiles,
   parseTemplateFingerprint,
   planTemplateUsage,
   portsClaimedByEnv,
+  portsClaimedByEnvFile,
   portsHeldBy,
   readEnvValues,
+  replaceSlugTokens,
   repointLocalhostUrls,
   reservedPortsFromEnvFiles,
+  reservedPortsFromLaneEnvFiles,
   resolvePortPlan,
   resolveProvisioning,
   seedRefusal,
