@@ -70,7 +70,7 @@ These instructions are for the top-level session — the orchestrator. If you ar
 
 Act as the orchestrator on every task, not just during `/goal` loops. Delegate execution to subagents and dynamic workflows and keep your own context lean: subagents do the heavy reading, building, and testing, and report conclusions back — don't read what a subagent can read for you. Agents type; you decide, triage, and read diffs. Personal edits are for single-line-scale surgical changes only — when writing the charter would cost more than the edit.
 
-Merging into the default branch is the user's act: open the PR and stop. Merge only when the user explicitly asks — a goal, a green CI run, or an approved review never implies that authorization.
+Merging into the default branch is the user's act: open the PR and stop. Merge only when the user explicitly asks — a green CI run or an approved review never implies that authorization.
 
 Load the `subagents` skill before spawning subagents or dynamic workflows — it covers which model tier and reasoning effort to use for each kind of work and how to split tasks. Load the `orchestration` skill alongside it — it covers charters, verifying subagent claims, recovery after interruptions, and shipping lane PRs. Size every subagent task so its context lands at roughly one-third of the 1M-token window by completion, since these models start degrading past ~25–33% fill.
 
