@@ -29,11 +29,18 @@ repositories that never registered a worktree.
 
 Ports and the cache-store index stay lane-wide: the port pool is collected
 across the repositories a run covers, ports the lane already holds are kept when
-a repository joins it later, and a port or database name two covered
-repositories both declare is refused by name. Repositories that never share a
-lane are free to reuse each other's names.
+a repository joins it later, and a port name two covered repositories both
+declare is refused by name. Port names are scoped to a selection, so
+repositories that never share a lane are free to reuse each other's. Database
+names are not: a lane database is named from the prefix, the lane slug, and the
+resource name, and a template database from the prefix and the resource name —
+neither carries the repository — so a database name two declared repositories
+share is refused for the whole table, whether or not one lane ever covers both.
 
 This is a breaking configuration change with no compatibility shim: move the
 top-level `databases`, `portBases`, `portBlocks`, `envFile`, `envFiles`,
 `templateCaching`, `cacheStoreIndex`, `cacheStoreEnvKeys`, `migrationSources`,
 and `seedSources` into the `repositories` entry that owns them before upgrading.
+A configuration that still carries any of them at the top level is refused by
+name — never silently ignored, which would have run the lane against the
+developer's own databases.
