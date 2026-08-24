@@ -184,7 +184,7 @@ function ensureWorktree({
     )
     return
   }
-  git(['worktree', 'add', '-b', branchName, worktreePath, baseReference], {
+  git(['worktree', 'add', '--no-track', '-b', branchName, worktreePath, baseReference], {
     cwd: repositoryPath,
   })
   log(
