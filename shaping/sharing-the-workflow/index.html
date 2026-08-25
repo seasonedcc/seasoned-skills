@@ -184,7 +184,8 @@
         <h4>The tagline</h4>
         <p>
           One line names the project everywhere a stranger first meets it, set as
-          the GitHub repository description and opening the README:
+          the GitHub repository description, set as the package&rsquo;s own
+          description on the npm registry, and opening the README:
           <strong>&ldquo;Seasoned&rsquo;s skills to orchestrate the full product
           cycle with AI agents&rdquo;</strong>. It states the future the workflow is
           building toward, not only what exists today, and its double meaning is
@@ -693,7 +694,7 @@ Build, in this repository, against main:
 
 1. The docs-copywriting skill: copy shaping/sharing-the-workflow/references/docs-copywriting/ verbatim to .claude/skills/docs-copywriting/, verify with diff -r, and commit it — never shipped with the package, never rewritten. It is already authored and approved; installing it is the whole task.
 
-2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description to the same line — then says what the workflow is, the goals it serves today, and the vision it is building toward, and routes readers three ways: understand, adopt, look up.
+2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description and package.json's description to the same line — then says what the workflow is, the goals it serves today, and the vision it is building toward, and routes readers three ways: understand, adopt, look up.
 
 3. The docs/ folder: "The way of working", "Running a session", and "Adopting the workflow", plus docs/reference/ with its four pages — commands, configuration, what a project receives, the managed footprint. Every page written under the docs-copywriting skill, and every contract the document anchors to these pages satisfied in full.
 
