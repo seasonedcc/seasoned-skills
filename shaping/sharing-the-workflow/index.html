@@ -90,13 +90,15 @@
         <p>
           Today there is exactly one way to learn this way of working: its author
           explains it, live, one person at a time. Nothing written stands in for that
-          conversation. The package&rsquo;s README speaks to one narrow reader &mdash;
-          someone checking whether a codebase is ready to install &mdash; and never says
+          conversation. The package&rsquo;s README speaks only to a reader adopting
+          the package &mdash; readiness, install, upgrade, and a bare list of
+          commands &mdash; and never says
           what the workflow is as a way of working. Everything else in the repository is
           written for the agents that execute the work, in a dialect tuned for machines,
-          not for a person reading over coffee. The workflow&rsquo;s goals and the vision
-          it is building toward live only inside its founding shaping document, where no
-          newcomer would think to look. So the people closest to it &mdash; the ones
+          not for a person reading over coffee. The workflow&rsquo;s goals live only
+          inside its founding shaping document, where no newcomer would think to look
+          &mdash; and the vision it is building toward is not written down anywhere at
+          all. So the people closest to it &mdash; the ones
           already running it daily &mdash; operate it without grasping the full arc, and
           anyone further out has no way in at all.
         </p>
@@ -262,9 +264,14 @@
           how to manage the agent&rsquo;s context window: why letting it fill quietly
           degrades the work, how to see that coming, and how the two new
           skills below fit the rhythm. A third page,
-          <strong>Adopting the workflow</strong>, receives the readiness checklist
-          and install walkthrough the README carries today, rewritten in the voice,
-          so the README can become a true front door.
+          <strong>Adopting the workflow</strong>, receives the readiness checklist,
+          the install walkthrough, the reference-library setup, and the
+          staying-current guidance the README carries today, rewritten in the
+          voice, so the README can become a true front door. The README&rsquo;s
+          commands table folds into the reference&rsquo;s commands page, and what
+          its closing section says about this repository folds into the front door
+          itself &mdash; every section the README carries today lands in a named
+          home.
         </p>
         <details class="technical" open>
           <summary>
@@ -297,10 +304,14 @@
               shaping.
             </p>
             <p>
-              Where we part from Shape Up, the page says so plainly: agents build,
-              so shaping now takes longer than building &mdash; betting changes and
-              appetites lose their point (the departures the shaping practice
-              already codifies). And self-improvement &mdash; deriving a finished
+              Where we part from Shape Up, the page says so plainly: agents do the
+              building, so build time is no longer the scarce ingredient and
+              appetites are dropped; betting is gone too, because opening a shaping
+              session is itself the decision to do the project; and shaping now
+              takes longer than building (the departures the shaping practice
+              already codifies, each with its own reason). The page is also the
+              first written home of this map &mdash; today it exists only in
+              practice and in this document. And self-improvement &mdash; deriving a finished
               work&rsquo;s lessons and feeding them back &mdash; runs without
               anyone starting it: at the end of every task outside a goal, and
               once per goal when the goal is met. Only quick mode skips it.
@@ -319,7 +330,11 @@
               <code>/goal</code> plus the goal text pasted from the document. From
               that moment the person&rsquo;s whole job is three watches, and they
               are away from the keyboard for most of the effort &mdash; the craft
-              is knowing which moments not to miss.
+              is knowing which moments not to miss. The manual says plainly where
+              <code>/goal</code> comes from &mdash; it is the coding
+              harness&rsquo;s own feature, not something this package ships &mdash;
+              and the adoption page lists it among what the workflow assumes about
+              the reader&rsquo;s setup.
             </p>
             <p>
               <strong>The context window.</strong> Once the orchestrator&rsquo;s
@@ -330,7 +345,10 @@
               (33&ndash;36%, the bar red), interrupt and compact anyway. The
               numbers are ballpark; the gesture is what matters: start hunting
               for the moment before the bar turns yellow, and never let it sit
-              red. The ritual: ask whether the ledger is
+              red. The manual also names why this watch belongs to the person at
+              all: the package switches the harness&rsquo;s automatic compaction
+              off in every project it manages, so the compaction the person runs
+              is the only compaction there is. The ritual: ask whether the ledger is
               up to date (<code>/prepare-for-compaction</code>); when the
               orchestrator answers that it is safe, compact, and immediately queue
               the next message &mdash; &ldquo;Please reground after
@@ -429,8 +447,10 @@
           The little hires get four pages under <code>docs/reference/</code>, each
           answering in under a minute: the commands (all seven, every flag &mdash;
           several exist today only in <code>--help</code> and the source); the
-          configuration file, key by key, with a real example (today it lives only
-          as comments in the source types); what a project receives &mdash; the
+          configuration file, key by key, with a real example (today no page
+          documents it key by key &mdash; the README covers a handful of options,
+          and the complete schema lives only as comments beside the source
+          types); what a project receives &mdash; the
           generated files, the skills by tier with one line each, and what stays
           committed versus generated; and the managed footprint &mdash; the settings
           the package enforces, the ignore entries it maintains, the one script it
@@ -450,12 +470,18 @@
               the defusal is a test, not discipline: a unit test enumerates the
               real surface &mdash; commands and flags from the CLI program itself,
               configuration keys from a key manifest this build adds and exports
-              beside the configuration types (today the keys live only in
-              hand-written validation code that nothing can enumerate), and the
-              package&rsquo;s programmatic exports (<code>defineConfig</code> and
-              the stack-audit helpers, which the configuration page also
-              documents) &mdash; and
-              fails when any name is missing from the reference pages. The prose
+              beside the configuration types (today the keys live only in the
+              exported types, which nothing can enumerate at runtime; the
+              hand-written validator covers only part of them), and the
+              package&rsquo;s runtime exports (<code>defineConfig</code> belongs
+              to the configuration page; the stack-audit helpers to the
+              what-a-project-receives page, beside the generated skills that teach
+              them) &mdash; and
+              fails when any name is missing from the reference pages. It
+              complements the existing golden snapshot of the command surface
+              rather than replacing it: the snapshot keeps pinning command names
+              and descriptions, while this test ties the full surface &mdash;
+              flags, keys, and exports included &mdash; to the docs. The prose
               stays human; the names cannot silently rot. The test lands with this
               project, so the baseline includes the reference&rsquo;s integrity
               from day one.
@@ -570,10 +596,12 @@
           </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            <code>docs-copywriting</code> is committed doctrine, so the review
-            loop&rsquo;s conventions pass checks every docs diff against it, and
-            the translation table makes violations mechanical to spot rather than
-            a matter of taste.
+            <code>docs-copywriting</code> is committed in this repository, and
+            this repository&rsquo;s own standing-instructions content names it as
+            the guide every human-facing page is written under &mdash; the wiring
+            that lets the review loop&rsquo;s conventions pass quote it against
+            every docs diff. The translation table then makes violations
+            mechanical to spot rather than a matter of taste.
           </dd>
           <dt>An unsettled rule gets taught as settled.</dt>
           <dd>
