@@ -194,28 +194,32 @@
           Every human-facing page is written under one guide: a skill named
           <code>docs-copywriting</code>, committed in this repository and never
           shipped with the package &mdash; the voice of our documentation is ours,
-          not something every adopting project inherits. It adapts a battle-tested
-          copywriting guide from earlier product work, keeping the voice and leaving
-          the product behind. The register it sets: a developer sharing what they
-          know with a peer, plainly and warmly &mdash; not a company presenting, and
-          never a system talking to itself.
+          not something every adopting project inherits. The register it sets: a
+          developer sharing what they know with a peer, plainly and warmly &mdash;
+          not a company presenting, and never a system talking to itself. Because
+          this voice is the project&rsquo;s biggest risk, the skill was not left
+          for the build to write: it is already authored in full, in this
+          project&rsquo;s <code>references/docs-copywriting/</code> folder, adapted
+          from a battle-tested guide and reviewed before this document was
+          approved. The build copies it into place verbatim.
         </p>
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
             <span class="technical-kind">Contract</span>
-            The rules the skill carries
+            The rules the authored skill carries
           </summary>
           <div class="technical-body">
             <p>
-              From the source guide, the mechanics that travel: sentence case for
-              every title and heading; specific over vague; problem before solution;
-              the banned corporate jargon list (leverage, seamless, robust,
-              best-in-class, and kin); em dashes spaced and rationed to one or two
-              per page; short declarative sentences followed by longer explanations;
-              fragments and rhetorical questions used sparingly. Left behind: every
-              product-specific layer &mdash; speed messaging, calls to action,
-              pricing and onboarding copy, audience templates.
+              The mechanics that traveled from the battle-tested guide: sentence
+              case for every title and heading; specific over vague; problem
+              before solution; the banned corporate jargon list (leverage,
+              seamless, robust, best-in-class, and kin); em dashes spaced and
+              rationed to one or two per page; short declarative sentences
+              followed by longer explanations; fragments and rhetorical questions
+              used sparingly. Left behind: every product-specific layer &mdash;
+              speed messaging, calls to action, pricing and onboarding copy,
+              audience templates.
             </p>
             <p>
               Written new for this repo: no AI dialect &mdash; words like
@@ -224,10 +228,15 @@
               &ldquo;charter&rdquo; do not survive into human docs, and the skill
               carries a translation table from workflow dialect to plain speech;
               every term of art the docs genuinely need is defined the first time a
-              reader meets it; and the docs never boast &mdash; the work speaks, the
-              copy does not point at it. The skill is written fresh from this
-              document, never by copying source files, so no trace of the source
-              project enters this public repository.
+              reader meets it; honesty about unsettled practice; and the docs never
+              boast &mdash; the work speaks, the copy does not point at it.
+            </p>
+            <p>
+              The authored skill in <code>references/docs-copywriting/</code> is
+              the single source: <code>SKILL.md</code> plus
+              <code>references/voice-guide.md</code>. The build installs it at
+              <code>.claude/skills/docs-copywriting/</code> by verbatim copy,
+              verified with <code>diff -r</code>, and never rewrites it.
             </p>
           </div>
         </details>
@@ -518,6 +527,19 @@
             shared vocabulary each side names instead of restating the other.
           </dd>
           <dt>
+            The voice starts from scratch and loses years of hard-won
+            copywriting &mdash; an adaptation written mid-build, without the
+            author&rsquo;s eye, drifts from the voice that actually works.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Defused before the build starts: the complete skill is already
+            authored in <code>references/docs-copywriting/</code>, first as a
+            verbatim copy of the battle-tested guide, then edited in reviewable
+            steps, and approved by the author as part of approving this
+            document. The build copies it into place and never rewrites it.
+          </dd>
+          <dt>
             AI dialect creeps back in &mdash; agents write these docs, and the
             dialect is their native register.
           </dt>
@@ -588,7 +610,7 @@ Your first instruction: read shaping/sharing-the-workflow/index.html in full, ev
 
 Build, in this repository, against main:
 
-1. The docs-copywriting skill, committed to this repository and never shipped with the package, written fresh from the document's voice contract: the mechanics that travel, the no-AI-dialect translation table, terms defined on first meeting, never boasting.
+1. The docs-copywriting skill: copy shaping/sharing-the-workflow/references/docs-copywriting/ verbatim to .claude/skills/docs-copywriting/, verify with diff -r, and commit it — never shipped with the package, never rewritten. It is already authored and approved; installing it is the whole task.
 
 2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description to the same line — then says what the workflow is and the vision it serves, and routes readers three ways: understand, adopt, look up.
 

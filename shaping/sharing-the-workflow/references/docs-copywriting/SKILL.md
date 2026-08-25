@@ -1,70 +1,72 @@
 ---
-name: flashboard-copywriting
-description: Write copy for Flashboard following the founders' voice, style, and personality. Use when writing marketing copy, blog posts, landing pages, UI text, feature descriptions, CTAs, or any customer-facing content for Flashboard. (project)
+name: docs-copywriting
+description: Write human-facing prose for this repository in our voice — the README, every page under docs/, and any other copy a person reads. Use when writing or editing documentation, GitHub-facing text, or prose in release notes meant for human readers. (project)
 ---
 
-# Flashboard Copywriting
+# Docs copywriting
 
-Write all Flashboard copy in the founders' authentic voice: conversational, empathetic, and developer-to-developer.
-
-## Before writing any copy
-
-**Always read the current JTBD document first:**
-```
-apps/flashboard/jtbd.md
-```
-
-This file contains the four primary audiences and their jobs to be done. All copy should speak directly to these audiences and their specific pain points.
+Write every human-facing page as a developer sharing what they know with a peer: plainly, warmly, and in words people say out loud. Never as a company presenting, and never as a system talking to itself.
 
 ## Core principles
 
-1. **Sentence case for all titles.** Never use Title Case. Write "How to manage your database" not "How To Manage Your Database"
+1. **Sentence case for all titles.** Write "Running a session", never "Running A Session".
 
-2. **Speed is the #1 value.** Lead with time savings: "in seconds", "in 2 minutes", "instant"
+2. **Plain speech, no AI dialect.** Words agents use with each other do not survive into human docs. See the translation table below.
 
-3. **Problem before solution.** Acknowledge pain points before presenting Flashboard as the answer
+3. **Problem before solution.** Show the reader the situation they recognize before naming what solves it.
 
-4. **Ownership language.** "Your data", "your database", "single source of truth"
+4. **Specific over vague.** "Under a minute" beats "quickly". "Seven commands" beats "a set of commands".
 
-5. **Peer tone.** Write as a fellow developer sharing hard-won wisdom, not as a marketer selling
+5. **Define terms on first meeting.** The docs may teach a term of art — orchestrator, shaping, lane — but the first time a reader meets it, a plain-words definition sits right beside it.
+
+6. **Never boast.** The work speaks; the copy never points at it. No claims about our results, no case studies, no benchmarks, no showcase.
+
+7. **Peer tone.** Write like you are explaining to a friend over coffee — a fellow developer, not an audience.
+
+## AI dialect translation table
+
+Words from the workflow's internal dialect that never appear in human docs:
+
+| Dialect | Write instead |
+|---------|---------------|
+| load-bearing | essential, "that everything depends on" |
+| binding | required, "the rule is" |
+| doctrine | standing instructions, the rules |
+| surface (as a noun) | page, screen, place |
+| charter | instructions, the task |
+| invoke | run, type, use |
+| adjudicate | decide, rule on |
+| materialize | create, generate |
+| canonical | official, "the one source" |
+| affordance | button, link, control |
+| artifact | file, document, result |
+| downstream / upstream | later / earlier |
+| ergonomics | how it feels to use |
+
+When a dialect word carries a concept the docs genuinely need, keep the concept and teach it under a plain name with a first-use definition — never smuggle the word.
 
 ## Quick reference
 
 | Element | Pattern | Example |
 |---------|---------|---------|
-| Headlines | Sentence case, problem or benefit | "Stop building admin panels from scratch" |
-| CTAs | Action-first, uppercase styling | "GET FOR FREE", "CREATE PANEL" |
-| Speed claims | Specific time references | "in 2 minutes", "in seconds", "instantly" |
-| Features | Benefit → proof → detail | "Secure and private. Flashboard encrypts your credentials with a key only you own." |
-| Trust builders | Below CTAs | "No credit card required", "30-day money-back guarantee" |
-
-## Voice characteristics
-
-- **Conversational:** Write like you're explaining to a friend over coffee
-- **Empathetic:** Acknowledge developer frustrations genuinely
-- **Confident:** State benefits directly, no hedging
-- **Specific:** "in 2 minutes" beats "fast"
-- **Personal:** Use first-person for stories, second-person for reader engagement
-
-## Sentence patterns
-
-- Short declarative + longer explanation: "It just worked. No configuration, no fiddling with settings — everything was ready."
-- Em-dashes for asides: "Admin interfaces — also known as admin panels — aren't complicated per se"
-- **Em-dash spacing**: Always use spaces before and after em dashes ( — ), never without spaces (—)
-- **Em-dash frequency**: Use em dashes sparingly for maximum impact. On long pages, limit to 1–2 key moments that require emphasis PER ARTICLE/PAGE. On short pages or UI copy, limit to just 1. Overusing em dashes dilutes their effect and makes the voice feel affected rather than authentic.
-- Rhetorical questions: "But how can we understand their needs if we haven't experienced them ourselves?"
-- Fragments for emphasis: "And let's be honest:"
+| Headlines | Sentence case, plain topic or problem | "Running a session", "When the context fills up" |
+| Rhythm | Short declarative + longer explanation | "It is one command. The package generates everything your agents read, and none of it enters your history." |
+| Em dashes | Spaces around them, one or two per page | "The person — not the agent — decides when to compact." |
+| Technical terms | Concept first, brief plain definition beside it | "compaction (summarizing the session so far to free space)" |
+| Unsettled practice | Described honestly, marked as evolving | "Today we ship through GitHub releases; the staging story is still settling." |
 
 ## Anti-patterns (never do these)
 
 - Title Case headlines
-- Em-dashes without spaces: "word—word" → always use "word — word"
-- Corporate jargon: "leverage", "synergies", "best-in-class", "solution"
-- Passive voice in CTAs: "An account can be created" → "Create an account"
-- Fear-based security messaging
-- Over-explaining technical concepts
-- Generic speed claims: "fast" → use specific times instead
+- Em dashes without spaces, or more than two on a page
+- Corporate jargon: leverage, utilize, seamless, robust, best-in-class, cutting-edge, empower, optimize, synergy, solution
+- AI dialect from the table above
+- Claims about our results or the quality of what the workflow produces
+- Passive voice where a person acts: "The context can be compacted" → "Compact the context"
+- Hedging: "should probably", "may want to consider"
+- Teaching a direction as if it were settled practice
+- Over-explaining what a working developer already knows
 
 ## Detailed guidance
 
-For comprehensive voice documentation, templates, and examples from actual blog posts, see [references/voice-guide.md](references/voice-guide.md).
+For the full voice reference with examples, see [references/voice-guide.md](references/voice-guide.md).

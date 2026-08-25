@@ -1,49 +1,39 @@
-# Flashboard Voice Guide
+# Documentation voice guide
 
-Comprehensive copywriting reference for Flashboard, derived from analysis of founder blog posts, app UI, and marketing materials.
+Comprehensive reference for this repository's human-facing prose: the README, everything under `docs/`, and any other text a person reads.
 
-## The Flashboard voice
+## The voice
 
-Flashboard's voice is that of **experienced founders sharing hard-won wisdom with fellow developers**. Not a faceless company, not a marketer. A peer who's been in the trenches and found something worth sharing.
+The voice is **a developer who has lived this way of working, sharing it with a peer**. Not a faceless project, not a marketer, not a system describing itself. Someone who has been in the trenches and found something worth writing down.
 
 ### Personality traits
 
 | Trait | How it shows up |
 |-------|-----------------|
-| **Conversational** | Contractions, casual transitions ("And let's be honest:"), occasional emoji |
-| **Empathetic** | Acknowledging pain before solutions ("I've been in the trenches for years") |
-| **Confident** | Direct statements without hedging ("You need every shortcut") |
-| **Specific** | Concrete details over vague claims ("in 2 minutes" not "fast") |
-| **Personal** | First-person anecdotes, naming real struggles |
-| **Celebratory** | Genuine excitement at user wins ("Congratulations!") |
+| **Conversational** | Contractions, casual transitions, sentences you could say out loud |
+| **Empathetic** | Acknowledging real frustrations before presenting what helps |
+| **Confident** | Direct statements without hedging |
+| **Specific** | Concrete details over vague claims ("seven commands", not "a rich CLI") |
+| **Personal** | First person for lived experience, second person for the reader |
+| **Honest** | Saying plainly what is settled, what is evolving, and what it costs |
 
 ### What we sound like
 
-> "We were tired of building dashboards from scratch repeatedly."
+> "We were tired of teaching every lesson twice."
 
-> "Tables, filters, forms — everything was just there."
+> "You shape the work. Agents build it."
 
-> "I've been in the trenches for years, always fell short."
+> "Install it once; every improvement reaches every project on its next upgrade."
 
-> "If your path echoes mine, I invite you to give Flashboard a spin."
+> "This way of working is token-intensive. Plan on more than one subscription, and learn your own number."
 
 ### What we don't sound like
 
-> "Flashboard leverages cutting-edge technology to deliver best-in-class solutions."
+> "This framework leverages cutting-edge agentic capabilities to deliver best-in-class outcomes."
 
-> "Our robust platform enables seamless integration capabilities."
+> "The doctrine layer deterministically materializes load-bearing surfaces."
 
-> "Users can easily access comprehensive functionality."
-
-## Founders' voices
-
-Three founders contribute to Flashboard content. All share the same core voice with subtle variations:
-
-**Daniel Weinmann** — Technical depth with practical wisdom. Tends toward longer analytical pieces. Uses "single source of truth" as a recurring theme. Confessional about past architectural mistakes.
-
-**Felipe Freitag** — Product philosophy focus. Writes about building, dogfooding, and team dynamics. Balances strategic insight with personal reflection.
-
-**Guga Guichard** — Nostalgic storyteller. Uses specific memories (mother's website, FTP clients, dial-up modems) to ground technical evolution in human experience.
+> "Our robust orchestration platform enables seamless integration across the development lifecycle."
 
 ## Sentence structure patterns
 
@@ -51,419 +41,159 @@ Three founders contribute to Flashboard content. All share the same core voice w
 
 Alternate punchy declarations with explanatory sentences:
 
-> "It just worked. No configuration, no fiddling with settings — everything was ready to go."
+> "It is one command. The package generates everything your agents read, and none of it enters your history."
 
-> "SQL editors work nicely for developers. But they fall short when your marketing team needs to update content."
+> "Shaping takes longer than building now. That inversion changes how work gets planned, and the docs say so plainly."
 
 ### Em-dash asides
 
-Use em-dashes to insert conversational breaks or contrasts.
+Use em dashes to insert a conversational break or a contrast.
 
-**Critical: Always add spaces before and after em dashes.**
-- Correct: "Admin interfaces — also known as admin panels — aren't complicated"
-- Wrong: "Admin interfaces—also known as admin panels—aren't complicated"
+**Always put spaces around em dashes.**
 
-> "Admin interfaces — also known as admin panels — aren't complicated per se."
+- Correct: "The person — not the agent — decides when to compact."
+- Wrong: "The person—not the agent—decides when to compact."
 
-> "Every time you need to add a data structure you must decide if it should live in the CMS or the database. Then, you should define how you'll merge data to display it — and that's where things get messy."
+**Ration them.** One or two per page, at the moments that deserve emphasis. More than that and the voice reads affected instead of natural.
 
 ### Rhetorical questions
 
-Engage readers by posing problems they recognize:
+Pose a problem the reader recognizes — sparingly, and only when the reader would genuinely ask it:
 
-> "But how can we understand their needs if we haven't experienced them ourselves?"
-
-> "Ever spent hours hunting for a specific user?"
-
-> "What if you could connect your database and instantly have a working admin panel?"
+> "Ever watched an agent confidently repeat a mistake you fixed last month?"
 
 ### Fragments for emphasis
 
-Break grammatical rules for impact:
+Break a grammatical rule occasionally, for impact:
 
-> "And let's be honest:"
+> "No forks. No copies. Configuration."
 
-> "No coding required."
-
-> "Full control. Zero lock-in."
-
-### Parenthetical specificity
-
-Add precision through asides:
-
-> "Customizable protection (down to the column)"
-
-> "Non-technical users thrive with Flashboard!"
+> "One package. Every project. The same lessons."
 
 ## Perspective and pronouns
 
-### First person for credibility
+### First person for lived experience
 
-Use "I" for personal stories and hard-won lessons:
+Use "we" for the people behind the workflow and the choices they made:
 
-> "I got into web development in 2003."
+> "We built this because we were maintaining the same instructions in three repositories, by hand."
 
-> "Out of a dozen projects I used them on, only one was successful in the long run."
+> "We learned this the hard way: an agent will happily work past the point where its output degrades."
 
-> "I'm convinced that when I build my next product, I'll use it from day one."
+### Second person for the reader
 
-### First person plural for team
+Use "you / your" to put the reader in the driver's seat:
 
-Use "we" for company voice and shared journey:
+> "Your project keeps two files: the configuration and your own content."
 
-> "We built Flashboard because we were tired of the same problem."
-
-> "We were building these internal tools over and over again."
-
-> "My team and I had unknowingly built the answer."
-
-### Second person for engagement
-
-Use "you/your" to make it personal:
-
-> "You connect your database. You start editing content instantly."
-
-> "Your data stays in your database."
-
-> "You need every shortcut to launch your product faster."
+> "You watch three things during a build, and you are away from the keyboard for most of it."
 
 ### Ownership language
 
-Emphasize reader ownership throughout:
+The reader's project stays theirs:
 
-> "your database", "your data", "your team"
-
-> "single source of truth"
-
-> "fully under your control"
+> "your project", "your agents", "your own content"
 
 ## Headlines and titles
 
 ### Always sentence case
 
-This is non-negotiable. Never use Title Case.
+Never Title Case. This applies to every heading, page title, and link text.
 
 **Correct:**
-- "How to manage HTML and uploads in PostgreSQL with Flashboard"
-- "The hidden costs of building your own admin panels"
-- "Got a database? Got a CMS"
+
+- "Running a session"
+- "How work enters the system"
+- "What a project receives"
 
 **Wrong:**
-- "How To Manage HTML And Uploads In PostgreSQL With Flashboard"
-- "The Hidden Costs Of Building Your Own Admin Panels"
+
+- "Running A Session"
+- "How Work Enters The System"
 
 ### Headline patterns
 
 | Pattern | Example |
 |---------|---------|
-| Problem statement | "Stop building admin panels from scratch" |
-| Rhetorical question | "Got a database? Got a CMS" |
-| How-to | "How to manage HTML and uploads in PostgreSQL" |
-| Contrarian | "Don't use a headless CMS; use your database instead" |
-| Journey | "From WordPress to Flashboard: a twenty-year CMS journey" |
+| Plain topic | "Running a session" |
+| Problem statement | "When the context fills up" |
+| How-to | "How work enters the system" |
+| Contrast | "Bigger batches, not tasks" |
 
-### Subheadings
+## Word choice
 
-Also sentence case. Use them to create scannable structure:
-
-> "The problem with scattered data"
-
-> "Why speed matters"
-
-> "What we learned"
-
-## Speed messaging
-
-Speed is Flashboard's primary value driver. Be specific:
-
-### Time references
-
-| Avoid | Use instead |
-|-------|-------------|
-| "fast" | "in 2 minutes" |
-| "quick" | "in seconds" |
-| "rapid" | "instantly" |
-| "efficient" | "in a few clicks" |
-
-### Speed-focused phrases
-
-> "You need every shortcut to launch your product faster."
-
-> "Instead of spending weeks on admin panels, start managing your data in seconds."
-
-> "Get a complete CMS in under 2 minutes."
-
-> "I just got my admin panel built in 2 minutes." (testimonial)
-
-### Speed comparisons
-
-Contrast Flashboard speed against alternatives:
-
-> "Instead of spending weeks on admin panels and CMS integrations..."
-
-> "Without writing code"
-
-> "In a few clicks"
-
-## Feature descriptions
-
-### Pattern: Benefit → proof → detail
-
-Lead with what users get, then explain how:
-
-> **"CMS for your database"**
-> Manage your content and media in the same place as your app's data. Write rich text directly in your database with a Notion-like editor. Edit images and upload files to your storage service.
-
-> **"Secure and private"**
-> Flashboard encrypts your database and storage credentials with a key only you own. Even we can't access them, let alone potential attackers.
-
-> **"Safe for non-technical use"**
-> Non-technical users thrive with Flashboard! Since you configure what people can see and do, there is minimal room for mistakes.
-
-### Feature naming
-
-Use descriptive, benefit-oriented names:
-
-| Avoid | Use instead |
-|-------|-------------|
-| "Advanced Security Module" | "Secure and private" |
-| "RBAC System" | "Protect your data" |
-| "Multi-tenant Architecture" | "Customize for each team" |
-
-## CTAs and buttons
-
-### Primary CTAs
-
-Use action verbs, often uppercase styling:
-
-> "GET FOR FREE"
-
-> "CREATE PANEL"
-
-> "GET FLASHBOARD FOR FREE"
-
-> "Sign in →" (arrow for forward motion)
-
-### Trust builders
-
-Place below primary CTAs:
-
-> "No credit card required"
-
-> "30-day money-back guarantee, no questions asked"
-
-### Empty state CTAs
-
-Guide users forward with specific actions:
-
-> "Create a panel to get started."
-
-> "Create your first organization or ask for an invite to get started."
-
-## Security messaging
-
-### Protective, not fear-based
-
-Explain what users gain, not what they should fear:
-
-**Correct:**
-> "Flashboard encrypts your credentials with a key only you own. Even we can't access them."
-
-**Wrong:**
-> "Protect yourself from hackers and data breaches with our military-grade encryption."
-
-### Make it personal
-
-Use ownership language:
-
-> "Only you and your team will have access"
-
-> "Your data stays in your database"
-
-> "A key only you own"
-
-## Integration copy
-
-### Pattern: [Tool name] context → instant CMS benefit
-
-> "Supabase is an open source Firebase alternative. Create an instant CMS for your Supabase backend."
-
-> "Replit turns your ideas into apps with AI. Create an instant CMS for your Replit apps."
-
-> "Lovable takes you from idea to app in seconds. Create an instant CMS for your Lovable apps."
-
-### Consistency
-
-Use "instant" consistently across integrations:
-
-> "Create an **instant** CMS for [tool]"
-
-## Success and celebration
-
-### Celebrate user achievements
-
-Use exclamation marks and emoji sparingly but genuinely:
-
-> "Congratulations, you have a live CMS and admin panel for your database!"
-
-> "You're connected and ready to go!"
-
-> "Successfully upgraded! Enjoy the new plan!"
-
-### Onboarding warmth
-
-Start positive, guide forward:
-
-> "Great! How do you want to start?"
-
-> "How do you want to start?" with options like "Play with a demo panel" and "Connect my real database"
-
-## Narrative structure for blog posts
-
-### Problem → escalation → solution arc
-
-1. **Open with shared pain** — Acknowledge a frustration readers recognize
-2. **Escalate the problem** — Show how it compounds or grows
-3. **Personal credibility** — Share your own struggles with this problem
-4. **Reveal the insight** — The moment of clarity that led to the solution
-5. **Present the solution** — Flashboard as natural resolution
-6. **Invite action** — Gentle CTA without hard sell
-
-### Example opening patterns
-
-**Pain acknowledgment:**
-> "Ever spent hours hunting for a specific user in your database?"
-
-**Personal journey:**
-> "I got into web development in 2003, when my mother wanted a website for her clinic."
-
-**Contrarian position:**
-> "Don't use a headless CMS. Use your database instead."
-
-**Shared experience:**
-> "We were tired of building dashboards from scratch repeatedly."
-
-## Templates
-
-### Blog post intro
-
-```
-[Personal hook or pain acknowledgment]
-
-[Escalate the problem — how it compounds]
-
-[Transition to insight]: "But here's what we realized..."
-```
-
-### Feature announcement
-
-```
-[Feature name in sentence case]
-
-[One-sentence benefit statement]
-
-[How it works in 2-3 sentences]
-
-[Specific example or use case]
-```
-
-### Landing page section
-
-```
-[Headline: problem or benefit, sentence case]
-
-[2-3 sentences expanding on the headline]
-
-[Bullet points with specific benefits]
-
-[CTA]
-```
-
-### Email subject lines
-
-Use sentence case, create curiosity or state benefit:
-
-> "Your database already has everything you need"
-
-> "Stop building admin panels from scratch"
-
-> "We shipped something new"
-
-## Word choice preferences
-
-### Use / Avoid
+### Use / avoid
 
 | Avoid | Use instead |
 |-------|-------------|
 | leverage | use |
 | utilize | use |
-| solution | tool, approach |
-| robust | strong, solid |
+| solution | tool, approach, answer |
+| robust | solid, reliable |
 | seamless | smooth, easy |
 | cutting-edge | modern, new |
-| best-in-class | — (just describe the benefit) |
-| empowers | lets, enables |
+| best-in-class | — (just describe it) |
+| empowers | lets |
 | synergy | — (avoid entirely) |
 | optimize | improve |
 | paradigm | approach, way |
 
+### AI dialect
+
+The full translation table lives in [../SKILL.md](../SKILL.md). The principle: if you would not say the word to a colleague across the table, it does not belong on the page. When the concept behind a dialect word is real and the docs need it, teach the concept under a plain name and define it on first meeting.
+
 ### Technical terms
 
-Don't over-explain, but don't assume expertise either:
+Don't over-explain, but don't assume the reader has lived this workflow:
 
-**Good:** "CRUD (create, read, update, delete operations)" — brief parenthetical
+**Good:** "The context window — everything the agent is working from at a given moment — fills as the session runs."
 
-**Good:** "Foreign keys let you navigate between related tables" — benefit-focused
+**Good:** "compaction (summarizing the session so far to free space)"
 
-**Bad:** "Our proprietary ORM abstraction layer interfaces with your PostgreSQL instance"
+**Bad:** "The orchestrator's context accretes tool-result tokens until compaction pressure necessitates ledger consolidation."
+
+Terms of art the docs teach — orchestrator, shaping, lane, gates — get their plain-words definition the first time they appear, and are used consistently afterwards. Never define the same term two different ways on two pages.
+
+## Honesty about the unsettled
+
+Some of our practice is still in motion. Describe today's way plainly, and mark the frontier as a frontier:
+
+> "Today we ship through GitHub releases; the staging story is still settling."
+
+Never teach a direction as if it were settled practice, and never hide that something is evolving — a reader who adopts an unsettled rule as gospel is worse off than one who knows it is in motion.
+
+## Never boast
+
+The docs never say the output is good. They show how the work is done and let the reader draw the conclusion.
+
+**Wrong:** "This workflow produces exceptionally clean codebases."
+
+**Wrong:** "Teams using this approach ship dramatically faster."
+
+**Right:** "Every change lands through a reviewed pull request with the full test suite green."
+
+**Right:** "A lesson learned once is written once, and reaches every project on its next upgrade."
+
+The same rule shapes structure, not just sentences: no case-study pages, no benchmark tables, no showcase or "who uses this" sections.
 
 ## Tone by context
 
 | Context | Tone | Example |
 |---------|------|---------|
-| Hero/Landing | Confident, aspirational | "You need every shortcut to launch faster" |
-| Blog posts | Reflective, personal | "I've been in the trenches for years" |
-| Onboarding | Welcoming, guiding | "Great! How do you want to start?" |
-| Security | Protective, reassuring | "Only you own the encryption key" |
-| Errors | Helpful, specific | "Check your database credentials" |
-| Success | Celebratory | "Congratulations!" |
-| Pricing | Direct, value-focused | "Start free. Never pay per seat." |
+| README front door | Plain, confident, inviting | "Seasoned's skills to orchestrate the full product cycle with AI agents" |
+| Teaching pages | Narrative, reflective, honest | "We were tired of teaching every lesson twice." |
+| The session manual | Direct, procedural, calm | "Once the context passes a fifth, start looking for a moment to compact." |
+| Reference pages | Precise, unadorned, fast | "`--force` rebuilds the corpus even when the cache is fresh." |
+| Release notes (human-facing prose) | Factual, brief | "The sweep command now kills only by exact process id." |
 
-## Writing for JTBD audiences
+## Checklist before merging
 
-Always read `apps/flashboard/jtbd.md` before writing. Tailor messaging to specific jobs:
-
-### JTBD 1: Vibe-coded app owner
-
-Emphasize: No coding required, instant setup, works with their existing database
-
-> "You built your app. Now manage your data without writing another line of code."
-
-### JTBD 2: Startup outgrowing manual queries
-
-Emphasize: Time savings, focus on features, ROI vs building custom
-
-> "Stop spending engineering time on admin panels. Get back to building features."
-
-### JTBD 3: Delegating customer support
-
-Emphasize: Safe for non-technical users, permissions, team access
-
-> "Give your support team the access they need without giving them database credentials."
-
-### JTBD 4: Freelancer/agency with clients
-
-Emphasize: Reusable across projects, client-friendly, included value
-
-> "Deliver a complete admin panel to every client without building it from scratch."
-
-## Checklist before publishing
-
-- [ ] All titles and headlines use sentence case
-- [ ] Speed claims are specific (times, not adjectives)
+- [ ] All titles and headings use sentence case
+- [ ] No AI dialect (check the translation table)
 - [ ] No corporate jargon
-- [ ] Clear benefit for at least one JTBD audience
-- [ ] Ownership language present ("your data", "your database")
-- [ ] CTAs are action-first
-- [ ] Reads like a peer wrote it, not a marketer
-- [ ] Em dashes used sparingly (max 1-2 PER ARTICLE/PAGE on long pages, max 1 on short pages/UI)
+- [ ] Every term of art defined on first meeting
+- [ ] No claims about our results
+- [ ] Em dashes spaced, at most one or two per page
+- [ ] Specific numbers wherever they exist
+- [ ] Unsettled practice marked as evolving
+- [ ] Reads like a peer wrote it
