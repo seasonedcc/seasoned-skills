@@ -128,8 +128,15 @@ function tablesIn(markdown: string): DocumentedTable[] {
     })
   }
 
+  let fenced = false
   for (const line of markdown.split('\n')) {
     const trimmed = line.trim()
+    if (trimmed.startsWith('```')) {
+      closeTable()
+      fenced = !fenced
+      continue
+    }
+    if (fenced) continue
     if (trimmed.startsWith('|')) {
       rows.push(
         trimmed
