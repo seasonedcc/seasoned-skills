@@ -176,34 +176,46 @@
           the front door plus the folder serves each without averaging them.
         </p>
 
-        <figure class="drawing">
-          <div class="drawing-canvas shaping-drawing-frame">
-            <!-- Draw here with the drawing library: ShapingDrawing, loaded from
-                 ../assets/drawing/. Hand-drawn and lo-fi — boxes and arrows. -->
-          </div>
-          <figcaption>One line saying what this drawing shows.</figcaption>
-        </figure>
-
+        <h4>The voice: a <code>docs-copywriting</code> skill</h4>
         <p>
-          Keep going in prose. Where a claim rests on something technical, attach the
-          detail right here, next to it, as a note the reader can open or ignore.
+          Every human-facing page is written under one guide: a skill named
+          <code>docs-copywriting</code>, committed in this repository and never
+          shipped with the package &mdash; the voice of our documentation is ours,
+          not something every adopting project inherits. It adapts a battle-tested
+          copywriting guide from earlier product work, keeping the voice and leaving
+          the product behind. The register it sets: a developer sharing what they
+          know with a peer, plainly and warmly &mdash; not a company presenting, and
+          never a system talking to itself.
         </p>
-
-        <!-- The technical affordance. Anchor one beside whatever it defines: a
-             paragraph, a list item, a drawing's caption. Copy this block as often as
-             you need. The kind label is free text — SCHEMA, CONTRACT, SPIKE, DATA. -->
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Schema</span>
-            What this note defines
+            <span class="technical-kind">Contract</span>
+            The rules the skill carries
           </summary>
           <div class="technical-body">
-            <p>The technical detail behind the sentence above. Short. Concrete.</p>
-            <pre><code>table_or_signature(
-  field  type,
-  field  type
-)</code></pre>
+            <p>
+              From the source guide, the mechanics that travel: sentence case for
+              every title and heading; specific over vague; problem before solution;
+              the banned corporate jargon list (leverage, seamless, robust,
+              best-in-class, and kin); em dashes spaced and rationed to one or two
+              per page; short declarative sentences followed by longer explanations;
+              fragments and rhetorical questions used sparingly. Left behind: every
+              product-specific layer &mdash; speed messaging, calls to action,
+              pricing and onboarding copy, audience templates.
+            </p>
+            <p>
+              Written new for this repo: no AI dialect &mdash; words like
+              &ldquo;load-bearing&rdquo;, &ldquo;binding&rdquo;,
+              &ldquo;doctrine&rdquo;, &ldquo;surface&rdquo;, and
+              &ldquo;charter&rdquo; do not survive into human docs, and the skill
+              carries a translation table from workflow dialect to plain speech;
+              every term of art the docs genuinely need is defined the first time a
+              reader meets it; and the docs never boast &mdash; the work speaks, the
+              copy does not point at it. The skill is written fresh from this
+              document, never by copying source files, so no trace of the source
+              project enters this public repository.
+            </p>
           </div>
         </details>
 
@@ -246,8 +258,19 @@
         <h3>No-gos</h3>
         <p>Things this project deliberately does not do, so nobody has to wonder.</p>
         <ul class="no-gos">
-          <li>Something a reader might reasonably expect, and why it is out.</li>
-          <li>Another one.</li>
+          <li>
+            No rewriting of the agent-facing content &mdash; the standing
+            instructions and the shipped skills keep their current language. Bringing
+            the same plain-speech principles to them is a project of its own with its
+            own constraints (a skill must also stay lean in the agent&rsquo;s
+            memory), and it is coming later; the name
+            <code>docs-copywriting</code> deliberately leaves room for that sibling.
+          </li>
+          <li>
+            No website and no public promotion &mdash; the material is written to be
+            read on GitHub by people we send the link to. A public face is a future
+            project.
+          </li>
         </ul>
       </section>
 
