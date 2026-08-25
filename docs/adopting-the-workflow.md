@@ -108,9 +108,9 @@ The install is a one-time interactive scaffold. It asks for every option
 that has no ruled default (nothing defaults silently), then creates the
 committed pieces the workflow reads: `seasoned-skills.config.ts` stating
 every option explicitly, the shaping and meeting-requests folders, the
-calibration file, the registers the enabled options need, the content
-files the interview already has answers for, and a minimal
-`package.json` when the repository has none. It never overwrites
+calibration file, the content directory, the registers the enabled
+options need, the content files the interview already has answers for,
+and a minimal `package.json` when the repository has none. It never overwrites
 anything that exists. When this machine has no current reference
 library for the shaping skill, it asks for your own copy of the one
 commercial book (an
@@ -129,13 +129,20 @@ workflow depends on, and the `prepare` script.
 Your project's own rules accumulate in content files, one per generated
 skill plus one for the standing instructions. Every content file is
 optional: a missing one simply means your project has nothing to add.
+The directory itself must exist even when empty; the install adds a
+placeholder file so git keeps it.
 
-If a sync cannot run (a broken configuration, or a content file whose
-name the package does not recognize) it fails loud: the generated
-workflow is removed down to the repair kit, the package's own skill plus
-a minimal instructions file carrying the full error report, so a
-half-generated workflow can never pass for a working one. Fix the inputs
-and sync again.
+If a sync cannot run, it fails loud. A configuration that does not load
+stops it before any content is read; past that, everything wrong with
+the content is reported in one failure: the directory missing, a
+top-level entry nothing would ever read (a file whose name the workflow
+does not know, a markdown-lookalike extension the loader passes over, a
+link pointing at nothing), or a content file that exists without a
+section its skill requires. Either way the generated workflow is removed
+down to the repair kit, the package's own skill plus a minimal
+instructions file carrying the full error report, so a half-generated
+workflow can never pass for a working one. Fix the inputs and sync
+again.
 
 ## The reference library
 
