@@ -23,9 +23,10 @@ of your permissions block.
 | `statusLine` | A command running `.claude/statusline.sh` | The status line, including the context bar you watch during a session. |
 | `hooks` | Three registrations | Listed below. |
 
-The first three are assumptions the whole workflow is written against, and they
-travel with the package version: changing one is a release, not a project
-decision. `$schema` is set too, so your editor knows the file.
+The first six are assumptions the whole workflow is written against, and they
+travel with the package version: sync rewrites each one on every run, and
+changing one is a release, not a project decision. `$schema` is filled in when
+it is missing, so your editor knows the file, and your own value is left alone.
 
 ### The hooks it registers
 
@@ -87,9 +88,9 @@ with `git check-ignore`, adds whatever is missing to its block, and asks again.
 If a path is still visible after that, sync fails and names it, because
 something in your ignore files is deliberately re-exposing it.
 
-Glob entries are the one exception: `git check-ignore` answers about real
-pathnames and refuses a pattern, so globs are listed without being verified. The
-plain paths beside them still are.
+Glob entries are the one exception. Sync verifies real pathnames, and a glob
+stands for a family of files rather than one, so it is listed without ever being
+asked about. The plain paths beside it still are.
 
 ## The one script it wires
 

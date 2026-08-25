@@ -59,7 +59,7 @@ export default defineConfig({
         migrateCommand: 'pnpm migrate',
         seedCommand: 'pnpm seed',
         databases: [
-          { name: 'primary', seeded: true, derivedPatterns: ['%_shadow'] },
+          { name: 'primary', seeded: true, derivedPatterns: ['{base}_shadow'] },
           { name: 'jobs', envKey: 'JOBS_DATABASE_URL' },
         ],
         envFiles: [
@@ -82,7 +82,7 @@ export default defineConfig({
       quickDisposition: 'kept',
     },
   ],
-  quickDisqualifiers: ['a new route', 'a new permission'],
+  quickDisqualifiers: ['a new environment variable', 'a new background job'],
   machinePrerequisites: [
     { binary: 'wkhtmltopdf', reason: 'the invoice renderer runs it', hint: 'brew install wkhtmltopdf' },
   ],
@@ -128,9 +128,10 @@ Two durably different practices, and the shape changes with the answer.
 
 ## The gate commands
 
-Every gate is optional, because not every project has all of them. What you
-declare here is woven into the standing instructions and the skills, so agents
-run your commands rather than guessing at them.
+Every gate is optional, because not every project has all of them. `lint`,
+`typecheck`, and `unit` are woven into the Definition of Done, and `unit` and
+`relatedSpecs` into the `testing` skill, so agents run your commands rather than
+guessing at them.
 
 | Key | Required | What it does |
 | --- | --- | --- |
@@ -138,7 +139,7 @@ run your commands rather than guessing at them.
 | `gates.typecheck` | no | The type check, same tier. |
 | `gates.unit` | no | The unit suite, counted among the fast gates. |
 | `gates.relatedSpecs` | no | Runs the specs related to a change, chosen by how far the change reaches. |
-| `gates.full` | no | The long gates, as a list. They belong to the orchestrator, the agent coordinating the work, and run as background shells rather than in a builder's foreground. |
+| `gates.full` | no | The long gates, as a list. The orchestrator, the agent coordinating the work, runs them as its own background shells rather than in a builder's foreground. |
 
 ## Web pages
 
@@ -179,8 +180,8 @@ to create and what to remove.
 | `provisioning.repositories` | no | The repositories a lane can cover. Defaults to your own checkout with no resources. |
 | `provisioning.services` | no | Shared services probed before starting, in case this machine already runs them. |
 | `provisioning.serviceStartCommand` | no | The command run from the main checkout to start the declared services that are not already listening. The names of the missing ones are appended to it. Defaults to `docker compose up -d`. |
-| `provisioning.databasePrefix` | no | The prefix every lane-owned database name carries. Teardown refuses to drop anything outside it. Defaults to your project directory's name followed by `_wt_`. |
-| `provisioning.seedDateTimezone` | no | The IANA time zone that anchors the seed date, so demo data re-anchors on your team's calendar day. Defaults to this machine's zone. |
+| `provisioning.databasePrefix` | no | The prefix every lane-owned database name carries, lowercase and ending in an underscore. Teardown refuses to drop anything outside it. Defaults to your project directory's name slugified, lowercased with every run of other characters becoming an underscore, followed by `_wt_`. |
+| `provisioning.seedDateTimezone` | no | The IANA time zone the seed date is read in, so a cached template records the calendar day your team is on. Re-anchoring an existing template is always a deliberate `provision --fresh-seed`. Defaults to this machine's zone. |
 | `provisioning.laneProcessCommands` | no | The command names the lane-process sweep looks for. Defaults to the common dev-server commands. Interactive shells are never listed. |
 
 ### What a repository owns
@@ -206,8 +207,8 @@ to create and what to remove.
 
 | Key | Required | What it does |
 | --- | --- | --- |
-| `provisioning.repositories[].databases[].name` | yes | The database's name inside the lane. |
-| `provisioning.repositories[].databases[].derivedPatterns` | no | Patterns for databases derived from this one, dropped with it at teardown. |
+| `provisioning.repositories[].databases[].name` | yes | The name this database goes by in the table. The lane's real database is named from the prefix, the lane slug, and it. |
+| `provisioning.repositories[].databases[].derivedPatterns` | no | Patterns for databases derived from this one, dropped with it at teardown. `{base}` stands for the lane database's name, and `*` matches a run of identifier characters. |
 | `provisioning.repositories[].databases[].envKey` | no | The env key that receives this database's lane URL. Defaults to the name in capitals followed by `_DATABASE_URL`. |
 | `provisioning.repositories[].databases[].seeded` | no | Whether this database receives the seed, and under template caching whether its template is built with the seed baked in. |
 

@@ -25,10 +25,12 @@ The binary on its own prints the help. One flag stands outside the commands.
 
 Adopt the workflow. This is a one-time interactive scaffold: it asks about
 every option the workflow gives no default, then writes the files your project
-commits. `seasoned-skills.config.ts` states every option explicitly, so reading
-it is reading the whole declaration. Beside it come the content directory, the
-calibration file, the shaping folder, the meeting-requests data folder, and the
-registers whichever options you turned on need.
+commits. `seasoned-skills.config.ts` states what the interview settled, with
+the optional layers you declined absent and `provisioning` left as a commented
+block to fill in. Beside it come the content directory, the calibration file,
+the shaping folder, the meeting-requests data folder, the registers whichever
+options you turned on need, the content files the stack questions already
+answered, and a minimal `package.json` where the repository has none.
 
 Nothing that already exists is ever overwritten. Each new file is printed as
 `created <path>`, and each one already there as `kept existing <path>`.
@@ -41,8 +43,8 @@ workflow instead.
 It finishes by running a sync and printing the doctor report, so the first thing
 you see after adopting is the state of your machine.
 
-Run in a project that already has a configuration, it stops and points you at
-`sync`.
+Run in a project that already has a configuration, it still asks its questions,
+then refuses and points you at `sync`.
 
 ## seasoned-skills sync
 
@@ -56,14 +58,15 @@ many files it wrote.
 Your project's `prepare` script runs it on every install, which is why a fresh
 clone and a version bump both end with the workflow current.
 
-Sync also runs the doctor checks in a warning-only mode. A missing tool prints
-a `warning:` line naming the tool, why the workflow wants it, and how to install
-it. Missing tools never fail a sync.
+Sync also runs the doctor checks in a warning-only mode. A missing binary or
+file prints a `warning:` line naming it, why the workflow wants it, and how to
+get it. Nothing missing ever fails a sync.
 
 When sync cannot run at all, it fails loudly. A configuration that does not
-load, a missing content directory, a content file nothing would ever read, a
-content file missing a section its skill requires: any of these prints the
-complete list of problems at once, and then the generated workflow is removed
+load fails on its own, before any content is read. Past that, the content
+problems sync can see are reported together: a missing content directory, a
+content file nothing would ever read, a content file missing a section its
+skill requires. Either way the generated workflow is then removed
 down to the repair kit, which is the package's own skill plus a minimal
 instructions file carrying the error report. Nothing half-generated is left
 behind to be mistaken for a working workflow. Fix the inputs and sync again.
@@ -72,8 +75,9 @@ behind to be mistaken for a working workflow. Fix the inputs and sync again.
 
 Check this machine against what your configuration asks for. Doctor derives its
 checklist from the options you turned on, so a project with no web pages is
-never told to install a browser tool. Each finding names the missing binary, why
-the workflow needs it, and how to install it.
+never told to install a browser tool. A check is a binary on your PATH or a file
+this machine holds, like the demo narrator's model weights. Each finding names
+the missing one, why the workflow needs it, and how to get it.
 
 Doctor is advisory everywhere. It reports and points; it never blocks, because
 enforcement belongs to the gates that actually need the tools.
@@ -91,7 +95,8 @@ enter any repository. They are fetched from their authors' sites, verified, and
 kept in a per-machine cache that each project's sync weaves into its generated
 shaping skill.
 
-Run it on a new machine, or after a package upgrade that moved the library.
+Run it on a new machine, and after every package upgrade: the cache records the
+version that built it, so any newer version reads as stale.
 `seasoned-skills doctor` tells you which of those you are looking at.
 
 | Flag | What it does |
@@ -124,14 +129,16 @@ The lane name is required, and it also names the worktree directories.
 | `--base <ref>` | The base for a new branch. Defaults to the origin's HEAD branch. |
 | `--skip-provision` | Create the worktrees and nothing else. |
 | `--skip-seed` | Provision without seeding. |
-| `--fresh-seed` | Re-anchor the seed's demo data to today. |
+| `--fresh-seed` | Under `templateCaching`, rebuild the cached template so a database this run creates is seeded for today. Databases that already exist are untouched, so a live lane reseeds by being torn down. |
 
 ## seasoned-skills teardown
 
 Remove a lane across every declared repository: its processes, its cache-store
 index, its whole database family including derived names, and its worktrees.
-Processes are killed by exact process id, and only the ones running from inside
-the lane's own worktrees.
+Processes are killed by exact process id, and only the ones that both listen on
+one of the lane's managed ports and run from inside the lane's own worktrees.
+Anything the lane left running without a listening socket is what
+`sweep --lane-processes` is for.
 
 Teardown refuses a lane whose worktree has uncommitted changes, and it never
 touches the branch. Your commits survive teardown; your uncommitted work is
@@ -147,15 +154,16 @@ Kill what a session left running. Sweep covers two kinds of leftovers, and it
 needs to be told which: with neither `--browsers` nor `--lane-processes` it
 prints what to choose and exits 1.
 
-Every kill is by exact process id, after listing what it found. Nothing is ever
-matched by name or pattern, so a permanently running service on your machine is
-never at risk.
+Sweep finds its candidates first: automated browsers by a pattern scoped to the
+`.agent-browser` install, lane processes by command name and only where the
+process runs from inside a lane's worktree. Everything it found is listed, and
+every kill is by exact process id.
 
 | Flag | What it does |
 | --- | --- |
 | `--browsers` | List surviving automated-browser processes. Exits 1 while any are alive. |
 | `--kill` | With `--browsers`: kill each survivor by its exact process id, then list again. |
-| `--lane-processes` | Terminate the processes running from inside worktree lanes, each by its exact process id after listing. |
+| `--lane-processes` | Terminate the processes whose command name is on `provisioning.laneProcessCommands`, the common dev commands by default, and which run from inside a lane's worktree. Each is killed by its exact process id, after listing. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes. |
 | `--hook` | With `--lane-processes`: run quietly as the session-end hook. Reads the hook payload, sweeps only when the session is truly over, and never blocks the session from ending. |
 
