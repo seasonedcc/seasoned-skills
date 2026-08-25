@@ -6,7 +6,11 @@ import { corpusCacheRoot, materializeCorpus } from '../corpus/cache.js'
 import { ensureIgnored } from '../footprint/gitignore.js'
 import { ensureSyncScript } from '../footprint/scripts.js'
 import { applyManagedSettings } from '../footprint/settings.js'
-import { contentFileNames, loadProjectContent } from '../generation/content.js'
+import {
+  contentFileNames,
+  danglingContentNames,
+  loadProjectContent,
+} from '../generation/content.js'
 import { composeDoctrine } from '../generation/doctrine.js'
 import { materializeRuntime } from '../generation/runtime.js'
 import {
@@ -78,9 +82,10 @@ const MARKDOWN_LOOKALIKE = /\.(md|markdown|mdx)$/i
 
 /**
  * Everything wrong with the project's content, gathered so one failure reports
- * all of it: the content directory gone, a file at its top level nothing would
- * ever load — an unrecognized name, or a near-miss extension the loader passes
- * over — and a content file that exists without a section its skill requires.
+ * all of it: the content directory gone, an entry at its top level nothing
+ * would ever load — an unrecognized name, a near-miss extension the loader
+ * passes over, or a link to nothing — and a content file that exists without a
+ * section its skill requires.
  */
 function contentIssues(projectRoot: string, context: GenerationContext): string[] {
   const { contentDir } = context.config
@@ -90,7 +95,10 @@ function contentIssues(projectRoot: string, context: GenerationContext): string[
     ]
   }
   const known = new Set(knownContentNames(context.config))
-  const issues: string[] = []
+  const issues: string[] = danglingContentNames(projectRoot, contentDir).map(
+    (name) =>
+      `broken content link: ${contentDir}/${name} — it points at nothing, so nothing loads it. Fix the link's target, or remove the entry.`,
+  )
   for (const fileName of contentFileNames(projectRoot, contentDir)) {
     if (fileName.endsWith('.md')) {
       if (known.has(fileName.slice(0, -'.md'.length))) continue

@@ -7,6 +7,7 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -138,6 +139,18 @@ describe('sync', () => {
     expect(error.message).toContain('workflow-content/kysely.mdx')
     expect(error.message).toContain('workflow-content/nested-routes.markdown')
     expect(error.message).toContain('only .md')
+  })
+
+  it('fails loud on a top-level link whose target does not exist', async () => {
+    plant('cli-package')
+    rmSync(join(root, 'workflow-content/doctrine.md'))
+    symlinkSync(
+      join(root, 'shared-doctrine.md'),
+      join(root, 'workflow-content/doctrine.md'),
+    )
+    const error = await failedSync()
+    expect(error.message).toContain('workflow-content/doctrine.md')
+    expect(error.message).toContain('points at nothing')
   })
 
   it('recognizes disabled skills, configured files, and ignores subdirectories', async () => {

@@ -20,6 +20,24 @@ export function contentFileNames(projectRoot: string, contentDir: string): strin
 }
 
 /**
+ * The top-level entries that point at nothing: a link whose target is gone.
+ * They are files to nobody, so contentFileNames passes over them — the sync
+ * guard names them itself, rather than let a moved target silently drop the
+ * content the link stands for.
+ */
+export function danglingContentNames(projectRoot: string, contentDir: string): string[] {
+  const directory = join(projectRoot, contentDir)
+  if (!existsSync(directory)) return []
+  return readdirSync(directory, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isSymbolicLink() &&
+        !statSync(join(directory, entry.name), { throwIfNoEntry: false }),
+    )
+    .map((entry) => entry.name)
+}
+
+/**
  * Loads the project-owned content directory: one markdown file per generated
  * skill plus one for the doctrine layer. Every file is optional — an absent
  * one simply means the project has nothing to add there.
