@@ -180,19 +180,15 @@ export function knownContentNames(config: SeasonedSkillsConfig): string[] {
 export function requiredSectionIssues(context: GenerationContext): string[] {
   const issues: string[] = []
   for (const entry of ROSTER) {
+    const { reservedSections } = entry
+    if (reservedSections === undefined || !entry.enabled(context.config)) continue
     const content = context.content.files.get(entry.name)
-    if (
-      entry.reservedSections === undefined ||
-      content === undefined ||
-      !entry.enabled(context.config)
-    ) {
-      continue
-    }
+    if (content === undefined) continue
     const { reserved } = extractSections(
       content.body,
-      entry.reservedSections.map((section) => section.title),
+      reservedSections.map((section) => section.title),
     )
-    for (const section of entry.reservedSections) {
+    for (const section of reservedSections) {
       if (!section.required || reserved.get(section.title)) continue
       issues.push(
         `content file ${context.config.contentDir}/${entry.name}.md is missing its required "${section.title}" section`,
