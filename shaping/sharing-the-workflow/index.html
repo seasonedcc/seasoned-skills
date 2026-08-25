@@ -289,7 +289,11 @@
               no shaping. And quick mode, explicitly invoked by the user, covers
               two cases: small polish to work already done, and research mode
               &mdash; exploring solutions toward a proof of concept when there is
-              not yet enough understanding to plan. Everything else goes through
+              not yet enough understanding to plan, with code that sometimes
+              merges. The shipped quick skill qualifies only the polish case
+              today, so this build extends it with the research case &mdash; the
+              one deliberate edit to existing agent-facing language this project
+              makes, so the skill and this map agree. Everything else goes through
               shaping.
             </p>
             <p>
@@ -591,7 +595,9 @@
             No rewriting of the agent-facing content &mdash; the standing
             instructions and the shipped skills keep the language they have today;
             the two new skills and the new Definition of Done criterion are
-            additions, not rewrites. Bringing
+            additions, not rewrites, and the quick skill&rsquo;s research case is
+            the one deliberate exception, made so the skill matches the entry map
+            this document teaches. Bringing
             the same plain-speech principles to them is a project of its own with its
             own constraints (a skill must also stay lean in the agent&rsquo;s
             context window), and it is coming later; the name
@@ -635,7 +641,7 @@ Build, in this repository, against main:
 
 3. The docs/ folder: "The way of working", "Running a session", and "Adopting the workflow", plus docs/reference/ with its four pages — commands, configuration, what a project receives, the managed footprint. Every page written under the docs-copywriting skill, and every contract the document anchors to these pages satisfied in full.
 
-4. The two package skills, /prepare-for-compaction and /reground, in the core tier every project receives, as thin as the document rules them.
+4. The two package skills, /prepare-for-compaction and /reground, in the core tier every project receives, as thin as the document rules them. Also extend the shipped quick skill with the research case the entry-map contract defines — the one permitted edit to existing agent-facing language.
 
 5. The reference enumeration test wired into the unit gates, and the documentation-currency criterion added to this repository's Definition of Done through its own configuration and content.
 
