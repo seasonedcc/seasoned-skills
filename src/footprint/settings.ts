@@ -22,14 +22,14 @@ export const MANAGED_RUNTIME_VALUES = {
   skillListingBudgetFraction: 0.02,
 } as const
 
-interface ManagedHook {
+export interface ManagedHook {
   event: string
   matcher?: string
   script: string
   timeout: number
 }
 
-const MANAGED_HOOKS: ManagedHook[] = [
+export const MANAGED_HOOKS: ManagedHook[] = [
   {
     event: 'PreToolUse',
     matcher: 'Bash',

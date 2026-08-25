@@ -120,7 +120,7 @@ Provisioning is idempotent. Re-running keeps the lane's existing allocation and
 never reseeds a database that already exists, so it is safe to run again after
 an interrupted setup.
 
-The lane name is required, and it also names the worktree directories.
+The lane name `<lane>` is required, and it also names the worktree directories.
 
 | Flag | What it does |
 | --- | --- |
@@ -143,6 +143,8 @@ Anything the lane left running without a listening socket is what
 Teardown refuses a lane whose worktree has uncommitted changes, and it never
 touches the branch. Your commits survive teardown; your uncommitted work is
 your own to deal with first.
+
+The lane name `<lane>` is required.
 
 | Flag | What it does |
 | --- | --- |

@@ -58,14 +58,7 @@ export async function sync(
   const issues = contentIssues(projectRoot, context)
   if (issues.length > 0) throw new SyncInputError(issues)
 
-  const files: GeneratedFile[] = [
-    composeDoctrine(context),
-    ...composeSkills(context),
-    ...materializeRuntime(),
-    // The shaping references weave from whatever the machine's cache holds;
-    // an absent cache generates no references, and doctor reports it.
-    ...materializeCorpus(options.corpusCache ?? corpusCacheRoot()),
-  ]
+  const files = composeGeneratedFiles(context, options.corpusCache ?? corpusCacheRoot())
   const paths = files.map((file) => file.path)
 
   deleteStalePaths(projectRoot, readManifest(projectRoot), paths)
@@ -76,6 +69,27 @@ export async function sync(
   ensureSyncScript(projectRoot)
 
   return { generated: paths, config }
+}
+
+/**
+ * Every file a sync writes from the configuration and the machine's corpus
+ * cache, in one place — so a guard can run the whole generation in memory and
+ * see exactly what a project would receive. The manifest is the one generated
+ * file missing here: sync writes it last, from these paths, and it never lists
+ * itself.
+ */
+export function composeGeneratedFiles(
+  context: GenerationContext,
+  corpusCache: string,
+): GeneratedFile[] {
+  return [
+    composeDoctrine(context),
+    ...composeSkills(context),
+    ...materializeRuntime(),
+    // The shaping references weave from whatever the machine's cache holds;
+    // an absent cache generates no references, and doctor reports it.
+    ...materializeCorpus(corpusCache),
+  ]
 }
 
 const MARKDOWN_LOOKALIKE = /\.(md|markdown|mdx)$/i
