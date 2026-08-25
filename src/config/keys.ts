@@ -28,8 +28,8 @@ type KeyGroup<Type> = {
 
 /**
  * The object a value's type can hold, with the primitives a union puts beside
- * it dropped. A key typed `string | EnvFile` still nests the env file's keys,
- * so the union's object member is what the manifest has to describe.
+ * it dropped. A key typed `string | EnvFileResource` still nests the resource's
+ * own keys, so the union's object member is what the manifest has to describe.
  */
 type ObjectPart<Value> = Extract<NonNullable<Value>, object>
 
@@ -104,8 +104,8 @@ export const CONFIGURATION_KEYS: KeyManifest<SeasonedSkillsConfig> = {
   machinePrerequisites: [{ binary: null, reason: null, hint: null }],
 }
 
-export type ManifestNode = null | [ManifestGroup] | ManifestGroup
-export type ManifestGroup = { readonly [key: string]: ManifestNode }
+type ManifestNode = null | [ManifestGroup] | ManifestGroup
+type ManifestGroup = { readonly [key: string]: ManifestNode }
 
 /**
  * Every key path the configuration may carry, in declaration order, dotted
