@@ -13,9 +13,9 @@ of your permissions block.
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| `model` | `claude-fable-5[1m]` | Everything that needs taste runs on the one model that has it. Changing this is a package release, not a project decision. |
-| `effortLevel` | `high` | Same reasoning. |
-| `alwaysThinkingEnabled` | `true` | Same reasoning. |
+| `model` | `claude-fable-5[1m]` | Everything that needs taste runs on the one model that has it. |
+| `effortLevel` | `high` | How hard the model thinks before it acts. The rules are written for this setting. |
+| `alwaysThinkingEnabled` | `true` | Thinking is never skipped, however small the step looks. |
 | `autoCompactEnabled` | `false` | You decide when to compact the session's context. Automatic compaction would take that moment away, and the moment is the whole craft. |
 | `autoMemoryEnabled` | `false` | Everything the agents read is generated from your configuration and content, so nothing should accumulate outside them. |
 | `skillListingBudgetFraction` | `0.02` | Caps how much of the context window the list of available skills may take. |
@@ -23,7 +23,9 @@ of your permissions block.
 | `statusLine` | A command running `.claude/statusline.sh` | The status line, including the context bar you watch during a session. |
 | `hooks` | Three registrations | Listed below. |
 
-`$schema` is set too, so your editor knows the file.
+The first three are assumptions the whole workflow is written against, and they
+travel with the package version: changing one is a release, not a project
+decision. `$schema` is set too, so your editor knows the file.
 
 ### The hooks it registers
 
@@ -59,10 +61,11 @@ Generated files never enter your history. Sync keeps one block in `.gitignore`:
 # <<< seasoned-skills <<<
 ```
 
-The block lists every generated path, compacted: a whole folder for each
-generated skill, one for the shaping assets, and single files otherwise. Two
-more entries are there for files nothing generates, but which the workflow
-promises stay out of your history.
+The block carries the generated paths, compacted: a whole folder for each
+generated skill, one for the shaping assets, and single files otherwise.
+Anything your own ignore rules already cover stays out of it. Two more entries
+are there for files nothing generates, but which the workflow promises stay out
+of your history.
 
 | Entry | What it covers |
 | --- | --- |

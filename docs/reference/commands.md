@@ -1,7 +1,7 @@
 # Commands
 
-Seven commands, all through one binary. In a project that has installed the
-package, run them with your package manager: `pnpm exec seasoned-skills sync`.
+Seven commands, all through one binary. In a project that has the package
+installed, run them with your package manager: `pnpm exec seasoned-skills sync`.
 
 | Command | What it does |
 | --- | --- |
@@ -30,8 +30,8 @@ it is reading the whole declaration. Beside it come the content directory, the
 calibration file, the shaping folder, the meeting-requests data folder, and the
 registers whichever options you turned on need.
 
-Nothing that already exists is ever overwritten. Files the install skips are
-printed as `kept existing <path>`.
+Nothing that already exists is ever overwritten. Each new file is printed as
+`created <path>`, and each one already there as `kept existing <path>`.
 
 If this machine has no current shaping reference library, the install asks for
 your own compiled copy of the one commercial book and builds the library before
@@ -41,8 +41,8 @@ workflow instead.
 It finishes by running a sync and printing the doctor report, so the first thing
 you see after adopting is the state of your machine.
 
-Running it in a project that already has a configuration fails with a pointer to
-`sync` instead.
+Run in a project that already has a configuration, it stops and points you at
+`sync`.
 
 ## seasoned-skills sync
 
@@ -61,12 +61,12 @@ a `warning:` line naming the tool, why the workflow wants it, and how to install
 it. Missing tools never fail a sync.
 
 When sync cannot run at all, it fails loudly. A configuration that does not
-load, a content file nothing would ever read, a missing content directory: each
-of those prints the complete list of problems, and then the generated workflow
-is removed down to the repair kit, which is the package's own skill plus a
-minimal instructions file carrying the error report. Nothing half-generated is
-left behind to be mistaken for a working workflow. Fix the inputs and sync
-again.
+load, a missing content directory, a content file nothing would ever read, a
+content file missing a section its skill requires: any of these prints the
+complete list of problems at once, and then the generated workflow is removed
+down to the repair kit, which is the package's own skill plus a minimal
+instructions file carrying the error report. Nothing half-generated is left
+behind to be mistaken for a working workflow. Fix the inputs and sync again.
 
 ## seasoned-skills doctor
 
@@ -108,7 +108,7 @@ the `provisioning` table in your configuration, which is where each repository
 declares what it owns.
 
 ```sh
-seasoned-skills provision review-fixes
+seasoned-skills provision search-filters
 ```
 
 Provisioning is idempotent. Re-running keeps the lane's existing allocation and

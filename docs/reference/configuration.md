@@ -138,7 +138,7 @@ run your commands rather than guessing at them.
 | `gates.typecheck` | no | The type check, same tier. |
 | `gates.unit` | no | The unit suite, counted among the fast gates. |
 | `gates.relatedSpecs` | no | Runs the specs related to a change, chosen by how far the change reaches. |
-| `gates.full` | no | The long gates, as a list. These belong to the session's coordinator, run as background shells, never to a builder. |
+| `gates.full` | no | The long gates, as a list. They belong to the orchestrator, the agent coordinating the work, and run as background shells rather than in a builder's foreground. |
 
 ## Web pages
 
