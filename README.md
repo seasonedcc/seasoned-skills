@@ -56,8 +56,7 @@ This repository is consumer number zero: the workflow it ships is
 installed here from the package itself, so the repo works under the very
 rules it distributes. It holds itself to the same adopter's bar the docs
 state, in the form that applies to a command-line package: its own CI runs
-both test tiers as required checks, with comprehensive coverage behind
-them.
+both test tiers as required checks.
 
 ## License
 
