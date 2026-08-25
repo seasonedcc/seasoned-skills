@@ -380,6 +380,49 @@
           message already queued.
         </p>
 
+        <h4>The reference</h4>
+        <p>
+          The little hires get four pages under <code>docs/reference/</code>, each
+          answering in under a minute: the commands (all seven, every flag &mdash;
+          several exist today only in <code>--help</code> and the source); the
+          configuration file, key by key, with a real example (today it lives only
+          as comments in the source types); what a project receives &mdash; the
+          generated files, the skills by tier with one line each, and what stays
+          committed versus generated; and the managed footprint &mdash; the settings
+          the package enforces, the ignore entries it maintains, the one script it
+          wires. All of it written by hand, in the voice: generated reference prose
+          would read like a manual page, and the mid-work reader deserves better.
+        </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The reference cannot rot &mdash; enforced by machinery and by the
+            Definition of Done
+          </summary>
+          <div class="technical-body">
+            <p>
+              A hand-written reference drifts the first time a flag is added, so
+              the defusal is a test, not discipline: a unit test enumerates the
+              real surface &mdash; commands and flags from the CLI program itself,
+              configuration keys from the validation schema, the package&rsquo;s
+              programmatic exports (<code>defineConfig</code> and the stack-audit
+              helpers, which the configuration page also documents) &mdash; and
+              fails when any name is missing from the reference pages. The prose
+              stays human; the names cannot silently rot. The test lands with this
+              project, so the baseline includes the reference&rsquo;s integrity
+              from day one.
+            </p>
+            <p>
+              Alongside the test, this repository&rsquo;s Definition of Done gains
+              a standing criterion: documentation is kept current in the same task
+              that changes behavior &mdash; a change to a command, a configuration
+              key, the generated output, or the way of working itself is not done
+              until the docs say so too.
+            </p>
+          </div>
+        </details>
+
         <h3>Walkthrough</h3>
         <p>
           Replay the framing's story — the same person, the same moment — with this in
