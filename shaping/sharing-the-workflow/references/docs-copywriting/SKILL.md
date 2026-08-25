@@ -42,8 +42,11 @@ Words from the workflow's internal dialect that never appear in human docs:
 | artifact | file, document, result |
 | downstream / upstream | later / earlier |
 | ergonomics | how it feels to use |
+| corpus | the reference library (the books and posts the method draws on) |
 
 When a dialect word carries a concept the docs genuinely need, keep the concept and teach it under a plain name with a first-use definition — never smuggle the word.
+
+Command names are the one exception: a command is called by its name, so write `seasoned-skills corpus` when naming the command — and call what it builds the reference library everywhere else.
 
 ## Quick reference
 
