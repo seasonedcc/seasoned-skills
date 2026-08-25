@@ -441,6 +441,30 @@
           commands and the same steps &mdash; spot the moment, prepare, compact,
           reground &mdash; while the numbers and the why live in the manual alone.
         </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Content files become optional &mdash; so the upgrade costs nothing
+          </summary>
+          <div class="technical-body">
+            <p>
+              Every generated skill reads an optional per-project content file
+              &mdash; extra instructions the project may add &mdash; but today the
+              package requires the file to exist even when empty. Adding a skill
+              therefore breaks every project&rsquo;s next sync until it commits an
+              empty file, and consuming projects accumulate rows of zero-byte
+              files. This build makes every content file optional, the doctrine
+              file included: a missing file simply means the project has nothing
+              to add. The one protection the loud failure gave by accident &mdash;
+              a misnamed file getting noticed &mdash; is replaced by a better one:
+              sync fails when the content folder holds a markdown file matching no
+              known name, so authored instructions can never silently fail to
+              load. With that, the two new skills ship with no migration step, and
+              every consuming project may delete its empty files.
+            </p>
+          </div>
+        </details>
 
         <h4>The reference</h4>
         <p>
@@ -673,7 +697,7 @@ Build, in this repository, against main:
 
 3. The docs/ folder: "The way of working", "Running a session", and "Adopting the workflow", plus docs/reference/ with its four pages — commands, configuration, what a project receives, the managed footprint. Every page written under the docs-copywriting skill, and every contract the document anchors to these pages satisfied in full.
 
-4. The two package skills, /prepare-for-compaction and /reground, in the core tier every project receives, as thin as the document rules them. Also extend the shipped quick skill with the research case the entry-map contract defines — the one permitted edit to existing agent-facing language.
+4. The two package skills, /prepare-for-compaction and /reground, in the core tier every project receives, as thin as the document rules them. Per the content-files contract, make every project content file optional — missing means nothing to add — with sync failing on unrecognized names instead. Also extend the shipped quick skill with the research case the entry-map contract defines — the one permitted edit to existing agent-facing language.
 
 5. The reference enumeration test wired into the unit gates, and the documentation-currency criterion added to this repository's Definition of Done through its own configuration and content.
 
