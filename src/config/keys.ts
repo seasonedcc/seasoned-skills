@@ -27,19 +27,26 @@ type KeyGroup<Type> = {
 }
 
 /**
+ * The object a value's type can hold, with the primitives a union puts beside
+ * it dropped. A key typed `string | EnvFile` still nests the env file's keys,
+ * so the union's object member is what the manifest has to describe.
+ */
+type ObjectPart<Value> = Extract<NonNullable<Value>, object>
+
+/**
  * The manifest shape one key's type demands. A list of objects describes its
  * entries; an object describes its keys; a string, a number, a list of
  * strings, or an open map of names to values nests nothing and reads `null`.
  */
-type KeyManifest<Value> = [NonNullable<Value>] extends [readonly (infer Entry)[]]
-  ? [Entry] extends [object]
-    ? [KeyGroup<Entry>]
-    : null
-  : [NonNullable<Value>] extends [object]
-    ? string extends keyof NonNullable<Value>
+export type KeyManifest<Value> = [ObjectPart<Value>] extends [never]
+  ? null
+  : [ObjectPart<Value>] extends [readonly (infer Entry)[]]
+    ? [ObjectPart<Entry>] extends [never]
       ? null
-      : KeyGroup<NonNullable<Value>>
-    : null
+      : [KeyGroup<ObjectPart<Entry>>]
+    : string extends keyof ObjectPart<Value>
+      ? null
+      : KeyGroup<ObjectPart<Value>>
 
 export const CONFIGURATION_KEYS: KeyManifest<SeasonedSkillsConfig> = {
   projectName: null,
@@ -97,8 +104,8 @@ export const CONFIGURATION_KEYS: KeyManifest<SeasonedSkillsConfig> = {
   machinePrerequisites: [{ binary: null, reason: null, hint: null }],
 }
 
-type ManifestNode = null | [ManifestGroup] | ManifestGroup
-type ManifestGroup = { readonly [key: string]: ManifestNode }
+export type ManifestNode = null | [ManifestGroup] | ManifestGroup
+export type ManifestGroup = { readonly [key: string]: ManifestNode }
 
 /**
  * Every key path the configuration may carry, in declaration order, dotted
@@ -106,10 +113,10 @@ type ManifestGroup = { readonly [key: string]: ManifestNode }
  * `provisioning.repositories[].databases[].name` names exactly one thing.
  */
 export function configurationKeyPaths(): string[] {
-  return keyPathsOf(CONFIGURATION_KEYS, '')
+  return keyPathsOf(CONFIGURATION_KEYS)
 }
 
-function keyPathsOf(group: ManifestGroup, prefix: string): string[] {
+export function keyPathsOf(group: ManifestGroup, prefix = ''): string[] {
   return Object.entries(group).flatMap(([key, node]) => {
     const path = prefix === '' ? key : `${prefix}.${key}`
     if (node === null) return [path]
