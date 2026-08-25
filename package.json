@@ -1,7 +1,7 @@
 {
   "name": "seasoned-skills",
   "version": "0.0.5",
-  "description": "The Seasoned workflow — doctrine, practice skills, and deterministic code — installed with one command and kept current by upgrading a version.",
+  "description": "Seasoned's skills to orchestrate the full product cycle with AI agents",
   "keywords": [
     "agents",
     "claude",
