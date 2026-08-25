@@ -70,7 +70,9 @@
           and a set of patterns the author spent five years curating by hand before AI;
           second, everything that needs taste runs on the one model that has it, and
           that taste is written into the workflow&rsquo;s skills; third, the author is
-          paranoid about managing the agent&rsquo;s working memory &mdash; and that
+          paranoid about managing the agent&rsquo;s context window &mdash; the limited
+          space that holds everything the agent is working from at a given moment
+          &mdash; and that
           paranoia, why it matters and how it is exercised, exists nowhere in writing.
           The peer got a good conversation. He did not get anything he could read
           again, go deeper on, or adopt &mdash; and the next person who asks will cost
@@ -107,7 +109,7 @@
           start where the writing ends &mdash; not questions the writing should have
           answered. And closer to home, the test that decides: a co-founder runs a full
           working session &mdash; including judging when it is safe to compact the
-          agent&rsquo;s memory and getting the agent regrounded afterwards &mdash;
+          agent&rsquo;s context and getting the agent regrounded afterwards &mdash;
           without asking the author anything. A peer installing the package unassisted
           is a delighted extra, not the bar: adoption depends on their own
           codebase&rsquo;s readiness, which this project does not control.
@@ -137,7 +139,7 @@
         </p>
         <p>
           The little hires are every return visit mid-work: a co-founder mid-session
-          wondering whether it is safe to compact the agent&rsquo;s memory, someone
+          wondering whether it is safe to compact the agent&rsquo;s context, someone
           checking what a command does, someone halfway through adopting who needs to
           know what a configuration option assumes. Each of those moments has to
           answer in under a minute, or people fall back to asking the author &mdash;
@@ -237,12 +239,12 @@
           read whole: what happens from the moment an idea arrives to the moment it
           ships, with the vision in its own words and the workflow&rsquo;s reasons
           &mdash; the curated foundation agents build on, taste written into skills,
-          and care for the agent&rsquo;s working memory &mdash; woven through as how
+          and care for the agent&rsquo;s context window &mdash; woven through as how
           the workflow thinks, never as what it achieved.
           <strong>Running a session</strong> is the human&rsquo;s manual, the piece
           that exists nowhere today: what the person actually does while agents work
           &mdash; decide, adjudicate, read the changes, merge &mdash; and above all
-          how to manage the agent&rsquo;s memory: why letting it fill quietly
+          how to manage the agent&rsquo;s context window: why letting it fill quietly
           degrades the work, how to see that coming, and how the two new
           skills below fit the rhythm. A third page,
           <strong>Adopting the workflow</strong>, receives the readiness checklist
@@ -300,7 +302,7 @@
               is knowing which moments not to miss.
             </p>
             <p>
-              <strong>The agent&rsquo;s memory.</strong> Once the orchestrator&rsquo;s
+              <strong>The context window.</strong> Once the orchestrator&rsquo;s
               context passes roughly 22% full, start looking for a moment to
               compact without interrupting much &mdash; usually while it waits on
               its subagents. Once it passes roughly a third full (33&ndash;36%),
@@ -551,7 +553,7 @@
             instructions and the shipped skills keep their current language. Bringing
             the same plain-speech principles to them is a project of its own with its
             own constraints (a skill must also stay lean in the agent&rsquo;s
-            memory), and it is coming later; the name
+            context window), and it is coming later; the name
             <code>docs-copywriting</code> deliberately leaves room for that sibling.
           </li>
           <li>
