@@ -182,7 +182,7 @@ The same rule shapes structure, not just sentences: no case-study pages, no benc
 |---------|------|---------|
 | README front door | Plain, confident, inviting | "Seasoned's skills to orchestrate the full product cycle with AI agents" |
 | Teaching pages | Narrative, reflective, honest | "We were tired of teaching every lesson twice." |
-| The session manual | Direct, procedural, calm | "Once the context passes a fifth, start looking for a moment to compact." |
+| The session manual | Direct, procedural, calm | "Before the context bar turns yellow, start looking for a moment to compact." |
 | Reference pages | Precise, unadorned, fast | "`--force` re-downloads sources already in the reference library." |
 | Release notes (human-facing prose) | Factual, brief | "The sweep command now kills only by exact process id." |
 

@@ -323,10 +323,14 @@
             </p>
             <p>
               <strong>The context window.</strong> Once the orchestrator&rsquo;s
-              context passes roughly 22% full, start looking for a moment to
-              compact without interrupting much &mdash; usually while it waits on
-              its subagents. Once it passes roughly a third full (33&ndash;36%),
-              interrupt and compact anyway. The ritual: ask whether the ledger is
+              context passes roughly 22% full &mdash; a little before the context
+              bar in the status line turns yellow &mdash; start looking for a
+              moment to compact without interrupting much, usually while it waits
+              on its subagents. Once it passes roughly a third full
+              (33&ndash;36%, the bar red), interrupt and compact anyway. The
+              numbers are ballpark; the gesture is what matters: start hunting
+              for the moment before the bar turns yellow, and never let it sit
+              red. The ritual: ask whether the ledger is
               up to date (<code>/prepare-for-compaction</code>); when the
               orchestrator answers that it is safe, compact, and immediately queue
               the next message &mdash; &ldquo;Please reground after
@@ -511,9 +515,9 @@
           </li>
           <li>
             <p>
-              Closer to home, a co-founder mid-goal watches the context cross a
-              fifth, waits for the orchestrator&rsquo;s subagents to be busy, runs
-              the ritual, and never messages the author. The struggling moment
+              Closer to home, a co-founder mid-goal watches the context bar climb
+              toward yellow, waits for the orchestrator&rsquo;s subagents to be
+              busy, runs the ritual, and never messages the author. The struggling moment
               replays with the better ending on both fronts.
             </p>
           </li>
