@@ -19,10 +19,11 @@ place first, or leave the matching option off until it exists.
 - **A git repository with a GitHub remote.** The workflow works in
   branches, worktrees, and pull requests, and the review and
   self-improvement skills act on pull requests and issues through `gh`.
-- **A `package.json`.** The package is pinned at an exact version — the
-  `-E` in the install command below, and the premise pre-1.0 upgrades
-  rely on — and sync keeps one managed script entry, `prepare`, that
-  re-runs `seasoned-skills sync`.
+- **A `package.json`.** The one item the install can create for you: it
+  writes a minimal manifest when the repository has none. The package is
+  pinned at an exact version (the `-E` in the install command below, and
+  the premise pre-1.0 upgrades rely on), and sync keeps one managed
+  script entry, `prepare`, that re-runs `seasoned-skills sync`.
 - **Gates a continuous-integration run can execute.** Gates are the lint,
   typecheck, and test commands you declare in the configuration; they
   must actually run and actually block a failing change. A test suite
@@ -55,7 +56,7 @@ place first, or leave the matching option off until it exists.
   whole table. It assumes a reachable Postgres server for any entry that
   declares databases, and a Redis server for any entry with
   `cacheStoreIndex` on.
-- **Demo videos** (projects with user-facing web screens): the generated
+- **Demo videos**: the generated
   rig records narrated product demos, and it needs three things from the
   project: a `demo:video` script running
   `tsx .claude/skills/demo-videos/scripts/rig/run.ts`, the `tsx` and
@@ -85,7 +86,7 @@ The binaries the enabled workflow depends on: `git`, `gh`, `jq`, and
 `whisper-cli` with the pinned `ggml-large-v3` and `ggml-silero-v5.1.2`
 models for meeting transcription, and `uv` and `ffmpeg` for demo-video
 narration, which needs an Apple Silicon Mac. Doctor also looks for the
-narration model's weights on every project, web screens or not. Beyond
+narration model's weights on every project. Beyond
 those, `agent-browser` where there are web screens to drive, and the
 service starter (`docker` by default) and `redis-cli` where provisioning
 declares services and a cache store. A project with needs of its own adds
@@ -107,16 +108,19 @@ The install is a one-time interactive scaffold. It asks for every option
 that has no ruled default (nothing defaults silently), then creates the
 committed pieces the workflow reads: `seasoned-skills.config.ts` stating
 every option explicitly, the shaping and meeting-requests folders, the
-calibration file, and the registers the enabled options need — plus a
-minimal `package.json` when the repository has none. It never overwrites
-anything that exists. When this machine has no current reference library for the
-shaping skill, it asks for your own copy of the one commercial book (an
+calibration file, the registers the enabled options need, the content
+files the interview already has answers for, and a minimal
+`package.json` when the repository has none. It never overwrites
+anything that exists. When this machine has no current reference
+library for the shaping skill, it asks for your own copy of the one
+commercial book (an
 empty answer takes the distilled account instead) and builds the library
 before finishing. It ends by running a sync and printing the doctor
 report.
 
-After that, `seasoned-skills sync` is what keeps the workflow current: it
-regenerates every generated file from the configuration and content,
+After that, `seasoned-skills sync` is what turns the configuration and
+content into the workflow your agents read: it regenerates every
+generated file,
 deletes whatever a configuration change stops generating, and manages
 exactly two files and one script entry in your project's own space: the
 ignore entries (verified through git itself), the settings keys the

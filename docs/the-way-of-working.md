@@ -87,11 +87,10 @@ Exactly two kinds of work skip shaping:
 - **Quick mode.** Small polish to work already done, and only when a
   person explicitly asks for it by typing `/quick`; the agent never
   selects it on its own. It qualifies exactly as the shipped quick skill
-  rules it: a small fix or polish to an existing surface,
+  rules it: a small fix or polish to something already built,
   disqualified the moment it needs a new route, a new table or migration,
-  a new permission, or a new product surface — a screen or a
-  machine-facing endpoint alike — along with any disqualifiers the
-  project's own configuration adds.
+  a new permission, or a new screen or machine-facing endpoint, along
+  with any disqualifiers the project's own configuration adds.
 
 Everything else goes through shaping.
 
@@ -120,8 +119,9 @@ The top-level session acts as the orchestrator: it plans, delegates, and
 reads the results, but does not type the code itself. Building happens in
 parallel lanes, each an isolated copy of the repository (a git worktree),
 with its own databases and ports where the project declares them, so
-independent pieces of work never collide. Every change lands through a pull request with the
-tests green and an adversarial review (one that tries to break the change
+independent pieces of work never collide. Every change lands through a
+pull request with the tests green and an adversarial review (one that
+tries to break the change
 rather than bless it) completed before it merges. Agents merge reviewed
 lane work into the goal's own branch as they go; merging into the
 project's default branch stays a person's act unless the project
