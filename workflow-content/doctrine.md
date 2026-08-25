@@ -24,3 +24,7 @@ Reference corpora that carry copyrighted material (the shaping corpus, and any l
 ## Reference projects stay private
 
 This repo is public. The workflow here is developed against private reference projects. Never mention those projects — their names, organizations, domains, or code — in anything visible in this repo: files, PR bodies, commit messages, code, comments, or issues. Describe every change entirely on its own terms; the reference lives only in the conversation and in subagent charters.
+
+## Human-facing pages follow the docs-copywriting skill
+
+Every page written for people rather than agents — the README, everything under `docs/`, and any other human-facing prose — is written under the committed skill at `.claude/skills/docs-copywriting/`. Load it before writing or reviewing such a page: it is the binding voice guide, and its translation table makes dialect violations mechanical to spot, so the review loop's conventions pass quotes it against every docs diff.
