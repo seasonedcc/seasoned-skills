@@ -493,15 +493,53 @@
           this document, before the build starts.
         </p>
         <dl class="time-bombs">
-          <dt>The danger, stated as the thing that could blow up mid-build.</dt>
+          <dt>The reference rots the first time a flag is added.</dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            The decision that takes it off the table.
+            Machinery, not discipline: the enumeration test in the
+            reference&rsquo;s contract fails the gates when any real command,
+            flag, configuration key, or export is missing from the pages, and the
+            new Definition of Done criterion makes docs-currency part of every
+            task that changes behavior.
           </dd>
-          <dt>The second danger.</dt>
+          <dt>
+            The two sides of the compaction ritual drift apart &mdash; the
+            human&rsquo;s manual and the agent-facing instructions describing the
+            same rhythm in two places until they disagree.
+          </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            Its solution.
+            One fact, one home. The human&rsquo;s numbers &mdash; the 22% watch,
+            the 33&ndash;36% interrupt &mdash; live only in the human&rsquo;s
+            manual, because the human owns the meter. The agent-side prose owns
+            the ledger and regrounding behavior. The two tiny skills are the
+            shared vocabulary each side names instead of restating the other.
+          </dd>
+          <dt>
+            AI dialect creeps back in &mdash; agents write these docs, and the
+            dialect is their native register.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            <code>docs-copywriting</code> is committed doctrine, so the review
+            loop&rsquo;s conventions pass checks every docs diff against it, and
+            the translation table makes violations mechanical to spot rather than
+            a matter of taste.
+          </dd>
+          <dt>An unsettled rule gets taught as settled.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            The release-area ruling in the after-the-goal contract: describe
+            today&rsquo;s practice, mark the frontier as evolving, never promote a
+            direction into doctrine.
+          </dd>
+          <dt>The vision reads as boasting at tagline altitude.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            The framing&rsquo;s ruling &mdash; the docs answer the peer&rsquo;s
+            question without ever posing it &mdash; enforced by the same
+            conventions pass, with the no-go below removing the structural
+            temptation.
           </dd>
         </dl>
 
@@ -521,6 +559,11 @@
             read on GitHub by people we send the link to. A public face is a future
             project.
           </li>
+          <li>
+            No case studies, benchmarks, or showcase sections &mdash; the no-boast
+            rule stated structurally, so a &ldquo;who uses this&rdquo; page cannot
+            appear later without reopening this shape.
+          </li>
         </ul>
       </section>
 
@@ -537,9 +580,29 @@
         </header>
 
         <div class="goal" data-goal>
-<pre class="goal-text" data-goal-text>Write the goal here, in the second person, addressed to whoever picks up the build.
+<pre class="goal-text" data-goal-text>Make the workflow something a colleague can pick up and truly understand — how to run it, why it works this way, and where it is going — without its author in the room.
 
-Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, and name the boundaries the build must not cross.</pre>
+Your first instruction: read shaping/sharing-the-workflow/index.html in full, every technical note open. It is the single source of truth for this build; where anything else disagrees with it, the document wins.
+
+Build, in this repository, against main:
+
+1. The docs-copywriting skill, committed to this repository and never shipped with the package, written fresh from the document's voice contract: the mechanics that travel, the no-AI-dialect translation table, terms defined on first meeting, never boasting.
+
+2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description to the same line — then says what the workflow is and the vision it serves, and routes readers three ways: understand, adopt, look up.
+
+3. The docs/ folder: "The way of working", "Running a session", and "Adopting the workflow", plus docs/reference/ with its four pages — commands, configuration, what a project receives, the managed footprint. Every page written under the docs-copywriting skill, and every contract the document anchors to these pages satisfied in full.
+
+4. The two package skills, /prepare-for-compaction and /reground, in the core tier every project receives, as thin as the document rules them.
+
+5. The reference enumeration test wired into the unit gates, and the documentation-currency criterion added to this repository's Definition of Done through its own configuration and content.
+
+Done means:
+
+- The document's outcome test is the bar the material must be written to: a reader with no context gets the full arc from the docs alone, and a person running a session finds every gesture the manual promises.
+- The walkthrough replays in the shipped material, step by step.
+- The closing audit runs as part of this goal, never as a follow-up: audit the complete implementation against the document, section by section — every element, every contract, every time bomb defusal, every no-go — and fix every shortfall before calling the goal met.
+
+Constraints: the no-gos are binding — no rewriting of agent-facing content, no website or public promotion, no case studies, benchmarks, or showcase sections. When the work ships, flip the document's built bit to true.</pre>
           <div class="goal-footer">
             <div class="goal-meter" aria-hidden="true">
               <div class="goal-meter-fill" data-goal-meter-fill></div>
