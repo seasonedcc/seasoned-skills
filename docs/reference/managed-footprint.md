@@ -7,26 +7,28 @@ to keep a small, named set of things true. This page is the whole list.
 
 ## The settings it enforces
 
-`.claude/settings.json` is your file. Sync enforces exactly the keys below and
-leaves every other key alone, including your own hook registrations and the rest
-of your permissions block.
+`.claude/settings.json` is your file. Sync enforces exactly the keys below, adds
+a `$schema` line when your file has none, and leaves every other key alone,
+including your own hook registrations and the rest of your permissions block.
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| `model` | `claude-fable-5[1m]` | Everything that needs taste runs on the one model that has it. |
+| `model` | `claude-fable-5[1m]` | The `[1m]` suffix is the million-token context window every subagent's task is sized against. |
 | `effortLevel` | `high` | How hard the model thinks before it acts. The rules are written for this setting. |
 | `alwaysThinkingEnabled` | `true` | Thinking is never skipped, however small the step looks. |
 | `autoCompactEnabled` | `false` | You decide when to compact the session's context. Automatic compaction would take that moment away, and the moment is the whole craft. |
 | `autoMemoryEnabled` | `false` | Everything the agents read is generated from your configuration and content, so nothing should accumulate outside them. |
 | `skillListingBudgetFraction` | `0.02` | Caps how much of the context window the list of available skills may take. |
-| `permissions.defaultMode` | `auto` | The one permissions key the package manages. |
-| `statusLine` | A command running `.claude/statusline.sh` | The status line, including the context bar you watch during a session. |
-| `hooks` | Three registrations | Listed below. |
+| `permissions.defaultMode` | `auto` | Agents work in long delegated stretches with nobody at the keyboard, and a prompt before every step would stall them. It is the one permissions key sync writes, and it replaces the mode you chose; the rest of the block stays yours. |
+| `statusLine` | A command running `.claude/statusline.sh` | The context bar is what tells you when to compact, so the workflow ships the status line that draws it rather than assuming one. |
+| `hooks` | Three registrations | The shipped guards and the session-end sweep only run if something registers them. |
 
-The first six are assumptions the whole workflow is written against, and they
-travel with the package version: sync rewrites each one on every run, and
-changing one is a release, not a project decision. `$schema` is filled in when
-it is missing, so your editor knows the file, and your own value is left alone.
+`model`, `effortLevel`, `alwaysThinkingEnabled`, `autoCompactEnabled`,
+`autoMemoryEnabled`, and `skillListingBudgetFraction` are assumptions the whole
+workflow is written against, and they travel with the package version: sync
+rewrites each one on every run, and changing one is a release, not a project
+decision. The `$schema` line is different: sync adds it so your editor knows the
+file, and a value you already have is left alone.
 
 ### The hooks it registers
 
@@ -62,11 +64,11 @@ Generated files never enter your history. Sync keeps one block in `.gitignore`:
 # <<< seasoned-skills <<<
 ```
 
-The block carries the generated paths, compacted: a whole folder for each
+The block carries the generated paths, collapsed: a whole folder for each
 generated skill, one for the shaping assets, and single files otherwise.
-Anything your own ignore rules already cover stays out of it. Two more entries
-are there for files nothing generates, but which the workflow promises stay out
-of your history.
+Anything your own ignore rules already cover stays out of it. Two entries are
+there for files nothing generates, but which the workflow promises stay out of
+your history: the finished demo videos, and your per-user meeting settings.
 
 | Entry | What it covers |
 | --- | --- |
@@ -94,19 +96,15 @@ asked about. The plain paths beside it still are.
 
 ## The one script it wires
 
-| Script | What it becomes |
-| --- | --- |
-| `prepare` | `seasoned-skills sync`, appended to whatever you already have. |
+Sync asserts one `package.json` script on every run: `prepare`. An empty
+`prepare` becomes `seasoned-skills sync`; an existing one becomes
+`<your command> && seasoned-skills sync`; one that already mentions the command
+is left exactly as it is.
 
-Sync asserts this entry on every run. An empty `prepare` becomes
-`seasoned-skills sync`; an existing one becomes `<your command> &&
-seasoned-skills sync`; one that already mentions the command is left exactly as
-it is.
-
-It is deliberately your own script rather than a package lifecycle hook. The
-pinned package manager blocks dependency lifecycle scripts by default, and a
-sync that silently does not run is worse than no sync at all. This one entry is
-why a fresh clone and a version bump both end with the workflow current.
+It is deliberately your own script rather than a package lifecycle hook, because
+pnpm blocks a dependency's lifecycle scripts by default, and a sync that
+silently does not run is worse than no sync at all. This one entry is why a
+fresh clone and a version bump both end with the workflow current.
 
 A repository with no `package.json` is left alone. Creating one is the install's
 job, not sync's.

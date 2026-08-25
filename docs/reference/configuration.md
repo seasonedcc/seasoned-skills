@@ -89,9 +89,10 @@ export default defineConfig({
 })
 ```
 
-Most projects need far less than this. The two required objects are `release`
-and `gates`; every optional key below is a layer you turn on when the machinery
-behind it exists.
+Most projects need far less than this. Six top-level keys are required:
+`projectName`, `contentDir`, `mergeStrategy`, `release`, `gates`, and
+`calibrationFile`. Every optional key below is a layer you turn on when the
+machinery behind it exists.
 
 ## The top level
 
@@ -99,18 +100,18 @@ behind it exists.
 | --- | --- | --- |
 | `projectName` | yes | How your project refers to itself in the generated instructions. |
 | `contentDir` | yes | The directory holding your own content: one markdown file per generated skill, plus one for the standing instructions. Every file is optional. A markdown file at its top level matching no known name fails the sync, so writing to a misnamed file can never fail silently. |
-| `mergeStrategy` | yes | `'merge-commit'` or `'squash'`. How a branch reaches the mainline, and with it how a pushed branch takes in changes from its base. |
-| `agentMergesDuringGoal` | no | Whether agents may merge to the base branch while executing a goal. Off unless you opt in. |
+| `mergeStrategy` | yes | `'merge-commit'` or `'squash'`. How a branch reaches the default branch, and with it how a pushed branch takes in changes from its base. |
+| `agentMergesDuringGoal` | no | Whether agents may merge to a goal's base branch while the goal is running. That base is the default branch unless the goal names another. Off unless you opt in. |
 | `outOfScopeFindings` | no | What an agent does with breakage it finds outside its task. `'bank'`, the default, records it with evidence for you to rule on; `'autofix'` has agents fix it in a dedicated pass. |
 | `release` | yes | What a release is for this project. See below. |
 | `gates` | yes | Your lint, typecheck, and test commands. See below. |
-| `calibrationFile` | yes | The committed file where subagent calibrations accumulate, stated relative to the Definition of Done. The install seeds it; updates arrive as pull requests. |
+| `calibrationFile` | yes | The committed file where subagent calibrations accumulate, stated relative to the Definition of Done: the checklist every task is held to before it counts as finished. The install seeds it; updates arrive as pull requests. |
 | `webSurface` | no | Declare it when the project has web pages people use. Browser verification and the responsive rules apply only where it exists. |
 | `demoSeed` | no | Declare it to require that every new or changed page ships its seed section and its manifest entry in the same change. |
 | `machineSurface` | no | Declare it when the project exposes an MCP server or a public API. Turns on the capability-parity criterion. |
-| `stack` | no | The stack layer. Declare your stack, or don't; turning it off removes every trace of it. |
-| `provisioning` | no | The resource table isolated worktree lanes are built from. Without it, a lane is a worktree and nothing else. |
-| `additionalCriteria` | no | Whole Definition of Done criteria your project adds beyond the core ones. |
+| `stack` | no | Declare your stack, or don't. Declaring it generates the twelve stack skills, from database design and Kysely queries to nested routes; leaving it out removes every trace of them. |
+| `provisioning` | no | The resource table isolated worktree lanes are built from. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files; without `provisioning`, it is a worktree and nothing else. |
+| `additionalCriteria` | no | Whole Definition of Done criteria your project adds beyond the ones the workflow ships. |
 | `quickDisqualifiers` | no | Things that disqualify a change from quick mode, added to the package's own list. |
 | `machinePrerequisites` | no | Binaries your own content depends on, beyond the ones the enabled layers already declare. Doctor checks them like any other. |
 
@@ -120,7 +121,7 @@ Two durably different practices, and the shape changes with the answer.
 
 | Key | Required | What it does |
 | --- | --- | --- |
-| `release.target` | yes | `'deployed-product'` for curated notes, badge stamping, a pre-release audit pull request, and a publish that triggers the deploy. `'published-package'` for the package flow below. |
+| `release.target` | yes | `'deployed-product'` for curated notes, a Released mark on every meeting request the release answers, a pre-release audit pull request, and a publish that triggers the deploy. `'published-package'` for version bumps taken from the diff since the last tag, a GitHub release for each package bumped, and a publish you run locally. |
 | `release.packages` | with `'published-package'` | The packages this repository publishes. At least one. |
 | `release.packages[].name` | yes | The package name. |
 | `release.packages[].tagPrefix` | no | This package's tag prefix, when it is not the default `v`. |
@@ -135,8 +136,8 @@ guessing at them.
 
 | Key | Required | What it does |
 | --- | --- | --- |
-| `gates.lint` | no | The fast lint check a builder runs in its own foreground. |
-| `gates.typecheck` | no | The type check, same tier. |
+| `gates.lint` | no | The fast lint check. A builder, the agent writing the change, runs it in its own foreground and waits for it to finish before going on. |
+| `gates.typecheck` | no | The type check, also run in the builder's foreground. |
 | `gates.unit` | no | The unit suite, counted among the fast gates. |
 | `gates.relatedSpecs` | no | Runs the specs related to a change, chosen by how far the change reaches. |
 | `gates.full` | no | The long gates, as a list. The orchestrator, the agent coordinating the work, runs them as its own background shells rather than in a builder's foreground. |
@@ -170,17 +171,15 @@ guessing at them.
 
 ## Worktree lanes
 
-A lane is one named workspace for one piece of work, with its own worktree,
-ports, databases, and env files. This table is where each repository declares
-what it owns inside a lane, so provisioning and teardown both know exactly what
-to create and what to remove.
+This table is where each repository declares what it owns inside a lane, so
+provisioning and teardown both know exactly what to create and what to remove.
 
 | Key | Required | What it does |
 | --- | --- | --- |
 | `provisioning.repositories` | no | The repositories a lane can cover. Defaults to your own checkout with no resources. |
 | `provisioning.services` | no | Shared services probed before starting, in case this machine already runs them. |
 | `provisioning.serviceStartCommand` | no | The command run from the main checkout to start the declared services that are not already listening. The names of the missing ones are appended to it. Defaults to `docker compose up -d`. |
-| `provisioning.databasePrefix` | no | The prefix every lane-owned database name carries, lowercase and ending in an underscore. Teardown refuses to drop anything outside it. Defaults to your project directory's name slugified, lowercased with every run of other characters becoming an underscore, followed by `_wt_`. |
+| `provisioning.databasePrefix` | no | The prefix every lane-owned database name carries, lowercase and ending in an underscore. Teardown refuses to drop anything outside it. Defaults to your project directory's name lowercased, with every run of other characters becoming an underscore, underscores at either end taken off, the result cut to 28 characters, any underscore that cut leaves at the end taken off too, and `_wt_` on the end. |
 | `provisioning.seedDateTimezone` | no | The IANA time zone the seed date is read in, so a cached template records the calendar day your team is on. Re-anchoring an existing template is always a deliberate `provision --fresh-seed`. Defaults to this machine's zone. |
 | `provisioning.laneProcessCommands` | no | The command names the lane-process sweep looks for. Defaults to the common dev-server commands. Interactive shells are never listed. |
 
@@ -224,9 +223,9 @@ to create and what to remove.
 
 ## Criteria your project adds
 
-Each entry becomes a whole Definition of Done criterion, alongside the core
-ones, and each declares how it behaves under quick mode in the same change that
-adds it.
+Each entry becomes a whole Definition of Done criterion, alongside the ones the
+workflow ships, and each declares how it behaves under quick mode in the same
+change that adds it.
 
 | Key | Required | What it does |
 | --- | --- | --- |

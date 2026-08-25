@@ -14,7 +14,7 @@ rig's own setup fetches, and your per-user meeting settings.
 | --- | --- |
 | `seasoned-skills.config.ts` | You. Every option, stated explicitly. |
 | Your content directory | You. One markdown file per generated skill, plus one for the standing instructions. All optional. |
-| The calibration file | You. How this project's subagents are calibrated against the Definition of Done. |
+| The calibration file | You. How this project's subagents are calibrated against the Definition of Done: the checklist every task is held to before it counts as finished. |
 | The registers your options need | You. The coverage register, excused pages, seed manifest, parity standard, exception register. |
 | `shaping/` | You. Your shaping documents. Its `assets/` folder is generated. |
 | `requests-from-meetings/` | You. The records parsed from meetings. Its `assets/style.css` is generated. |
@@ -35,7 +35,7 @@ The last three are the whole managed footprint, and
 | `.claude/skills/subagents/scripts/watchdog.py` | Watches a subagent's context and raises the alarm before it fills. |
 | `.claude/skills/requests-from-meetings/scripts/verify.py` | Verifies a parsed meeting record against its transcript. |
 | `.claude/skills/demo-videos/scripts/` | The rig that films and narrates demo videos. |
-| `.claude/hooks/` | Three hooks: one blocks `git stash`, one guards worktree isolation, one sweeps lane processes when a session ends. |
+| `.claude/hooks/` | Three hooks: one blocks `git stash`, one guards worktree isolation, one sweeps a lane's leftover processes when a session ends. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files. |
 | `.claude/statusline.sh` | The status line, including the context bar you watch during a session. |
 | `.claude/seasoned-skills-manifest.json` | The list of every generated path, which is how the next sync knows what to delete. |
 | `shaping/assets/` | The stylesheet, script, drawing tools, and page template that shaping documents load. |
@@ -110,25 +110,29 @@ identifier-length rule the `kysely` skill teaches, and the demo-seed criterion
 in your Definition of Done. The package exports the checking parts so your own
 test suite can run them, and the generated skills teach the rest.
 
-The first three guard Postgres identifier length. Postgres silently truncates a
-name past 63 bytes, and the stack's camel-case plugin expands compiled index and
-constraint names, so a declared name can land in the database truncated and stay
-wrong until something references it.
+`IDENTIFIER_BYTE_LIMIT`, `IDENTIFIER_LENGTH_AUDIT_SQL`, and
+`identifierLengthFailures` guard Postgres identifier length. Postgres keeps only
+the first 63 bytes of a name, and the stack's camel-case plugin expands compiled
+index and constraint names, so a declared name can land in the database
+truncated and stay wrong until something references it. A cut-off name always
+measures exactly 63 bytes, so the check flags every name at that length: it
+cannot tell a deliberate 63-byte name from a truncated one, and either is a
+rename away from being unambiguous.
 
 | Export | What it is |
 | --- | --- |
-| `IDENTIFIER_BYTE_LIMIT` | 63, the length Postgres truncates at. |
-| `IDENTIFIER_LENGTH_AUDIT_SQL` | The query returning every identifier in your schema that sits at the limit. Run it with any query runner against a migrated database. |
-| `identifierLengthFailures` | Turns those rows into one message per offender, or an empty list. |
+| `IDENTIFIER_BYTE_LIMIT` | 63, the most bytes Postgres keeps of a name. |
+| `IDENTIFIER_LENGTH_AUDIT_SQL` | The query returning every identifier in your schema that measures the full 63 bytes. Run it with any query runner against a migrated database. |
+| `identifierLengthFailures` | Turns those rows into one message per name to shorten, or an empty list. |
 
 The rest are the demo-seed criterion's checker. It derives the list of pages
 from your own route config rather than from a list someone maintains by hand, so
-a page nobody covered fails the gate instead of depending on whether a reviewer
-noticed.
+a page nobody covered fails your suite instead of depending on whether a
+reviewer noticed.
 
 | Export | What it is |
 | --- | --- |
-| `routeId` | A route's id from its module path, the same derivation the coverage gates use. |
+| `routeId` | A route's id from its module path, the same derivation the coverage checks use. |
 | `enumerateSurfaces` | The pages of a route config. An entry that declares children is a layout, not a page, so only childless entries count. |
 | `seedCoverage` | Compares your route config against the manifest's claims and reports what is unclaimed, what claims a page that no longer exists, and which exclusions match nothing. |
 | `seedCoverageFailures` | Turns that report into one message per failure, each naming the fix. |

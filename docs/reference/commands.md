@@ -2,6 +2,9 @@
 
 Seven commands, all through one binary. In a project that has the package
 installed, run them with your package manager: `pnpm exec seasoned-skills sync`.
+Three of them work on a lane. A lane is one named workspace for one piece of
+work, with its own worktree, ports, databases, and env files, so two pieces of
+work never collide on this machine.
 
 | Command | What it does |
 | --- | --- |
@@ -15,7 +18,8 @@ installed, run them with your package manager: `pnpm exec seasoned-skills sync`.
 
 ## seasoned-skills
 
-The binary on its own prints the help. One flag stands outside the commands.
+The binary on its own prints the help. So does `-h, --help`, on the binary and
+on every command below. One other flag stands outside the commands.
 
 | Flag | What it does |
 | --- | --- |
@@ -28,8 +32,8 @@ every option the workflow gives no default, then writes the files your project
 commits. `seasoned-skills.config.ts` states what the interview settled, with
 the optional layers you declined absent and `provisioning` left as a commented
 block to fill in. Beside it come the content directory, the calibration file,
-the shaping folder, the meeting-requests data folder, the registers whichever
-options you turned on need, the content files the stack questions already
+the shaping folder, and the meeting-requests data folder. With them come the
+registers your options need, the content files the stack questions already
 answered, and a minimal `package.json` where the repository has none.
 
 Nothing that already exists is ever overwritten. Each new file is printed as
@@ -43,7 +47,7 @@ workflow instead.
 It finishes by running a sync and printing the doctor report, so the first thing
 you see after adopting is the state of your machine.
 
-Run in a project that already has a configuration, it still asks its questions,
+In a project that already has a configuration, install still asks its questions,
 then refuses and points you at `sync`.
 
 ## seasoned-skills sync
@@ -66,10 +70,10 @@ When sync cannot run at all, it fails loudly. A configuration that does not
 load fails on its own, before any content is read. Past that, the content
 problems sync can see are reported together: a missing content directory, a
 content file nothing would ever read, a content file missing a section its
-skill requires. Either way the generated workflow is then removed
-down to the repair kit, which is the package's own skill plus a minimal
-instructions file carrying the error report. Nothing half-generated is left
-behind to be mistaken for a working workflow. Fix the inputs and sync again.
+skill requires. Either way the generated workflow is then removed down to the
+repair kit, which is the package's own skill plus a minimal instructions file
+carrying the error report. Nothing half-generated is left behind to be mistaken
+for a working workflow. Fix the inputs and sync again.
 
 ## seasoned-skills doctor
 
@@ -80,7 +84,8 @@ this machine holds, like the demo narrator's model weights. Each finding names
 the missing one, why the workflow needs it, and how to get it.
 
 Doctor is advisory everywhere. It reports and points; it never blocks, because
-enforcement belongs to the gates that actually need the tools.
+enforcement belongs to the gates that actually need the tools: the lint,
+typecheck, and test commands a change has to pass before it lands.
 
 It also reports the state of this machine's shaping reference library: present
 and current, stale because a different package version built it, or missing
@@ -106,11 +111,9 @@ version that built it, so any newer version reads as stale.
 
 ## seasoned-skills provision
 
-Set up an isolated worktree lane. A lane is one named workspace for one piece of
-work: its own git worktree, its own ports, its own databases, its own env files,
-so two pieces of work never collide on this machine. What a lane gets comes from
-the `provisioning` table in your configuration, which is where each repository
-declares what it owns.
+Set up an isolated worktree lane. What a lane gets comes from the `provisioning`
+table in your configuration, which is where each repository declares what it
+owns.
 
 ```sh
 seasoned-skills provision search-filters
@@ -126,10 +129,10 @@ The lane name `<lane>` is required, and it also names the worktree directories.
 | --- | --- |
 | `--repo <path>` | A declared repository this lane covers, by its exact declared path. Repeatable. Without it the lane covers the first declared repository alone. |
 | `--branch <branch>` | The branch the worktrees check out. Defaults to `worktree/<lane>`. |
-| `--base <ref>` | The base for a new branch. Defaults to the origin's HEAD branch. |
+| `--base <ref>` | The base for a new branch. Defaults to the origin's default branch. |
 | `--skip-provision` | Create the worktrees and nothing else. |
 | `--skip-seed` | Provision without seeding. |
-| `--fresh-seed` | Under `templateCaching`, rebuild the cached template so a database this run creates is seeded for today. Databases that already exist are untouched, so a live lane reseeds by being torn down. |
+| `--fresh-seed` | Under `templateCaching`, rebuild the cached template so a database this run creates is seeded for today. Databases that already exist are untouched, so to reseed a live lane you tear it down and provision it again with this flag. |
 
 ## seasoned-skills teardown
 
