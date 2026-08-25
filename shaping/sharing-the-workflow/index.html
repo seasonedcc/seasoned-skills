@@ -190,7 +190,10 @@
           cycle with AI agents&rdquo;</strong>. It states the future the workflow is
           building toward, not only what exists today, and its double meaning is
           deliberate: the package ships skills, and the company&rsquo;s accumulated
-          craft is the other kind.
+          craft is the other kind. The npm registry also renders the README on the
+          package page; the tagline is what we promise there, and the front
+          door&rsquo;s links are polished for GitHub, the surface we actually
+          send people to.
         </p>
 
         <h4>The voice: a <code>docs-copywriting</code> skill</h4>
@@ -458,7 +461,9 @@
         <h4>Two tiny skills: <code>/prepare-for-compaction</code> and <code>/reground</code></h4>
         <p>
           The compaction ritual gets two named commands, shipped with the package to
-          every project and meant to be typed by the person, not the agent. They are
+          every project and meant to be typed by the person, not the agent &mdash;
+          each skill&rsquo;s own description says so, so an agent never loads them
+          on its own. They are
           deliberately almost nothing: today, plainly asking &ldquo;Is your ledger
           up to date? I want to compact your context now&rdquo; and &ldquo;Please
           reground yourself after compaction&rdquo; already works perfectly, because
@@ -492,8 +497,9 @@
               file included: a missing file simply means the project has nothing
               to add. The one protection the loud failure gave by accident &mdash;
               a misnamed file getting noticed &mdash; is replaced by a better one:
-              sync fails when the content folder holds a markdown file matching no
-              known name, so authored instructions can never silently fail to
+              sync fails when the content folder&rsquo;s top level &mdash; the
+              only place content loads from &mdash; holds a markdown file matching
+              no known name, so authored instructions can never silently fail to
               load. The known names are the content files of every skill the
               package can generate &mdash; enabled or not, so turning an option
               off never breaks a sync over the files it leaves behind &mdash; plus
@@ -559,7 +565,9 @@
               a standing criterion: documentation is kept current in the same task
               that changes behavior &mdash; a change to a command, a configuration
               key, the generated output, or the way of working itself is not done
-              until the docs say so too. Under quick mode the criterion is kept,
+              until the docs say so too. Its declared backing: the enumeration
+              test for the name-level half, the review loop&rsquo;s conventions
+              pass for the prose. Under quick mode the criterion is kept,
               not reduced or excluded: a quick polish that renames a flag or
               tweaks behavior still updates the reference in the same task, since
               a minute of docs work is proportionate to a quick fix and the
