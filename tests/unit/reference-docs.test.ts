@@ -281,7 +281,7 @@ const DOCUMENTED_FILES = [
   'requests-from-meetings/assets/style.css',
 ]
 
-/** The rows that name a whole directory, most specific first. */
+/** The rows that name a whole directory, matched in order: narrower ones first. */
 const DOCUMENTED_DIRECTORIES = [
   '.claude/hooks/',
   '.claude/skills/demo-videos/scripts/',
