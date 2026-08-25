@@ -10,13 +10,13 @@ This project's workflow — the doctrine file, the generated skills, the hooks, 
 ## The moving parts
 
 - **`seasoned-skills.config.ts`** — the project's declarations: name, merge strategy, release target, gate commands, and the optional surfaces (web, demo seed, machine surface, stack, provisioning). Every option is stated explicitly; changing one and running sync is how the workflow's shape changes.
-- **The content directory** — one markdown file per generated skill plus one for the doctrine layer. Each file's front matter may carry `triggers:` (the project's own activation vocabulary) and its body weaves into the skill as the project-specifics section. Content files are mandatory for every enabled skill; an empty file is valid, a missing one fails the sync loudly.
+- **The content directory** — one markdown file per generated skill plus one for the doctrine layer. Each file's front matter may carry `triggers:` (the project's own activation vocabulary) and its body weaves into the skill as the project-specifics section. Every file is optional: a missing one simply means the project has nothing to add there. The directory itself is not — sync fails when it is gone, so a mistyped `contentDir` can never quietly drop every authored instruction (an empty directory is perfectly valid). What else fails the sync is a top-level entry nothing would ever load: a name matching no known one, an extension that only looks like markdown (`.md` alone loads), a link whose target no longer exists, or a file that exists without a section its skill requires. Subdirectories are free space; nothing loads from them.
 - **`seasoned-skills sync`** — regenerates everything: doctrine, skills, runtime scripts, the managed gitignore block, and the managed settings keys. It never scaffolds and never touches committed content. The project's own `prepare` script runs it on every install, so a fresh clone materializes the whole workflow with the package-manager command the project already runs.
 - **`seasoned-skills doctor`** — derives a machine checklist from the configuration and reports what is missing, with install pointers. Advisory everywhere: it never blocks.
 
 ## Installing
 
-Adoption runs once, interactively: `seasoned-skills install`. It writes the configuration scaffold (asking for every option the rulings give no default), creates the committed artifacts, scaffolds the content files empty, builds the shaping corpus when this machine's cache is missing or stale (asking for the one commercial book, falling back to the distilled account), wires the sync into the prepare script, and finishes by running sync and doctor.
+Adoption runs once, interactively: `seasoned-skills install`. It writes the configuration scaffold (asking for every option the rulings give no default), creates the committed artifacts, builds the shaping corpus when this machine's cache is missing or stale (asking for the one commercial book, falling back to the distilled account), wires the sync into the prepare script, and finishes by running sync and doctor.
 
 The committed artifacts arrive as templates, and templates are all a CLI can write: seeding them is the adopting agent's work, because only reading the project answers what belongs in them. Seed the option-gated registers from what the project already carries — above all the coverage register, which starts as the list of surfaces its specs do not reach today — and the calibration file from whatever calibration text the project kept elsewhere. A register left at its template says the project has nothing to declare, which is almost never true.
 
@@ -33,8 +33,8 @@ Versions are exact-pinned; pre-1.0 releases may break in any release. An upgrade
 
 Sync fails loud and leaves the project in a deliberate degraded state: every generated file is deleted except this skill, and a minimal doctrine file carries the full error report with a standing order to repair before working. To repair:
 
-1. Read the error report — it lists every problem at once (invalid configuration values, missing content files), never just the first.
-2. Fix the configuration or add the named content files (empty is valid).
+1. Read the error report — it lists every problem at once (invalid configuration values, content the sync cannot use), never just the first.
+2. Fix the configuration, or fix every content entry the report names: rename it to the skill it belongs to, give it the `.md` extension, point a broken link back at its file, write the section it is missing (a file with no skill can move into a subdirectory, or go).
 3. Run `seasoned-skills sync` again; the workflow rematerializes completely.
 
 Never work around a failed sync by hand-writing generated files — fix the input and regenerate.

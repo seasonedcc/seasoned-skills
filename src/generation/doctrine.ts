@@ -8,12 +8,12 @@ import type { GeneratedFile, GenerationContext } from './types.js'
  * reads first. The project's own content leads — its identity, commands,
  * contracts, and domain facts, in its own order — and the workflow's generic
  * doctrine follows, with the options and criterion subjects deciding which
- * blocks weave in.
+ * blocks weave in. The project's content file is optional like every other:
+ * without it the generic doctrine stands alone.
  */
 export function composeDoctrine(context: GenerationContext): GeneratedFile {
   const { config, content } = context
-  const doctrineFile = content.files.get('doctrine')
-  if (!doctrineFile) throw new Error('doctrine content file is missing')
+  const doctrineFile = content.files.get('doctrine') ?? { body: '' }
   const { leading, reserved } = extractSections(
     doctrineFile.body,
     DOCTRINE_RESERVED_SECTIONS,

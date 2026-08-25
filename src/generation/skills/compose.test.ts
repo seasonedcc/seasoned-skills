@@ -41,10 +41,10 @@ describe('composeSkill', () => {
     expect(contents).toContain('## Where lessons go')
   })
 
-  it('throws when the content file is missing', () => {
-    expect(() => composeSkill('skill-management', makeContext(undefined))).toThrow(
-      'skill-management content file is missing',
-    )
+  it('composes without a content file — the project has nothing to add', () => {
+    const { contents } = composeSkill('skill-management', makeContext(undefined))
+    expect(contents).not.toContain('## Project specifics')
+    expect(contents).toContain('## Where lessons go')
   })
 })
 
@@ -70,13 +70,15 @@ describe('composeSkill reserved sections', () => {
     expect(contents).not.toContain('Level facts here.')
   })
 
-  it('throws when a required reserved section is absent', () => {
+  it('composes without a required section the content file does not carry', () => {
+    // Enforcing the declaration is the sync's input validation, never
+    // composition's: what composes here is a skill with an empty slot.
     const context = makeContext({ body })
-    expect(() =>
-      composeSkill('skill-management', context, {
-        reservedSections: [{ title: 'Time-zone model', token: 'tz', required: true }],
-      }),
-    ).toThrow('missing its required "Time-zone model" section')
+    const { contents } = composeSkill('skill-management', context, {
+      reservedSections: [{ title: 'Time-zone model', token: 'tz', required: true }],
+    })
+    expect(contents).toContain('General notes.')
+    expect(contents).toContain('Level facts here.')
   })
 })
 

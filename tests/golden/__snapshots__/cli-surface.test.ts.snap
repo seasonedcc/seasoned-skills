@@ -8,7 +8,7 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "sync",
     },
     {
-      "description": "Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default), the committed artifacts, and the empty content files, then the shaping corpus this machine still needs — finishing with a sync and a doctor report. Never overwrites what exists.",
+      "description": "Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default) and the committed artifacts, then the shaping corpus this machine still needs — finishing with a sync and a doctor report. Never overwrites what exists.",
       "name": "install",
     },
     {

@@ -1,6 +1,7 @@
 import { basename } from 'node:path'
 import { createInterface } from 'node:readline'
 import type { Readable, Writable } from 'node:stream'
+import { REGISTER_CONTENT_NAMES } from '../generation/skills/index.js'
 import type { InstallAnswers } from './install.js'
 
 export interface InterviewOptions {
@@ -140,11 +141,11 @@ export async function collectAnswers(
       answers.webSurface = {
         coverageRegister: await ask(
           'Path for the coverage register?',
-          `${contentDir}/coverage-register.md`,
+          `${contentDir}/${REGISTER_CONTENT_NAMES.coverageRegister}.md`,
         ),
         excusedSurfaces: await ask(
           'Path for the excused-surfaces list?',
-          `${contentDir}/excused-surfaces.md`,
+          `${contentDir}/${REGISTER_CONTENT_NAMES.excusedSurfaces}.md`,
         ),
       }
     }
@@ -152,7 +153,7 @@ export async function collectAnswers(
       answers.demoSeed = {
         seedManifest: await ask(
           'Path for the committed seed manifest?',
-          `${contentDir}/seed-manifest.md`,
+          `${contentDir}/${REGISTER_CONTENT_NAMES.seedManifest}.md`,
         ),
       }
     }
@@ -164,11 +165,11 @@ export async function collectAnswers(
       answers.machineSurface = {
         parityStandard: await ask(
           'Path for the capability-parity standard?',
-          `${contentDir}/parity-standard.md`,
+          `${contentDir}/${REGISTER_CONTENT_NAMES.parityStandard}.md`,
         ),
         exceptionRegister: await ask(
           'Path for the exception register?',
-          `${contentDir}/exception-register.md`,
+          `${contentDir}/${REGISTER_CONTENT_NAMES.exceptionRegister}.md`,
         ),
       }
     }

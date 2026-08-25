@@ -31,6 +31,8 @@ requests-from-meetings/assets/style.css
 shaping/assets/
 /demo-videos/*/*.mp4
 requests-from-meetings/config.local.json
+.claude/skills/prepare-for-compaction/
+.claude/skills/reground/
 # <<< seasoned-skills <<<
 
 # The golden tier snapshots a generated CLAUDE.md per fixture; those are committed evidence, not this project's own generated doctrine.
