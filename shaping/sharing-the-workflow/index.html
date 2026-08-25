@@ -108,8 +108,8 @@
           either running the workflow on their own project or asking questions that
           start where the writing ends &mdash; not questions the writing should have
           answered. And closer to home, the test that decides: a co-founder runs a full
-          working session &mdash; including judging when it is safe to compact the
-          agent&rsquo;s context and getting the agent regrounded afterwards &mdash;
+          working session &mdash; including spotting the right moment to compact
+          the agent&rsquo;s context and running the ritual that makes it safe &mdash;
           without asking the author anything. A peer installing the package unassisted
           is a delighted extra, not the bar: adoption depends on their own
           codebase&rsquo;s readiness, which this project does not control.
@@ -139,7 +139,7 @@
         </p>
         <p>
           The little hires are every return visit mid-work: a co-founder mid-session
-          wondering whether it is safe to compact the agent&rsquo;s context, someone
+          watching for the right moment to compact the agent&rsquo;s context, someone
           checking what a command does, someone halfway through adopting who needs to
           know what a configuration option assumes. Each of those moments has to
           answer in under a minute, or people fall back to asking the author &mdash;
@@ -170,7 +170,8 @@
           &mdash; no website, because the audience today is people we send the link
           to, not people who find us. A new <code>docs/</code> folder carries the body
           of it, and the README becomes the front door: it opens with what the
-          workflow is and the vision it serves, told plainly in the new voice, and
+          workflow is, the goals it serves today, and the vision it is building
+          toward, told plainly in the new voice, and
           then routes each reader by what they came for &mdash; understanding the way
           of working leads to the teaching material, adopting it leads to the
           readiness-and-install material the README already does well, and looking
@@ -243,13 +244,18 @@
 
         <h4>The teaching pages</h4>
         <p>
-          Two pages in <code>docs/</code> teach the way of working, one per reader
-          the framing named. <strong>The way of working</strong> is the narrative
+          Two pages in <code>docs/</code> teach the way of working: one narrative
+          for the reader meeting it whole, one manual for the person operating it.
+          <strong>The way of working</strong> is the narrative
           read whole: what happens from the moment an idea arrives to the moment it
-          ships, with the vision in its own words and the workflow&rsquo;s reasons
-          &mdash; the curated foundation agents build on, taste written into skills,
-          and care for the agent&rsquo;s context window &mdash; woven through as how
-          the workflow thinks, never as what it achieved.
+          ships, with the goals and the vision in their own words and the
+          workflow&rsquo;s reasons &mdash; the curated foundation agents build on,
+          everything that needs taste running on the one model that has it, with
+          that taste written into skills, and care for the agent&rsquo;s context
+          window &mdash; woven through as how
+          the workflow thinks, never as what it achieved. A worked example &mdash;
+          one project followed from idea to release &mdash; is welcome where the
+          writing calls for it, never required.
           <strong>Running a session</strong> is the human&rsquo;s manual, the piece
           that exists nowhere today: what the person actually does while agents work
           &mdash; decide, adjudicate, read the changes, merge &mdash; and above all
@@ -291,8 +297,9 @@
               so shaping now takes longer than building &mdash; betting changes and
               appetites lose their point (the departures the shaping practice
               already codifies). And self-improvement &mdash; deriving a finished
-              task&rsquo;s lessons and feeding them back &mdash; is part of every
-              task outside quick mode, automatic, never something the user starts.
+              work&rsquo;s lessons and feeding them back &mdash; runs without
+              anyone starting it: at the end of every task outside a goal, and
+              once per goal when the goal is met. Only quick mode skips it.
             </p>
           </div>
         </details>
@@ -331,11 +338,13 @@
               workflow you adopt and how much you shape and build.
             </p>
             <p>
-              <strong>The questions.</strong> The workflow makes the orchestrator
-              ask through questionnaires because only a questionnaire pauses the
-              goal loop &mdash; a plain question in conversation gets run over by
-              &ldquo;goal not met, continue.&rdquo; A well-shaped project asks
-              few; the person checks in from time to time to unblock.
+              <strong>The questions.</strong> Whenever the person may be away,
+              the workflow has the orchestrator ask through questionnaires,
+              because only a questionnaire pauses the goal loop &mdash; a plain
+              question in conversation gets run over by &ldquo;goal not met,
+              continue.&rdquo; At the keyboard and conversing, it is plain
+              conversation. A well-shaped project asks few questions either way;
+              the person checks in from time to time to unblock.
             </p>
             <p>
               And one discipline held as firmly as the three watches: never run or
@@ -354,6 +363,11 @@
             After the goal &mdash; verification and release, told honestly
           </summary>
           <div class="technical-body">
+            <p>
+              This contract splits across the two pages: the person&rsquo;s
+              after-goal procedure belongs to the manual; the release landscape
+              and the closed loop belong to the first page&rsquo;s arc and vision.
+            </p>
             <p>
               When the goal is marked achieved, verification leans on the demo
               videos first: generate them, watch the full walkthrough, and test by
@@ -396,10 +410,10 @@
           the orchestrator confirm its ledger is current and answer plainly whether
           it is safe to compact, the second has it reground from the ledger and the
           real sources of truth after a compaction. What the names buy is
-          discoverability: a newcomer learns the ritual by seeing two commands exist,
-          and the human&rsquo;s manual and the package teach the same rhythm in the
-          same words &mdash; spot the moment, prepare, compact, with the reground
-          message already queued.
+          discoverability: a newcomer learns the ritual by seeing two commands
+          exist, and the human&rsquo;s manual and the two skills name the same
+          commands and the same steps &mdash; spot the moment, prepare, compact,
+          reground &mdash; while the numbers and the why live in the manual alone.
         </p>
 
         <h4>The reference</h4>
@@ -427,9 +441,12 @@
               A hand-written reference drifts the first time a flag is added, so
               the defusal is a test, not discipline: a unit test enumerates the
               real surface &mdash; commands and flags from the CLI program itself,
-              configuration keys from the validation schema, the package&rsquo;s
-              programmatic exports (<code>defineConfig</code> and the stack-audit
-              helpers, which the configuration page also documents) &mdash; and
+              configuration keys from a key manifest this build adds and exports
+              beside the configuration types (today the keys live only in
+              hand-written validation code that nothing can enumerate), and the
+              package&rsquo;s programmatic exports (<code>defineConfig</code> and
+              the stack-audit helpers, which the configuration page also
+              documents) &mdash; and
               fails when any name is missing from the reference pages. The prose
               stays human; the names cannot silently rot. The test lands with this
               project, so the baseline includes the reference&rsquo;s integrity
@@ -572,7 +589,9 @@
         <ul class="no-gos">
           <li>
             No rewriting of the agent-facing content &mdash; the standing
-            instructions and the shipped skills keep their current language. Bringing
+            instructions and the shipped skills keep the language they have today;
+            the two new skills and the new Definition of Done criterion are
+            additions, not rewrites. Bringing
             the same plain-speech principles to them is a project of its own with its
             own constraints (a skill must also stay lean in the agent&rsquo;s
             context window), and it is coming later; the name
@@ -612,7 +631,7 @@ Build, in this repository, against main:
 
 1. The docs-copywriting skill: copy shaping/sharing-the-workflow/references/docs-copywriting/ verbatim to .claude/skills/docs-copywriting/, verify with diff -r, and commit it — never shipped with the package, never rewritten. It is already authored and approved; installing it is the whole task.
 
-2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description to the same line — then says what the workflow is and the vision it serves, and routes readers three ways: understand, adopt, look up.
+2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description to the same line — then says what the workflow is, the goals it serves today, and the vision it is building toward, and routes readers three ways: understand, adopt, look up.
 
 3. The docs/ folder: "The way of working", "Running a session", and "Adopting the workflow", plus docs/reference/ with its four pages — commands, configuration, what a project receives, the managed footprint. Every page written under the docs-copywriting skill, and every contract the document anchors to these pages satisfied in full.
 

@@ -1,6 +1,6 @@
 ---
 name: docs-copywriting
-description: Write human-facing prose for this repository in our voice — the README, every page under docs/, and any other copy a person reads. Use when writing or editing documentation, GitHub-facing text, or prose in release notes meant for human readers. (project)
+description: Write human-facing prose for this repository in our voice — the README, every page under docs/, and any other copy a person reads. Use when writing or editing documentation, GitHub-facing text, or prose in release notes meant for human readers.
 ---
 
 # Docs copywriting
@@ -46,7 +46,7 @@ Words from the workflow's internal dialect that never appear in human docs:
 
 When a dialect word carries a concept the docs genuinely need, keep the concept and teach it under a plain name with a first-use definition — never smuggle the word.
 
-Command names are the one exception: a command is called by its name, so write `seasoned-skills corpus` when naming the command — and call what it builds the reference library everywhere else.
+Literal identifiers are the one exception: command names, configuration keys, and exported symbols are written exactly as they are — `seasoned-skills corpus`, `webSurface` — and the concepts they carry get plain names in prose (the reference library, the web checks).
 
 ## Quick reference
 
