@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sharing the workflow — shaping document</title>
+    <link rel="stylesheet" href="../assets/document.css" />
+    <link rel="stylesheet" href="../assets/drawing/drawing.css" />
+    <script src="../assets/document.js"></script>
+    <script src="../assets/drawing/shaping-drawing.js"></script>
+  </head>
+  <body>
+    <div class="doc-bar">
+      <div class="doc-bar-inner">
+        <button
+          type="button"
+          class="tech-switch"
+          role="switch"
+          aria-checked="true"
+          data-technical-toggle
+        >
+          Technical details
+          <span class="tech-switch-track" aria-hidden="true">
+            <span class="tech-switch-thumb"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <main class="doc">
+      <!-- Part one: the title and the one-sentence essence. -->
+      <!-- Part two: the status — one bit, built or not. -->
+      <header class="masthead">
+        <p class="masthead-eyebrow">Shaping document</p>
+        <h1>Sharing the workflow</h1>
+        <p class="essence">
+          Make the workflow something a colleague can pick up and truly understand
+          &mdash; how to run it, why it works this way, and where it is going &mdash;
+          without its author in the room.
+        </p>
+        <!-- Flip data-built to "true" the day it ships. There is no third state. -->
+        <p class="status" data-built="false">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-label-unbuilt">Not built yet</span>
+          <span class="status-label-built">Built</span>
+        </p>
+      </header>
+
+      <!-- Part three: the framing. Plain words only — no system names, no table names,
+           no jargon. If a sentence needs the reader to know how software works, rewrite
+           it. The people who hold the business rules read this to tell us where we have
+           it wrong, before anything gets built. -->
+      <section class="part" id="framing">
+        <header class="part-header">
+          <p class="part-kicker">Why this matters</p>
+          <h2>The framing</h2>
+          <p class="part-note">
+            The problem this project sets out to solve, and how we will know it is
+            solved &mdash; told in the words of the people who live it.
+          </p>
+        </header>
+
+        <h3>The struggling moment</h3>
+        <p>
+          A peer from outside the company recently looked at
+          <a href="https://github.com/seasonedcc/discord-manager">one of our
+          open-source codebases</a>, built with this way of working, and asked how it
+          was possible. There was nothing to send him. The honest answer took a live
+          conversation, and it came in three parts: first, the agents build on a stack
+          and a set of patterns the author spent five years curating by hand before AI;
+          second, everything that needs taste runs on the one model that has it, and
+          that taste is written into the workflow&rsquo;s skills; third, the author is
+          paranoid about managing the agent&rsquo;s context window &mdash; the limited
+          space that holds everything the agent is working from at a given moment
+          &mdash; and that
+          paranoia, why it matters and how it is exercised, exists nowhere in writing.
+          The peer got a good conversation. He did not get anything he could read
+          again, go deeper on, or adopt &mdash; and the next person who asks will cost
+          the same conversation over again.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>How did you manage to have AI create such a good codebase?</p>
+          </blockquote>
+          <figcaption>A peer, in conversation with the author</figcaption>
+        </figure>
+
+        <h3>Today&rsquo;s way, and where it breaks</h3>
+        <p>
+          Today there is exactly one way to learn this way of working: its author
+          explains it, live, one person at a time. Nothing written stands in for that
+          conversation. The package&rsquo;s README speaks only to a reader adopting
+          the package &mdash; readiness, install, upgrade, and a bare list of
+          commands &mdash; and never says
+          what the workflow is as a way of working. Everything else in the repository is
+          written for the agents that execute the work, in a dialect tuned for machines,
+          not for a person reading over coffee. The workflow&rsquo;s goals live only
+          inside its founding shaping document, where no newcomer would think to look
+          &mdash; and the vision it is building toward had never been written down at
+          all, until this document stated it. So the people closest to it &mdash; the ones
+          already running it daily &mdash; operate it without grasping the full arc, and
+          anyone further out has no way in at all.
+        </p>
+
+        <h3>The outcome test</h3>
+        <p>
+          The next time someone asks how we did this, the answer is a link, not a
+          meeting. A peer with no context reads the material end to end and comes back
+          either running the workflow on their own project or asking questions that
+          start where the writing ends &mdash; not questions the writing should have
+          answered. And closer to home, the test that decides: a co-founder runs a full
+          working session &mdash; including spotting the right moment to compact
+          the agent&rsquo;s context and running the ritual that makes it safe &mdash;
+          without asking the author anything. A peer installing the package unassisted
+          is a delighted extra, not the bar: adoption depends on their own
+          codebase&rsquo;s readiness, which this project does not control.
+        </p>
+
+        <h3>Why now</h3>
+        <p>
+          The workflow just became a package anyone can install &mdash; and the circle
+          of people meeting it is widening right now. One co-founder already works in a
+          project that runs it daily; another, long used to working AI-first, is next;
+          and beyond them stand industry peers whose feedback would sharpen the workflow
+          while it is still young and cheap to change. None of them can be handed
+          anything today but a conversation. Every week without a written way in, the
+          author stays the only bridge &mdash; the exact failure the workflow itself was
+          built to end for code.
+        </p>
+
+        <h3>The big hire and the little hires</h3>
+        <p>
+          The big hire is the decision to sit down and read the whole thing. A peer
+          holding the link, or a co-founder told &ldquo;it is all written down
+          now,&rdquo; has to believe the reading will pay. What earns that belief is
+          the material itself &mdash; the project and the vision it serves, presented
+          plainly and well &mdash; never a claim about our results. The question that
+          sparked this project stays here, in this document: the written material
+          answers it without ever posing it, and it never boasts.
+        </p>
+        <p>
+          The little hires are every return visit mid-work: a co-founder mid-session
+          watching for the right moment to compact the agent&rsquo;s context, someone
+          checking what a command does, someone halfway through adopting who needs to
+          know what a configuration option assumes. Each of those moments has to
+          answer in under a minute, or people fall back to asking the author &mdash;
+          and the old way wins again. The two hires pull in different directions
+          &mdash; one wants a narrative read whole, the other a reference you can land
+          in the middle of &mdash; and the solution has to serve both rather than
+          average them into one document that does neither.
+        </p>
+      </section>
+
+      <!-- Part four: the shape. Still plain language, now about the solution. Drawings
+           stay lo-fi on purpose: enough to argue with, not enough to mistake for a
+           design. Technical detail belongs in a <details class="technical" open> note beside
+           the thing it defines — never gathered into a technical section. -->
+      <section class="part" id="shape">
+        <header class="part-header">
+          <p class="part-kicker">What we will build</p>
+          <h2>The shape</h2>
+          <p class="part-note">
+            The solution at the level of what people see and do. The drawings are rough
+            sketches of how it works, not of how it will look.
+          </p>
+        </header>
+
+        <h3>In plain language</h3>
+        <p>
+          All the written material lives in this repository, readable right on GitHub
+          &mdash; no website, because the audience today is people we send the link
+          to, not people who find us. A new <code>docs/</code> folder carries the body
+          of it, and the README becomes the front door: it opens with what the
+          workflow is, the goals it serves today, and the vision it is building
+          toward, told plainly in the new voice, and
+          then routes each reader by what they came for &mdash; understanding the way
+          of working leads to the teaching material, adopting it leads to the
+          readiness-and-install material the README already does well, and looking
+          something up leads to the reference. One file could never serve both hires;
+          the front door plus the folder serves each without averaging them.
+        </p>
+
+        <h4>The tagline</h4>
+        <p>
+          One line names the project everywhere a stranger first meets it, set as
+          the GitHub repository description, set as the package&rsquo;s own
+          description on the npm registry, and opening the README:
+          <strong>&ldquo;Seasoned&rsquo;s skills to orchestrate the full product
+          cycle with AI agents&rdquo;</strong>. It states the future the workflow is
+          building toward, not only what exists today, and its double meaning is
+          deliberate: the package ships skills, and the company&rsquo;s accumulated
+          craft is the other kind. The npm registry also renders the README on the
+          package page; the tagline is what we promise there, and the front
+          door&rsquo;s links are polished for GitHub, the surface we actually
+          send people to.
+        </p>
+
+        <h4>The voice: a <code>docs-copywriting</code> skill</h4>
+        <p>
+          Every human-facing page is written under one guide: a skill named
+          <code>docs-copywriting</code>, committed in this repository and never
+          shipped with the package &mdash; the voice of our documentation is ours,
+          not something every adopting project inherits. The register it sets: a
+          developer sharing what they know with a peer, plainly and warmly &mdash;
+          not a company presenting, and never a system talking to itself. Because
+          this voice is the project&rsquo;s biggest risk, the skill was not left
+          for the build to write: it is already authored in full, in this
+          project&rsquo;s <code>references/docs-copywriting/</code> folder, adapted
+          from a battle-tested guide and reviewed before this document was
+          approved. The build copies it into place verbatim.
+        </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The rules the authored skill carries
+          </summary>
+          <div class="technical-body">
+            <p>
+              The mechanics that traveled from the battle-tested guide: sentence
+              case for every title and heading; specific over vague; problem
+              before solution; the banned corporate jargon list (leverage,
+              seamless, robust, best-in-class, and kin); em dashes spaced and
+              rationed to one or two per page; short declarative sentences
+              followed by longer explanations; fragments and rhetorical questions
+              used sparingly. Left behind: every product-specific layer &mdash;
+              speed messaging, calls to action, pricing and onboarding copy,
+              audience templates.
+            </p>
+            <p>
+              Written new for this repo: no AI dialect &mdash; words like
+              &ldquo;load-bearing&rdquo;, &ldquo;binding&rdquo;,
+              &ldquo;doctrine&rdquo;, &ldquo;surface&rdquo;, and
+              &ldquo;charter&rdquo; do not survive into human docs, and the skill
+              carries a translation table from workflow dialect to plain speech;
+              every term of art the docs genuinely need is defined the first time a
+              reader meets it; honesty about unsettled practice; and the docs never
+              boast &mdash; the work speaks, the copy does not point at it.
+            </p>
+            <p>
+              The authored skill in <code>references/docs-copywriting/</code> is
+              the single source: <code>SKILL.md</code> plus
+              <code>references/voice-guide.md</code>. The build installs it at
+              <code>.claude/skills/docs-copywriting/</code> by verbatim copy,
+              verified with <code>diff -r</code>, and never rewrites it.
+            </p>
+          </div>
+        </details>
+
+        <h4>The teaching pages</h4>
+        <p>
+          Two pages in <code>docs/</code> teach the way of working: one narrative
+          for the reader meeting it whole, one manual for the person operating it.
+          <strong>The way of working</strong> is the narrative
+          read whole: what happens from the moment an idea arrives to the moment it
+          ships, with the goals and the vision in their own words &mdash; the
+          goals condensed from the founding shaping document at
+          <code>shaping/one-workflow/index.html</code>, the vision said from the
+          passage this document rules complete &mdash; and the
+          workflow&rsquo;s reasons: the curated foundation agents build on,
+          everything that needs taste running on the one model that has it, with
+          that taste written into skills, and care for the agent&rsquo;s context
+          window &mdash; woven through as how
+          the workflow thinks, never as what it achieved. A worked example &mdash;
+          one project followed from idea to release &mdash; is welcome where the
+          writing calls for it, never required.
+          <strong>Running a session</strong> is the human&rsquo;s manual, the piece
+          that exists nowhere today: what the person actually does while agents work
+          &mdash; decide, adjudicate, read the changes, merge &mdash; and above all
+          how to manage the agent&rsquo;s context window: why letting it fill quietly
+          degrades the work, how to see that coming, and how the two new
+          skills below fit the rhythm. A third page,
+          <strong>Adopting the workflow</strong>, receives the readiness checklist,
+          the install walkthrough, the reference-library setup, and the
+          staying-current guidance the README carries today, rewritten in the
+          voice, so the README can become a true front door. The README&rsquo;s
+          commands table folds into the reference&rsquo;s commands page, and what
+          its closing section says about this repository folds into the front door
+          itself &mdash; every section the README carries today lands in a named
+          home.
+        </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            How work enters the system &mdash; the map the first page teaches
+          </summary>
+          <div class="technical-body">
+            <p>
+              The premise is Shape Up&rsquo;s: well-planned bigger batches beat a
+              treadmill of tasks. Work is deliberately batched up into
+              shaped projects rather than broken down into tasks. Two entry points
+              feed shaping: a raw idea brought straight to a shaping session, and
+              meeting recordings &mdash; one or a batch, sometimes joined by
+              existing issues &mdash; parsed into request documents that become
+              shaping raw material.
+            </p>
+            <p>
+              Exactly two kinds of work skip shaping. Urgent fixes &mdash; the
+              Andon cord, in the Lean Manufacturing sense &mdash; run as tasks with
+              full rigor: the complete Definition of Done and full orchestration,
+              no shaping. And quick mode, explicitly invoked by the user: small
+              polish to work already done, exactly as the shipped quick skill
+              qualifies it today. Everything else goes through
+              shaping.
+            </p>
+            <p>
+              Where we part from Shape Up, the page says so plainly: agents do the
+              building, so build time is no longer the scarce ingredient and
+              appetites are dropped; betting is gone too, because opening a shaping
+              session is itself the decision to do the project; and shaping now
+              takes longer than building (the departures the shaping practice
+              already codifies, each with its own reason). The page is also the
+              first written home of this map &mdash; today it exists only in
+              practice and in this document. And self-improvement &mdash; deriving a finished
+              work&rsquo;s lessons and feeding them back &mdash; runs without
+              anyone starting it: at the end of every task outside a goal, and
+              once per goal when the goal is met. Only quick mode skips it.
+            </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The three watches &mdash; the second page&rsquo;s spine
+          </summary>
+          <div class="technical-body">
+            <p>
+              A shaped project&rsquo;s build always starts the same way: typing
+              <code>/goal</code> plus the goal text pasted from the document. From
+              that moment the person&rsquo;s whole job is three watches, and they
+              are away from the keyboard for most of the effort &mdash; the craft
+              is knowing which moments not to miss. The manual says plainly where
+              <code>/goal</code> comes from &mdash; it is the coding
+              harness&rsquo;s own feature, not something this package ships &mdash;
+              and the adoption page lists it among what the workflow assumes about
+              the reader&rsquo;s setup.
+            </p>
+            <p>
+              <strong>The context window.</strong> Once the orchestrator&rsquo;s
+              context passes roughly 22% full &mdash; a little before the context
+              bar in the status line turns yellow &mdash; start looking for a
+              moment to compact without interrupting much, usually while it waits
+              on its subagents. Once it passes roughly a third full
+              (33&ndash;36%, the bar red), interrupt and compact anyway. The
+              numbers are ballpark; the gesture is what matters: start hunting
+              for the moment before the bar turns yellow, and never let it sit
+              red. The manual also names why this watch belongs to the person at
+              all: the package switches the harness&rsquo;s automatic compaction
+              off in every project it manages, so the compaction the person runs
+              is the only compaction there is. The ritual: ask whether the ledger is
+              up to date (<code>/prepare-for-compaction</code>); when the
+              orchestrator answers that it is safe, compact, and immediately queue
+              the next message &mdash; &ldquo;Please reground after
+              compaction&rdquo; (<code>/reground</code>) &mdash; so regrounding
+              fires the instant compaction ends, even with nobody in the room.
+            </p>
+            <p>
+              <strong>The usage limits.</strong> Watch the subscription&rsquo;s
+              limit approaching; when it nears, open a second session in another
+              tab and log in to another subscription. Stated honestly in the docs:
+              this way of working is token-intensive &mdash; plan on more than one
+              top-tier subscription and learn your own number from how much of the
+              workflow you adopt and how much you shape and build.
+            </p>
+            <p>
+              <strong>The questions.</strong> Whenever the person may be away,
+              the workflow has the orchestrator ask through questionnaires,
+              because only a questionnaire pauses the goal loop &mdash; a plain
+              question in conversation gets run over by &ldquo;goal not met,
+              continue.&rdquo; At the keyboard and conversing, it is plain
+              conversation. A well-shaped project asks few questions either way;
+              the person checks in from time to time to unblock.
+            </p>
+            <p>
+              And one discipline held as firmly as the three watches: never run or
+              test the product mid-effort, and never micromanage the orchestrator.
+              Test only after the goal is marked achieved. When the result misses
+              expectations, the lesson usually belongs to the next shaping session
+              &mdash; though degraded model service happens too, so judge
+              carefully what actually went wrong.
+            </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            After the goal &mdash; verification and release, told honestly
+          </summary>
+          <div class="technical-body">
+            <p>
+              This contract splits across the two pages: the person&rsquo;s
+              after-goal procedure belongs to the manual; the release landscape
+              and the closed loop belong to the first page&rsquo;s arc and vision.
+            </p>
+            <p>
+              When the goal is marked achieved, verification leans on the demo
+              videos first: generate them, watch the full walkthrough, and test by
+              hand only what feels off. A full demo that plays well means the
+              process held &mdash; move toward deployment. Running the project
+              locally happens sometimes, but the lean is videos first.
+            </p>
+            <p>
+              Shipping today usually means a GitHub release &mdash; the default
+              branch is not production. The practice around environments is in
+              motion: the likely near-term model is three tiers (everything on the
+              default branch, a staging that takes an explicit action, and a
+              production cut by release), wanted because the more the agents build
+              alone, the more stakeholders need a place to try the work before it
+              ships. And even that may be superseded: the aim further out is a
+              closed loop &mdash; observing the running product, users asking the
+              AI about it and sending feedback through it, progressive rollout
+              behind feature flags &mdash; where data from the outside world opens
+              the next shaping session directly, instead of server environments
+              standing in as approval gates. That closed loop belongs in the
+              vision passages of the first page.
+            </p>
+            <p>
+              The ruling for the docs: present release as an area with more than
+              one right way &mdash; describe today&rsquo;s practice, mark the
+              frontier as evolving, and never teach an unsettled rule as settled.
+            </p>
+          </div>
+        </details>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The vision, stated once &mdash; the passage the docs are written from
+          </summary>
+          <div class="technical-body">
+            <p>
+              The vision has lived only in its author&rsquo;s head until now; this
+              is its first written statement, ruled complete, and the first
+              teaching page and the README&rsquo;s front door say it from here
+              rather than assembling it from fragments. It is written under the
+              <code>docs-copywriting</code> skill, because the docs will carry it
+              nearly as is:
+            </p>
+            <p>
+              We are building toward one thing: AI agents doing all the work of
+              product development. Pulling requirements out of meetings, issues,
+              user feedback, and the running product&rsquo;s behavior. Shaping, building,
+              releasing, and watching what ships. Today we still bring the ideas
+              and rule on the quality. Real autonomy means agents decide what to
+              shape and shape it themselves, then decide what ships, to which
+              audience, and how fast the rollout goes. Feedback from the outside
+              world &mdash; the running product observed, users talking to the AI
+              itself &mdash; starts the next shaping session on its own. Two
+              doors stay open to us for good: anyone can start a shaping session,
+              and every shaping document waits for human review before the build
+              starts. But coming up with the work stops being something only we
+              do.
+            </p>
+          </div>
+        </details>
+
+        <h4>Two tiny skills: <code>/prepare-for-compaction</code> and <code>/reground</code></h4>
+        <p>
+          The compaction ritual gets two named commands, shipped with the package to
+          every project and meant to be typed by the person, not the agent &mdash;
+          each skill&rsquo;s own description says so, so an agent never loads them
+          on its own. They are
+          deliberately almost nothing: today, plainly asking &ldquo;Is your ledger
+          up to date? I want to compact your context now&rdquo; and &ldquo;Please
+          reground yourself after compaction&rdquo; already works perfectly, because
+          the standing instructions teach the orchestrator what each one demands. So
+          each skill is essentially that sentence with a name &mdash; the first has
+          the orchestrator make sure its ledger is current, updating it on the
+          spot when it is not, and then answer plainly that compacting is safe,
+          the second has it reground from the ledger and the
+          real sources of truth after a compaction. The manual tells the same
+          story from the person&rsquo;s side: prepare, wait for the safe answer,
+          compact. What the names buy is
+          discoverability: a newcomer learns the ritual by seeing two commands
+          exist, and the human&rsquo;s manual and the two skills name the same
+          commands and the same steps &mdash; spot the moment, prepare, compact,
+          reground &mdash; while the numbers and the why live in the manual alone.
+        </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            Content files become optional &mdash; so the upgrade costs nothing
+          </summary>
+          <div class="technical-body">
+            <p>
+              Every generated skill reads an optional per-project content file
+              &mdash; extra instructions the project may add &mdash; but today the
+              package requires the file to exist even when empty. Adding a skill
+              therefore breaks every project&rsquo;s next sync until it commits an
+              empty file, and consuming projects accumulate rows of zero-byte
+              files. This build makes every content file optional, the doctrine
+              file included: a missing file simply means the project has nothing
+              to add. The one protection the loud failure gave by accident &mdash;
+              a misnamed file getting noticed &mdash; is replaced by a better one:
+              sync fails when the content folder&rsquo;s top level &mdash; the
+              only place content loads from &mdash; holds a markdown file matching
+              no known name, so authored instructions can never silently fail to
+              load. The known names are the content files of every skill the
+              package can generate &mdash; enabled or not, so turning an option
+              off never breaks a sync over the files it leaves behind &mdash; plus
+              the doctrine file and any file the configuration itself points into
+              the folder; the calibration file already lives there today. With that, the two new skills ship with no migration step, and
+              every consuming project may delete its empty files.
+            </p>
+          </div>
+        </details>
+
+        <h4>The reference</h4>
+        <p>
+          The little hires get four pages under <code>docs/reference/</code>, each
+          answering in under a minute: the commands (all seven, every flag &mdash;
+          several exist today only in <code>--help</code> and the source); the
+          configuration file, key by key, with a real example (today no page
+          documents it key by key &mdash; the README covers a handful of options,
+          and the complete schema lives only as comments beside the source
+          types); what a project receives &mdash; the
+          generated files, the skills by tier with one line each, and what stays
+          committed versus generated; and the managed footprint &mdash; the settings
+          the package enforces, the ignore entries it maintains, the one script it
+          wires. All of it written by hand, in the voice: generated reference prose
+          would read like a manual page, and the mid-work reader deserves better.
+        </p>
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The reference cannot rot &mdash; enforced by machinery and by the
+            Definition of Done
+          </summary>
+          <div class="technical-body">
+            <p>
+              A hand-written reference drifts the first time a flag is added, so
+              the defusal is a test, not discipline: a unit test enumerates the
+              real surface &mdash; commands and flags from the CLI program itself,
+              configuration keys from a key manifest this build adds and exports
+              beside the configuration types (today the keys live only in the
+              exported types, which nothing can enumerate at runtime; the
+              hand-written validator covers only part of them), and the
+              package&rsquo;s runtime exports (<code>defineConfig</code> belongs
+              to the configuration page; the stack-audit helpers to the
+              what-a-project-receives page, beside the generated skills that teach
+              them) &mdash; and
+              fails in both directions: when any real name is missing from the
+              reference pages, and when the pages still name a command, flag,
+              key, or export that no longer exists. The manifest reaches the
+              complete schema &mdash; every nested key, down through
+              provisioning&rsquo;s resources and the criterion injections &mdash;
+              not just the top level, and the configuration page documents the
+              same full depth. It
+              complements the existing golden snapshot of the command surface
+              rather than replacing it: the snapshot keeps pinning command names
+              and descriptions, while this test ties the full surface &mdash;
+              flags, keys, and exports included &mdash; to the docs. The prose
+              stays human; the names cannot silently rot. The test lands with this
+              project, so the baseline includes the reference&rsquo;s integrity
+              from day one.
+            </p>
+            <p>
+              Alongside the test, this repository&rsquo;s Definition of Done gains
+              a standing criterion: documentation is kept current in the same task
+              that changes behavior &mdash; a change to a command, a configuration
+              key, the generated output, or the way of working itself is not done
+              until the docs say so too. Its declared backing: the enumeration
+              test for the name-level half, the review loop&rsquo;s conventions
+              pass for the prose. Under quick mode the criterion is kept,
+              not reduced or excluded: a quick polish that renames a flag or
+              tweaks behavior still updates the reference in the same task, since
+              a minute of docs work is proportionate to a quick fix and the
+              alternative is the exact rot this project exists to prevent.
+            </p>
+          </div>
+        </details>
+
+        <h3>Walkthrough</h3>
+        <p>
+          The framing&rsquo;s story, replayed with everything above in place.
+        </p>
+        <ol class="walkthrough">
+          <li>
+            <p>
+              A peer looks at one of our open-source codebases and asks how it was
+              possible. This time the answer is a link.
+            </p>
+          </li>
+          <li>
+            <p>
+              The README opens with the tagline and what the workflow is &mdash;
+              plainly, nothing pointing at results. The peer recognizes the answer
+              to their own question without it ever being posed, and follows the
+              route for understanding the way of working.
+            </p>
+          </li>
+          <li>
+            <p>
+              They read the first teaching page whole: why bigger, well-shaped
+              batches beat a treadmill of tasks; how an idea &mdash; raw, or
+              distilled from meetings &mdash; becomes a shaping document, a goal,
+              and a build agents execute end to end; where release practice stands
+              today and where the closed loop is headed.
+            </p>
+          </li>
+          <li>
+            <p>
+              They read the human&rsquo;s manual: the three watches, and the
+              compaction ritual &mdash; spot the moment, prepare, compact, with the
+              reground message already queued.
+            </p>
+          </li>
+          <li>
+            <p>
+              They come back with questions that start where the writing ends
+              &mdash; or with their own project, following the adoption page and
+              landing mid-reference for a flag or a configuration key, each lookup
+              under a minute.
+            </p>
+          </li>
+          <li>
+            <p>
+              Closer to home, a co-founder mid-goal watches the context bar climb
+              toward yellow, waits for the orchestrator&rsquo;s subagents to be
+              busy, runs the ritual, and never messages the author. The struggling moment
+              replays with the better ending on both fronts.
+            </p>
+          </li>
+        </ol>
+
+        <h3>Time bombs</h3>
+        <p>
+          The places where this could blow up mid-build. Each one is defused here, in
+          this document, before the build starts.
+        </p>
+        <dl class="time-bombs">
+          <dt>The reference rots the first time a flag is added.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Machinery, not discipline: the enumeration test in the
+            reference&rsquo;s contract fails the gates when any real command,
+            flag, configuration key, or export is missing from the pages, and the
+            new Definition of Done criterion makes docs-currency part of every
+            task that changes behavior.
+          </dd>
+          <dt>
+            The two sides of the compaction ritual drift apart &mdash; the
+            human&rsquo;s manual and the agent-facing instructions describing the
+            same rhythm in two places until they disagree.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            One fact, one home. The human&rsquo;s numbers &mdash; the 22% watch,
+            the 33&ndash;36% interrupt &mdash; live only in the human&rsquo;s
+            manual, because the human owns the meter. The agent-side prose owns
+            the ledger and regrounding behavior. The two tiny skills are the
+            shared vocabulary each side names instead of restating the other.
+          </dd>
+          <dt>
+            The voice starts from scratch and loses years of hard-won
+            copywriting &mdash; an adaptation written mid-build, without the
+            author&rsquo;s eye, drifts from the voice that actually works.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            Defused before the build starts: the complete skill is already
+            authored in <code>references/docs-copywriting/</code>, first as a
+            verbatim copy of the battle-tested guide, then edited in reviewable
+            steps, and approved by the author as part of approving this
+            document. The build copies it into place and never rewrites it.
+          </dd>
+          <dt>
+            AI dialect creeps back in &mdash; agents write these docs, and the
+            dialect is their native register.
+          </dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            <code>docs-copywriting</code> is committed in this repository, and
+            this repository&rsquo;s own standing-instructions content names it as
+            the guide every human-facing page is written under &mdash; the wiring
+            that lets the review loop&rsquo;s conventions pass quote it against
+            every docs diff. The translation table then makes violations
+            mechanical to spot rather than a matter of taste.
+          </dd>
+          <dt>An unsettled rule gets taught as settled.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            The release-area ruling in the after-the-goal contract: describe
+            today&rsquo;s practice, mark the frontier as evolving, never promote a
+            direction into doctrine.
+          </dd>
+          <dt>The vision reads as boasting at tagline altitude.</dt>
+          <dd>
+            <span class="solution-label">How we defuse it</span>
+            The framing&rsquo;s ruling &mdash; the docs answer the peer&rsquo;s
+            question without ever posing it &mdash; enforced by the same
+            conventions pass, with the no-go below removing the structural
+            temptation.
+          </dd>
+        </dl>
+
+        <h3>No-gos</h3>
+        <p>Things this project deliberately does not do, so nobody has to wonder.</p>
+        <ul class="no-gos">
+          <li>
+            No rewriting of the agent-facing content &mdash; the standing
+            instructions and the shipped skills keep the language they have today;
+            the two new skills and the new Definition of Done criterion are
+            additions, not rewrites. Bringing
+            the same plain-speech principles to them is a project of its own with its
+            own constraints (a skill must also stay lean in the agent&rsquo;s
+            context window), and it is coming later; the name
+            <code>docs-copywriting</code> deliberately leaves room for that sibling.
+          </li>
+          <li>
+            No website and no public promotion &mdash; the material is written to be
+            read on GitHub by people we send the link to. A public face is a future
+            project.
+          </li>
+          <li>
+            No case studies, benchmarks, or showcase sections &mdash; the no-boast
+            rule stated structurally, so a &ldquo;who uses this&rdquo; page cannot
+            appear later without reopening this shape.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Part five: the goal. Technical — the toggle hides this whole section. Keep
+           the text under 4,000 characters; the meter tracks it. -->
+      <section class="part technical-section" id="goal">
+        <header class="part-header">
+          <p class="part-kicker">How the build starts</p>
+          <h2>The goal</h2>
+          <p class="part-note">
+            The text that ignites the build, ready to paste, with a live count against
+            its 4,000-character limit.
+          </p>
+        </header>
+
+        <div class="goal" data-goal>
+<pre class="goal-text" data-goal-text>Make the workflow something a colleague can pick up and truly understand — how to run it, why it works this way, and where it is going — without its author in the room.
+
+Your first instruction: read shaping/sharing-the-workflow/index.html in full, every technical note open. It is the single source of truth for this build; where anything else disagrees with it, the document wins.
+
+Build, in this repository, against main:
+
+1. The docs-copywriting skill: copy shaping/sharing-the-workflow/references/docs-copywriting/ verbatim to .claude/skills/docs-copywriting/, verify with diff -r, and commit it — never shipped with the package, never rewritten. It is already authored and approved; installing it is the whole task.
+
+2. The README as front door: it opens with the tagline "Seasoned's skills to orchestrate the full product cycle with AI agents" — set the GitHub repository description and package.json's description to the same line — then says what the workflow is, the goals it serves today, and the vision it is building toward, and routes readers three ways: understand, adopt, look up.
+
+3. The docs/ folder: "The way of working", "Running a session", and "Adopting the workflow", plus docs/reference/ with its four pages — commands, configuration, what a project receives, the managed footprint. Every page written under the docs-copywriting skill, and every contract the document anchors to these pages satisfied in full.
+
+4. The two package skills, /prepare-for-compaction and /reground, in the core tier every project receives, as thin as the document rules them. Per the content-files contract, make every project content file optional — missing means nothing to add — with sync failing on unrecognized names instead.
+
+5. The reference enumeration test wired into the unit gates, and the documentation-currency criterion added to this repository's Definition of Done through its own configuration and content.
+
+Done means:
+
+- The document's outcome test is the bar the material must be written to: a reader with no context gets the full arc from the docs alone, and a person running a session finds every gesture the manual promises.
+- The walkthrough replays in the shipped material, step by step.
+- The closing audit runs as part of this goal, never as a follow-up: audit the complete implementation against the document, section by section — every element, every contract, every time bomb defusal, every no-go — and fix every shortfall before calling the goal met.
+
+Constraints: the no-gos are binding — no rewriting of agent-facing content, no website or public promotion, no case studies, benchmarks, or showcase sections. When the work ships, flip the document's built bit to true.</pre>
+          <div class="goal-footer">
+            <div class="goal-meter" aria-hidden="true">
+              <div class="goal-meter-fill" data-goal-meter-fill></div>
+            </div>
+            <p class="goal-count" data-goal-count aria-live="polite"></p>
+            <button type="button" class="goal-copy" data-goal-copy>Copy</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
