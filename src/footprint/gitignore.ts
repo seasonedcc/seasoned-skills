@@ -49,10 +49,9 @@ export function isEffectivelyIgnored(projectRoot: string, path: string): boolean
 }
 
 /**
- * A glob entry stands for a family of files rather than one path, and
- * `git check-ignore` answers about pathnames — asked about a glob it fails
- * outright. Glob entries are therefore listed unconditionally and never
- * verified; the paths beside them still are.
+ * A glob entry stands for a family of files rather than one path, so there is
+ * no real pathname to ask `git check-ignore` about. Glob entries are therefore
+ * listed unconditionally and never verified; the paths beside them still are.
  */
 function isGlob(entry: string): boolean {
   return entry.includes('*')

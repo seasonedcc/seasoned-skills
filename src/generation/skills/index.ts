@@ -141,6 +141,9 @@ export function composeSkills(context: GenerationContext): GeneratedFile[] {
   )
 }
 
+/** Every practice skill the package can generate, whatever a project enables. */
+export const SKILL_NAMES = ROSTER.map((entry) => entry.name)
+
 /**
  * The register file every option-gated declaration defaults to, named where
  * both the install interview and the content guard can read it. The names stay
@@ -166,7 +169,7 @@ export const REGISTER_CONTENT_NAMES = {
 export function knownContentNames(config: SeasonedSkillsConfig): string[] {
   return [
     'doctrine',
-    ...ROSTER.map((entry) => entry.name),
+    ...SKILL_NAMES,
     ...Object.values(REGISTER_CONTENT_NAMES),
     ...configuredContentNames(config),
   ]
