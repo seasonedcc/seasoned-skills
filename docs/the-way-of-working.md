@@ -98,7 +98,7 @@ Everything else goes through shaping.
 Three departures, each with its own reason.
 
 - **Appetites are dropped.** In Shape Up, an appetite caps how much time
-  a project is worth before shaping begins. Agents do the building now,
+  a project is worth. Agents do the building now,
   so build time is no longer the scarce ingredient the appetite existed
   to ration.
 - **Betting is gone.** Shape Up pools shaped pitches and bets on a few of

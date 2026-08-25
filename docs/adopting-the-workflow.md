@@ -72,7 +72,7 @@ must meet per enabled option:
 - the **gate jobs**: the lint, typecheck, and test commands your
   configuration declares, each a required check;
 - the **end-to-end job** where `webSurface` is on, the acceptance gate
-  the Definition of Done reads before a change counts as done;
+  the workflow reads before a change counts as done;
 - the **seed-manifest job** where `demoSeed` is on, the check that fails
   a user-facing screen nobody claimed a seed section for.
 

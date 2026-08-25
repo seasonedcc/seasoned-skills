@@ -5,7 +5,8 @@ actually do in between: the handful of moments a build genuinely needs a
 person, and how to spot them without hovering.
 
 A build starts by typing `/goal` followed by the goal text pasted from the
-shaping document. `/goal` is a feature of Claude Code, the coding tool the
+shaping document, the written project described in
+[The way of working](the-way-of-working.md). `/goal` is a feature of Claude Code, the coding tool the
 workflow runs in; this package does not ship it. From that moment your
 whole job is three watches. You are away from the keyboard for most of the
 effort, and the craft is knowing which moments not to miss.
