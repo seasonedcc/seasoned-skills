@@ -28,3 +28,7 @@ This repo is public. The workflow here is developed against private reference pr
 ## Human-facing pages follow the docs-copywriting skill
 
 Every page written for people rather than agents — the README, everything under `docs/`, and any other human-facing prose — is written under the committed skill at `.claude/skills/docs-copywriting/`. Load it before writing or reviewing such a page: it is the binding voice guide, and its translation table makes dialect violations mechanical to spot, so the review loop's conventions pass quotes it against every docs diff.
+
+## Fast-forward main from the main checkout
+
+After a merge, the default branch fast-forwards in the repo's main checkout — `cd` there explicitly before `git merge --ff-only origin/main`. Run inside a lane worktree, the same command moves the lane's branch onto the merge commit instead of advancing main; that happened twice in one session before this rule was written down.
