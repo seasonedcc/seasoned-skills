@@ -23,10 +23,15 @@ import { loadFixture } from '../golden/helpers.js'
  * The reference pages are written by hand, so nothing but a test keeps the
  * names on them true. Every name the package really has — commands, flags,
  * positional arguments, configuration keys, runtime exports, generated skills,
- * generated paths, and the managed footprint — is enumerated from the thing
- * itself and matched against what the pages document, in both directions: a
- * name the pages miss fails, and so does a name they still carry after the
- * package dropped it.
+ * every path a sync writes, and the whole managed footprint — is enumerated
+ * from the thing itself and matched against what the pages document. Most of
+ * them run in both directions: a name the pages miss fails, and so does a name
+ * they still carry after the package dropped it.
+ *
+ * The two the pages carry in prose rather than in a table run one way only. A
+ * command's positional arguments and the names of the exported types have to
+ * appear where a reader would look for them; a name the package drops while
+ * the prose keeps promising it is left to the review pass.
  *
  * The pages hold their names in tables whose first column is labelled for the
  * kind it lists — Command, Flag, Key, Export, Skill, File, Setting, Hook,
@@ -90,12 +95,15 @@ describe('the reference pages', () => {
   it("documents every positional argument, in its own command's section", () => {
     const program = buildProgram()
     const sections = sectionsIn(pageSource('commands'))
+    const checked: string[] = []
     for (const command of program.commands) {
       const section = sections.get(`${program.name()} ${command.name()}`) ?? ''
       for (const argument of command.registeredArguments) {
         expect(section).toContain(argumentToken(argument))
+        checked.push(argument.name())
       }
     }
+    expect(checked).not.toEqual([])
   })
 
   it('documents every configuration key, at full depth', () => {
@@ -108,7 +116,9 @@ describe('the reference pages', () => {
 
   it('documents every type the package exports', () => {
     const page = pageSource('what-a-project-receives')
-    for (const name of exportedTypeNames()) {
+    const names = exportedTypeNames()
+    expect(names).not.toEqual([])
+    for (const name of names) {
       expect(page).toContain(`\`${name}\``)
     }
   })
@@ -225,6 +235,8 @@ function exportedTypeNames(): string[] {
   )
 }
 
+const KEPT_AS_WRITTEN = 'the value the project already had'
+
 /**
  * Every setting sync enforces, named the way the page names it: a key whose
  * value a merge overwrites whatever the file already held. `$schema` is filled
@@ -232,8 +244,6 @@ function exportedTypeNames(): string[] {
  * prose; the permissions block is named by the one key inside it the package
  * manages, since the rest of the block is the project's own.
  */
-const KEPT_AS_WRITTEN = 'the value the project already had'
-
 function enforcedSettingNames(): string[] {
   const managed = mergeManagedSettings({})
   const afterExisting = mergeManagedSettings(
@@ -261,28 +271,32 @@ function perSkillFolder(entry: string): string {
   return /^\.claude\/skills\/[^/]+\/$/.test(entry) ? '.claude/skills/<name>/' : entry
 }
 
+/** The rows on "What a sync generates" that name one file each. */
+const DOCUMENTED_FILES = [
+  'CLAUDE.md',
+  MANIFEST_PATH,
+  '.claude/statusline.sh',
+  '.claude/skills/subagents/scripts/watchdog.py',
+  '.claude/skills/requests-from-meetings/scripts/verify.py',
+  'requests-from-meetings/assets/style.css',
+]
+
+/** The rows that name a whole directory, most specific first. */
+const DOCUMENTED_DIRECTORIES = [
+  '.claude/hooks/',
+  '.claude/skills/demo-videos/scripts/',
+  '.claude/skills/shaping/references/',
+  'shaping/assets/',
+]
+
 /**
  * The row on "What a sync generates" that accounts for a generated path, or
  * nothing at all. Every path has to land on a row, so a path the pages never
  * mention fails the gate instead of disappearing into a neighbouring prefix.
  */
 function rowCovering(path: string): string | undefined {
-  const named = [
-    'CLAUDE.md',
-    MANIFEST_PATH,
-    '.claude/statusline.sh',
-    '.claude/skills/subagents/scripts/watchdog.py',
-    '.claude/skills/requests-from-meetings/scripts/verify.py',
-    'requests-from-meetings/assets/style.css',
-  ]
-  if (named.includes(path)) return path
-  const directories = [
-    '.claude/hooks/',
-    '.claude/skills/demo-videos/scripts/',
-    '.claude/skills/shaping/references/',
-    'shaping/assets/',
-  ]
-  const directory = directories.find((prefix) => path.startsWith(prefix))
+  if (DOCUMENTED_FILES.includes(path)) return path
+  const directory = DOCUMENTED_DIRECTORIES.find((prefix) => path.startsWith(prefix))
   if (directory !== undefined) return directory
   if (/^\.claude\/skills\/[^/]+\//.test(path)) return '.claude/skills/<name>/'
   return undefined
