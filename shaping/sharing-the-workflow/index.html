@@ -251,8 +251,11 @@
           for the reader meeting it whole, one manual for the person operating it.
           <strong>The way of working</strong> is the narrative
           read whole: what happens from the moment an idea arrives to the moment it
-          ships, with the goals and the vision in their own words and the
-          workflow&rsquo;s reasons &mdash; the curated foundation agents build on,
+          ships, with the goals and the vision in their own words &mdash; the
+          goals condensed from the founding shaping document at
+          <code>shaping/one-workflow/index.html</code>, the vision said from the
+          passage this document rules complete &mdash; and the
+          workflow&rsquo;s reasons: the curated foundation agents build on,
           everything that needs taste running on the one model that has it, with
           that taste written into skills, and care for the agent&rsquo;s context
           window &mdash; woven through as how
@@ -491,9 +494,11 @@
               a misnamed file getting noticed &mdash; is replaced by a better one:
               sync fails when the content folder holds a markdown file matching no
               known name, so authored instructions can never silently fail to
-              load. The known names are the content files of every enabled skill,
-              the doctrine file, and any file the configuration itself points into
-              the folder &mdash; the calibration file already lives there today. With that, the two new skills ship with no migration step, and
+              load. The known names are the content files of every skill the
+              package can generate &mdash; enabled or not, so turning an option
+              off never breaks a sync over the files it leaves behind &mdash; plus
+              the doctrine file and any file the configuration itself points into
+              the folder; the calibration file already lives there today. With that, the two new skills ship with no migration step, and
               every consuming project may delete its empty files.
             </p>
           </div>
@@ -534,7 +539,13 @@
               to the configuration page; the stack-audit helpers to the
               what-a-project-receives page, beside the generated skills that teach
               them) &mdash; and
-              fails when any name is missing from the reference pages. It
+              fails in both directions: when any real name is missing from the
+              reference pages, and when the pages still name a command, flag,
+              key, or export that no longer exists. The manifest reaches the
+              complete schema &mdash; every nested key, down through
+              provisioning&rsquo;s resources and the criterion injections &mdash;
+              not just the top level, and the configuration page documents the
+              same full depth. It
               complements the existing golden snapshot of the command surface
               rather than replacing it: the snapshot keeps pinning command names
               and descriptions, while this test ties the full surface &mdash;
