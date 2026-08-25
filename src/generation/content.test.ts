@@ -19,9 +19,10 @@ describe('parseContentFile', () => {
 })
 
 describe('loadProjectContent', () => {
-  it('loads the top-level markdown files the directory holds', () => {
+  it('loads the top-level markdown files, leaving subdirectories alone', () => {
     const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
     mkdirSync(join(root, 'workflow-content', 'notes'), { recursive: true })
+    mkdirSync(join(root, 'workflow-content', 'archive.md'))
     writeFileSync(join(root, 'workflow-content', 'doctrine.md'), 'Facts.\n')
     writeFileSync(join(root, 'workflow-content', 'notes', 'scratch.md'), 'Aside.\n')
     const content = loadProjectContent(root, 'workflow-content')

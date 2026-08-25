@@ -17,8 +17,8 @@ export interface GenerationContext {
 
 /**
  * The project-owned content the configuration points at: one file per generated
- * skill plus one for the doctrine layer. Every file a generated skill needs is
- * mandatory — sync fails loud on an absent one.
+ * skill plus one for the doctrine layer. Every file is optional — an absent one
+ * means the project has nothing to add there.
  */
 export interface ProjectContent {
   /** Keyed by content file name without extension ('doctrine', 'orchestration', …). */
