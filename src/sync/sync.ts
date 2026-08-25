@@ -1,15 +1,19 @@
-import { rmdirSync, rmSync } from 'node:fs'
+import { existsSync, rmdirSync, rmSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
-import { loadConfig } from '../config/load.js'
+import { CONFIG_FILE_NAME, loadConfig } from '../config/load.js'
 import type { SeasonedSkillsConfig } from '../config/types.js'
 import { corpusCacheRoot, materializeCorpus } from '../corpus/cache.js'
 import { ensureIgnored } from '../footprint/gitignore.js'
 import { ensureSyncScript } from '../footprint/scripts.js'
 import { applyManagedSettings } from '../footprint/settings.js'
-import { loadProjectContent } from '../generation/content.js'
+import { contentFileNames, loadProjectContent } from '../generation/content.js'
 import { composeDoctrine } from '../generation/doctrine.js'
 import { materializeRuntime } from '../generation/runtime.js'
-import { composeSkills, knownContentNames } from '../generation/skills/index.js'
+import {
+  composeSkills,
+  knownContentNames,
+  requiredSectionIssues,
+} from '../generation/skills/index.js'
 import type { GeneratedFile, GenerationContext } from '../generation/types.js'
 import { writeGeneratedFiles } from '../generation/write.js'
 import { MANIFEST_PATH, readManifest, writeManifest } from './manifest.js'
@@ -46,18 +50,10 @@ export async function sync(
 ): Promise<SyncResult> {
   const config = await loadConfig(projectRoot)
   const content = loadProjectContent(projectRoot, config.contentDir)
-  const known = new Set(knownContentNames(config))
-  const unrecognized = [...content.files.keys()].filter((name) => !known.has(name))
-  if (unrecognized.length > 0) {
-    throw new SyncInputError(
-      unrecognized.map(
-        (name) =>
-          `unrecognized content file: ${config.contentDir}/${name}.md — nothing loads it. Rename it to the skill it belongs to, or move it into a subdirectory.`,
-      ),
-    )
-  }
-
   const context: GenerationContext = { config, content }
+  const issues = contentIssues(projectRoot, context)
+  if (issues.length > 0) throw new SyncInputError(issues)
+
   const files: GeneratedFile[] = [
     composeDoctrine(context),
     ...composeSkills(context),
@@ -76,6 +72,40 @@ export async function sync(
   ensureSyncScript(projectRoot)
 
   return { generated: paths, config }
+}
+
+const MARKDOWN_LOOKALIKE = /\.(md|markdown|mdx)$/i
+
+/**
+ * Everything wrong with the project's content, gathered so one failure reports
+ * all of it: the content directory gone, a file at its top level nothing would
+ * ever load — an unrecognized name, or a near-miss extension the loader passes
+ * over — and a content file that exists without a section its skill requires.
+ */
+function contentIssues(projectRoot: string, context: GenerationContext): string[] {
+  const { contentDir } = context.config
+  if (!existsSync(join(projectRoot, contentDir))) {
+    return [
+      `content directory ${contentDir} does not exist — create it (an empty directory is valid), or point contentDir at the right directory in ${CONFIG_FILE_NAME}.`,
+    ]
+  }
+  const known = new Set(knownContentNames(context.config))
+  const issues: string[] = []
+  for (const fileName of contentFileNames(projectRoot, contentDir)) {
+    if (fileName.endsWith('.md')) {
+      if (known.has(fileName.slice(0, -'.md'.length))) continue
+      issues.push(
+        `unrecognized content file: ${contentDir}/${fileName} — nothing loads it. Rename it to the skill it belongs to, or move it into a subdirectory.`,
+      )
+      continue
+    }
+    if (MARKDOWN_LOOKALIKE.test(fileName)) {
+      issues.push(
+        `unloaded content file: ${contentDir}/${fileName} — only .md loads. Rename it to end in .md, or move it into a subdirectory.`,
+      )
+    }
+  }
+  return [...issues, ...requiredSectionIssues(context)]
 }
 
 /**

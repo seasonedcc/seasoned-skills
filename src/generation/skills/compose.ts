@@ -13,11 +13,14 @@ import type { GeneratedFile, GenerationContext } from '../types.js'
  * A structured slot — a project fact the generic text weaves at its own
  * anchor rather than in the project-specifics section — is declared as a
  * reserved level-2 section of the content file: its text fills the named
- * token, and the rest of the content file weaves as usual.
+ * token, and the rest of the content file weaves as usual. Composition takes
+ * an absent slot as nothing to add; whether a content file that exists must
+ * carry it is the roster's declaration, checked before the sync composes.
  */
 export interface ReservedSectionSpec {
   title: string
   token: string
+  /** The sync fails when a content file exists without this section. */
   required?: boolean
 }
 
@@ -53,17 +56,7 @@ export function composeSkill(
       options.reservedSections.map((spec) => spec.title),
     )
     for (const spec of options.reservedSections) {
-      const section = reserved.get(spec.title)
-      if (section === undefined || section === '') {
-        if (spec.required) {
-          throw new Error(
-            `${skillName} content file is missing its required "${spec.title}" section`,
-          )
-        }
-        tokens[spec.token] = ''
-      } else {
-        tokens[spec.token] = section
-      }
+      tokens[spec.token] = reserved.get(spec.title) ?? ''
     }
     projectBody = leading
   }

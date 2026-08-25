@@ -7,9 +7,9 @@ import { writeGeneratedFiles } from '../generation/write.js'
 /**
  * Install: the one-time interactive scaffolder. It creates the committed
  * artifacts the workflow reads — the configuration (stating every option
- * explicitly), the content files the install already has answers for, the
- * calibration file, the registers, the shaping folder, the meeting-requests
- * data folder — and never overwrites anything that already exists: everything
+ * explicitly), the content directory and the content files the install already
+ * has answers for, the calibration file, the registers, the shaping folder, the
+ * meeting-requests data folder — and never overwrites what already exists: everything
  * committed accretes through the project's own pull requests afterwards.
  * Regeneration is sync's job, run right after.
  */
@@ -67,6 +67,7 @@ export function planInstall(projectRoot: string, answers: InstallAnswers): Insta
       contents:
         '# Subagent calibrations\n\nCalibrations are stated relative to the Definition of Done and accrete\nthrough pull requests as sessions learn what this project needs.\n',
     },
+    { path: `${answers.contentDir}/.gitkeep`, contents: '' },
     { path: 'shaping/.gitkeep', contents: '' },
     { path: 'requests-from-meetings/assets/manifest.json', contents: '[]\n' },
     {

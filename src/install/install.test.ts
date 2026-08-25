@@ -79,6 +79,17 @@ describe('planInstall', () => {
     expect(manifest.scripts.prepare).toBe('seasoned-skills sync')
   })
 
+  it('keeps the content directory even when nothing else lands in it', () => {
+    // Sync fails loud on a missing content directory, and git cannot carry an
+    // empty one — so the scaffold gives it a keepfile whatever else it writes.
+    const plan = planInstall(root, {
+      ...minimal,
+      calibrationFile: 'docs/calibrations.md',
+    })
+    applyInstall(root, plan)
+    expect(existsSync(join(root, 'workflow-content'))).toBe(true)
+  })
+
   it('seeds the required stack declarations so the first sync cannot fail on them', () => {
     const plan = planInstall(root, full)
     applyInstall(root, plan)

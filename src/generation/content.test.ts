@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadProjectContent, parseContentFile } from './content.js'
+import { contentFileNames, loadProjectContent, parseContentFile } from './content.js'
 import { extractSections } from './sections.js'
 
 describe('parseContentFile', () => {
@@ -30,9 +30,41 @@ describe('loadProjectContent', () => {
     expect([...content.files.keys()]).toEqual(['doctrine'])
   })
 
+  it('loads a content file that is a symlink to somewhere else', () => {
+    const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
+    mkdirSync(join(root, 'workflow-content'))
+    writeFileSync(join(root, 'shared-doctrine.md'), 'Shared facts.\n')
+    symlinkSync(
+      join(root, 'shared-doctrine.md'),
+      join(root, 'workflow-content', 'doctrine.md'),
+    )
+    expect(loadProjectContent(root, 'workflow-content').files.get('doctrine')?.body).toBe(
+      'Shared facts.',
+    )
+  })
+
   it('loads nothing when the directory does not exist', () => {
     const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
     expect(loadProjectContent(root, 'workflow-content').files.size).toBe(0)
+  })
+})
+
+describe('contentFileNames', () => {
+  it('lists the top-level files, whatever their extension, and no directories', () => {
+    const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
+    mkdirSync(join(root, 'workflow-content', 'notes'), { recursive: true })
+    mkdirSync(join(root, 'workflow-content', 'archive.md'))
+    writeFileSync(join(root, 'workflow-content', 'doctrine.md'), 'Facts.\n')
+    writeFileSync(join(root, 'workflow-content', 'quick.markdown'), 'Aside.\n')
+    expect(contentFileNames(root, 'workflow-content').sort()).toEqual([
+      'doctrine.md',
+      'quick.markdown',
+    ])
+  })
+
+  it('lists nothing when the directory does not exist', () => {
+    const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
+    expect(contentFileNames(root, 'workflow-content')).toEqual([])
   })
 })
 
