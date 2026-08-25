@@ -1,19 +1,17 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { CONFIG_FILE_NAME } from '../config/load.js'
-import type { SeasonedSkillsConfig } from '../config/types.js'
-import { requiredContentNames } from '../generation/skills/index.js'
 import type { GeneratedFile } from '../generation/types.js'
 import { writeGeneratedFiles } from '../generation/write.js'
 
 /**
  * Install: the one-time interactive scaffolder. It creates the committed
  * artifacts the workflow reads — the configuration (stating every option
- * explicitly), the content files (empty, except the declarations the install
- * asked for), the calibration file, the registers, the shaping folder, the
- * meeting-requests data folder — and never overwrites anything that already
- * exists: everything committed accretes through the project's own pull
- * requests afterwards. Regeneration is sync's job, run right after.
+ * explicitly), the content files the install already has answers for, the
+ * calibration file, the registers, the shaping folder, the meeting-requests
+ * data folder — and never overwrites anything that already exists: everything
+ * committed accretes through the project's own pull requests afterwards.
+ * Regeneration is sync's job, run right after.
  */
 export interface InstallAnswers {
   projectName: string
@@ -142,46 +140,28 @@ export function applyInstall(projectRoot: string, plan: InstallPlan): void {
 }
 
 /**
- * The content files, scaffolded empty — project content accretes through the
- * project's own pull requests — except the sections the install asked for:
- * the stack skills' required declarations never default silently.
+ * The content files worth scaffolding: only the ones the install already has
+ * an answer for. Every content file is optional, so a project starts with none
+ * and adds them through its own pull requests — except the stack skills'
+ * required declarations, which never default silently.
  */
 function contentFiles(answers: InstallAnswers): GeneratedFile[] {
-  const config = configShape(answers)
-  const seeded: Record<string, string> = {}
-  if (answers.stack) {
-    seeded['type-safety'] = `## Key types\n\n${answers.stack.keyTypes}\n`
-    seeded['framework-folder'] =
-      `## Application root\n\n${answers.stack.applicationRoot}\n`
-    seeded['formatting-datetimes'] =
-      `## Time-zone model\n\n${answers.stack.timeZoneModel}\n`
-  }
-  return requiredContentNames(config).map((name) => ({
-    path: `${answers.contentDir}/${name}.md`,
-    contents: seeded[name] ?? '',
-  }))
-}
-
-/** The configuration the answers describe, used to derive the content roster. */
-function configShape(answers: InstallAnswers): SeasonedSkillsConfig {
-  const config: SeasonedSkillsConfig = {
-    projectName: answers.projectName,
-    contentDir: answers.contentDir,
-    mergeStrategy: answers.mergeStrategy,
-    outOfScopeFindings: answers.outOfScopeFindings,
-    release: answers.release,
-    gates: answers.gates,
-    calibrationFile: answers.calibrationFile,
-  }
-  if (answers.webSurface) config.webSurface = answers.webSurface
-  if (answers.demoSeed) config.demoSeed = answers.demoSeed
-  if (answers.machineSurface) config.machineSurface = answers.machineSurface
-  if (answers.stack)
-    config.stack = {
-      name: 'react-router-kysely',
-      databaseMutability: answers.stack.databaseMutability,
-    }
-  return config
+  const { stack, contentDir } = answers
+  if (!stack) return []
+  return [
+    {
+      path: `${contentDir}/type-safety.md`,
+      contents: `## Key types\n\n${stack.keyTypes}\n`,
+    },
+    {
+      path: `${contentDir}/framework-folder.md`,
+      contents: `## Application root\n\n${stack.applicationRoot}\n`,
+    },
+    {
+      path: `${contentDir}/formatting-datetimes.md`,
+      contents: `## Time-zone model\n\n${stack.timeZoneModel}\n`,
+    },
+  ]
 }
 
 /**

@@ -155,7 +155,9 @@ describe('collectAnswers', () => {
       expect(readFileSync(join(root, 'seasoned-skills.config.ts'), 'utf8')).toContain(
         "projectName: 'consumer'",
       )
-      expect(readFileSync(join(root, 'workflow-content/quick.md'), 'utf8')).toBe('')
+      expect(
+        readFileSync(join(root, 'workflow-content/calibrations.md'), 'utf8'),
+      ).toContain('Subagent calibrations')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

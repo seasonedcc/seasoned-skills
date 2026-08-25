@@ -14,7 +14,9 @@ export interface SeasonedSkillsConfig {
   /**
    * Directory of project-owned content the generation weaves in: one markdown
    * file per generated skill plus one for the doctrine layer. Every file is
-   * mandatory once the skill generates — sync fails loud on an absent one.
+   * optional — an absent one means the project has nothing to add — but a
+   * top-level markdown file matching no known name fails the sync loud, so
+   * authored instructions can never silently fail to load.
    */
   contentDir: string
 

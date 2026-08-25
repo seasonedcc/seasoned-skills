@@ -59,22 +59,22 @@ describe('planInstall', () => {
     expect(() => planInstall(root, minimal)).toThrow(/already exists/)
   })
 
-  it('scaffolds the config, content files, artifacts, and a minimal package.json', () => {
+  it('scaffolds the config, artifacts, and a minimal package.json', () => {
     const plan = planInstall(root, minimal)
     applyInstall(root, plan)
     const paths = plan.files.map((file) => file.path)
     expect(paths).toContain('seasoned-skills.config.ts')
-    expect(paths).toContain('workflow-content/doctrine.md')
-    expect(paths).toContain('workflow-content/quick.md')
     expect(paths).toContain('workflow-content/calibrations.md')
     expect(paths).toContain('shaping/.gitkeep')
     expect(paths).toContain('requests-from-meetings/assets/manifest.json')
     expect(paths).toContain('requests-from-meetings/stakeholders.md')
     expect(paths).toContain('package.json')
-    // No stack layer, so no stack content files and no register stubs.
+    // Content files are optional, so none is scaffolded empty; and with no
+    // stack layer there are no seeded declarations and no register stubs.
+    expect(paths).not.toContain('workflow-content/doctrine.md')
+    expect(paths).not.toContain('workflow-content/quick.md')
     expect(paths).not.toContain('workflow-content/kysely.md')
     expect(paths).not.toContain('workflow-content/coverage-register.md')
-    expect(readFileSync(join(root, 'workflow-content/quick.md'), 'utf8')).toBe('')
     const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
     expect(manifest.scripts.prepare).toBe('seasoned-skills sync')
   })
@@ -91,7 +91,7 @@ describe('planInstall', () => {
     expect(
       readFileSync(join(root, 'workflow-content/formatting-datetimes.md'), 'utf8'),
     ).toContain('## Time-zone model')
-    expect(existsSync(join(root, 'workflow-content/kysely.md'))).toBe(true)
+    expect(existsSync(join(root, 'workflow-content/kysely.md'))).toBe(false)
     expect(existsSync(join(root, 'workflow-content/coverage-register.md'))).toBe(true)
   })
 

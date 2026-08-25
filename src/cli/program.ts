@@ -60,7 +60,7 @@ export function buildProgram(): Command {
   program
     .command('install')
     .description(
-      'Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default), the committed artifacts, and the empty content files, then the shaping corpus this machine still needs — finishing with a sync and a doctor report. Never overwrites what exists.',
+      'Adopt the workflow: an interactive one-time scaffold of the configuration (asking every option the rulings give no default) and the committed artifacts, then the shaping corpus this machine still needs — finishing with a sync and a doctor report. Never overwrites what exists.',
     )
     .action(async () => {
       const root = process.cwd()

@@ -68,7 +68,7 @@ describe('the CLI program', () => {
   it('sync degrades to the repair kit and exits 1 on broken inputs', async () => {
     scaffoldProject()
     await run('sync')
-    rmSync(join(root, 'workflow-content/quick.md'))
+    writeFileSync(join(root, 'workflow-content/qiuck.md'), 'A typo nothing loads.\n')
     await run('sync')
     expect(process.exitCode).toBe(1)
     expect(existsSync(join(root, '.claude/skills/quick'))).toBe(false)

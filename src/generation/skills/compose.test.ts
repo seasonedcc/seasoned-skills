@@ -41,10 +41,10 @@ describe('composeSkill', () => {
     expect(contents).toContain('## Where lessons go')
   })
 
-  it('throws when the content file is missing', () => {
-    expect(() => composeSkill('skill-management', makeContext(undefined))).toThrow(
-      'skill-management content file is missing',
-    )
+  it('composes without a content file — the project has nothing to add', () => {
+    const { contents } = composeSkill('skill-management', makeContext(undefined))
+    expect(contents).not.toContain('## Project specifics')
+    expect(contents).toContain('## Where lessons go')
   })
 })
 

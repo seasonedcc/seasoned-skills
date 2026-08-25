@@ -9,7 +9,7 @@ import { applyManagedSettings } from '../footprint/settings.js'
 import { loadProjectContent } from '../generation/content.js'
 import { composeDoctrine } from '../generation/doctrine.js'
 import { materializeRuntime } from '../generation/runtime.js'
-import { composeSkills, requiredContentNames } from '../generation/skills/index.js'
+import { composeSkills, knownContentNames } from '../generation/skills/index.js'
 import type { GeneratedFile, GenerationContext } from '../generation/types.js'
 import { writeGeneratedFiles } from '../generation/write.js'
 import { MANIFEST_PATH, readManifest, writeManifest } from './manifest.js'
@@ -45,16 +45,14 @@ export async function sync(
   options: SyncOptions = {},
 ): Promise<SyncResult> {
   const config = await loadConfig(projectRoot)
-  const { content, missing } = loadProjectContent(
-    projectRoot,
-    config.contentDir,
-    requiredContentNames(config),
-  )
-  if (missing.length > 0) {
+  const content = loadProjectContent(projectRoot, config.contentDir)
+  const known = new Set(knownContentNames(config))
+  const unrecognized = [...content.files.keys()].filter((name) => !known.has(name))
+  if (unrecognized.length > 0) {
     throw new SyncInputError(
-      missing.map(
+      unrecognized.map(
         (name) =>
-          `missing content file: ${config.contentDir}/${name}.md (an empty file is valid)`,
+          `unrecognized content file: ${config.contentDir}/${name}.md — nothing loads it. Rename it to the skill it belongs to, or move it into a subdirectory.`,
       ),
     )
   }

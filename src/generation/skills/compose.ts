@@ -5,9 +5,10 @@ import type { GeneratedFile, GenerationContext } from '../types.js'
 /**
  * The uniform injection contract every generated practice skill follows: the
  * package's fragment supplies the front matter and the generic body, the
- * project's content file for the skill supplies the trigger vocabulary woven
- * into the description and the project-specifics section woven in at the
- * anchor, and every skill closes by stating where its lessons go.
+ * project's optional content file for the skill supplies the trigger
+ * vocabulary woven into the description and the project-specifics section
+ * woven in at the anchor, and every skill closes by stating where its lessons
+ * go. No content file means the project has nothing to add.
  *
  * A structured slot — a project fact the generic text weaves at its own
  * anchor rather than in the project-specifics section — is declared as a
@@ -31,8 +32,7 @@ export function composeSkill(
   options: ComposeSkillOptions = {},
 ): GeneratedFile {
   const parsed = parseSkillFragment(fragment(`skills/${skillName}/SKILL.md`), skillName)
-  const content = context.content.files.get(skillName)
-  if (!content) throw new Error(`${skillName} content file is missing`)
+  const content = context.content.files.get(skillName) ?? { body: '' }
 
   const description = content.triggers
     ? `${parsed.description} ${content.triggers}`

@@ -19,23 +19,19 @@ describe('parseContentFile', () => {
 })
 
 describe('loadProjectContent', () => {
-  it('loads files and reports every missing required name at once', () => {
+  it('loads the top-level markdown files the directory holds', () => {
     const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
-    mkdirSync(join(root, 'workflow-content'))
+    mkdirSync(join(root, 'workflow-content', 'notes'), { recursive: true })
     writeFileSync(join(root, 'workflow-content', 'doctrine.md'), 'Facts.\n')
-    const { content, missing } = loadProjectContent(root, 'workflow-content', [
-      'doctrine',
-      'orchestration',
-      'testing',
-    ])
+    writeFileSync(join(root, 'workflow-content', 'notes', 'scratch.md'), 'Aside.\n')
+    const content = loadProjectContent(root, 'workflow-content')
     expect(content.files.get('doctrine')?.body).toBe('Facts.')
-    expect(missing).toEqual(['orchestration', 'testing'])
+    expect([...content.files.keys()]).toEqual(['doctrine'])
   })
 
-  it('reports everything missing when the directory does not exist', () => {
+  it('loads nothing when the directory does not exist', () => {
     const root = mkdtempSync(join(tmpdir(), 'seasoned-skills-content-'))
-    const { missing } = loadProjectContent(root, 'workflow-content', ['doctrine'])
-    expect(missing).toEqual(['doctrine'])
+    expect(loadProjectContent(root, 'workflow-content').files.size).toBe(0)
   })
 })
 

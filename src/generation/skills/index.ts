@@ -35,8 +35,6 @@ import { composeWorktrees } from './worktrees.js'
 interface RosterEntry {
   name: string
   enabled: (config: SeasonedSkillsConfig) => boolean
-  /** Set when the skill composes without a content file (the repair kit). */
-  optionalContent?: boolean
   compose: (context: GenerationContext) => GeneratedFile[]
 }
 
@@ -99,14 +97,10 @@ const ROSTER: RosterEntry[] = [
       config.stack !== undefined && config.machineSurface !== undefined,
     compose: composeMcpServer,
   },
-  // The package's own skill is the repair kit a degraded project keeps: its
-  // content file is optional, because sync must regenerate it even when
-  // missing content files are the failure being reported.
   {
     name: 'seasoned-skills',
     enabled: always,
-    optionalContent: true,
-    compose: composeSeasonedSkills,
+    compose: (context) => [composeSeasonedSkills(context)],
   },
 ]
 
@@ -116,12 +110,33 @@ export function composeSkills(context: GenerationContext): GeneratedFile[] {
   )
 }
 
-/** The content files generation requires, given the configuration. */
-export function requiredContentNames(config: SeasonedSkillsConfig): string[] {
+/**
+ * Every name the content directory's top level may carry: the content file of
+ * every skill the package can generate — enabled or not, so turning an option
+ * off never fails a sync over the file it leaves behind — plus the doctrine
+ * layer and every file the configuration itself points into the directory.
+ * Anything else there is prose nothing would ever load.
+ */
+export function knownContentNames(config: SeasonedSkillsConfig): string[] {
   return [
     'doctrine',
-    ...ROSTER.filter((entry) => entry.enabled(config) && !entry.optionalContent).map(
-      (e) => e.name,
-    ),
+    ...ROSTER.map((entry) => entry.name),
+    ...configuredContentNames(config),
   ]
+}
+
+function configuredContentNames(config: SeasonedSkillsConfig): string[] {
+  const prefix = `${config.contentDir}/`
+  return configuredPaths(config)
+    .filter((path) => path.startsWith(prefix) && path.endsWith('.md'))
+    .map((path) => path.slice(prefix.length, -'.md'.length))
+}
+
+function configuredPaths(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+  if (Array.isArray(value)) return value.flatMap(configuredPaths)
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value).flatMap(configuredPaths)
+  }
+  return []
 }

@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -84,20 +85,41 @@ describe('sync', () => {
     expect(existsSync(join(root, stale))).toBe(false)
   })
 
-  it('fails loud listing every missing content file at once', async () => {
-    rmSync(join(root, 'workflow-content/quick.md'))
-    rmSync(join(root, 'workflow-content/release.md'))
+  it('generates everything when the project owns no content at all', async () => {
+    rmSync(join(root, 'workflow-content'), { recursive: true })
+    const result = await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
+    expect(result.generated).toContain('CLAUDE.md')
+    expect(existsSync(join(root, '.claude/skills/quick/SKILL.md'))).toBe(true)
+    expect(
+      readFileSync(join(root, '.claude/skills/quick/SKILL.md'), 'utf8'),
+    ).not.toContain('## Project specifics')
+  })
+
+  it('fails loud listing every unrecognized content file at once', async () => {
+    writeFileSync(join(root, 'workflow-content/qiuck.md'), 'A typo nothing loads.\n')
+    writeFileSync(join(root, 'workflow-content/scratch.md'), 'An aside.\n')
     const error = await sync(root, { corpusCache: join(root, 'no-corpus-cache') }).catch(
       (e: unknown) => e,
     )
     expect(error).toBeInstanceOf(SyncInputError)
-    expect((error as SyncInputError).message).toContain('workflow-content/quick.md')
-    expect((error as SyncInputError).message).toContain('workflow-content/release.md')
+    expect((error as SyncInputError).message).toContain('workflow-content/qiuck.md')
+    expect((error as SyncInputError).message).toContain('workflow-content/scratch.md')
+  })
+
+  it('recognizes disabled skills, configured files, and ignores subdirectories', async () => {
+    // kysely generates only for a project that declares a stack; this fixture
+    // does not, and the file it would leave behind must not fail the sync.
+    writeFileSync(join(root, 'workflow-content/kysely.md'), 'Stack notes.\n')
+    writeFileSync(join(root, 'workflow-content/calibrations.md'), 'Calibrations.\n')
+    mkdirSync(join(root, 'workflow-content/notes'))
+    writeFileSync(join(root, 'workflow-content/notes/anything.md'), 'An aside.\n')
+    const result = await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
+    expect(result.generated).toContain('CLAUDE.md')
   })
 
   it('degrades to the repair kit and a standing-order doctrine file', async () => {
     await sync(root, { corpusCache: join(root, 'no-corpus-cache') })
-    rmSync(join(root, 'workflow-content/quick.md'))
+    writeFileSync(join(root, 'workflow-content/qiuck.md'), 'A typo nothing loads.\n')
     const error = (await sync(root, { corpusCache: join(root, 'no-corpus-cache') }).catch(
       (e: unknown) => e,
     )) as Error
@@ -108,7 +130,7 @@ describe('sync', () => {
     const doctrine = readFileSync(join(root, 'CLAUDE.md'), 'utf8')
     expect(doctrine).toContain('could not be generated')
     expect(doctrine).toContain('Standing order')
-    expect(doctrine).toContain('workflow-content/quick.md')
+    expect(doctrine).toContain('workflow-content/qiuck.md')
   })
 })
 
