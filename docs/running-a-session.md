@@ -7,7 +7,9 @@ person, and how to spot them without hovering.
 A build starts by typing `/goal` followed by the goal text pasted from the
 shaping document, the written project described in
 [The way of working](the-way-of-working.md). `/goal` is a feature of Claude Code, the coding tool the
-workflow runs in; this package does not ship it. From that moment your
+workflow runs in; this package does not ship it. Start the session on
+Fable (`/model` picks it): the orchestrator's whole job is judgment, and
+Fable is the model with the taste for it. From that moment your
 whole job is three watches. You are away from the keyboard for most of the
 effort, and the craft is knowing which moments not to miss.
 
@@ -45,7 +47,7 @@ The ritual, step by step:
    `/prepare-for-compaction`. The ledger is the file where the effort's
    durable facts and lessons live; the orchestrator brings it current if
    it is not, then answers plainly that compacting is safe.
-2. When that answer comes, compact.
+2. When that answer comes, type `/compact`.
 3. Immediately queue the next message: please reground after compaction
    (`/reground`). Queuing it right away means regrounding fires the
    instant compaction ends, even with nobody in the room.
@@ -56,18 +58,19 @@ the ledger and the real sources of truth before it takes another step.
 
 ## The second watch: usage limits
 
-This way of working is token-intensive. Plan on more than one top-tier
-subscription, and learn your own number from how much of the workflow you
-adopt and how much you shape and build.
+This way of working is token-intensive. Plan on more than one Claude
+Code Max 20x subscription, and learn your own number from how much of
+the workflow you adopt and how much you shape and build.
 
-The watch itself is simple: keep an eye on the subscription's limit as it
-approaches. When it nears, open a second session in another tab and log in
-to another subscription.
+The watch itself is simple: keep an eye on the subscription's limit as
+it approaches. When it nears, open a second Claude Code session in
+another tab and run `/login` to switch to another subscription.
 
 ## The third watch: the questions
 
 Whenever you may be away, the orchestrator asks for your input through
-questionnaires, because only a questionnaire pauses the goal loop; a plain
+questionnaires, because only a questionnaire pauses Claude Code's goal
+checker, the process that keeps a `/goal` effort moving; a plain
 question typed into the conversation gets run over by "goal not met,
 continue." When you are at the keyboard and conversing, it is plain
 conversation.

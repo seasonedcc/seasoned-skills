@@ -3,7 +3,10 @@
 An idea arrives. Some time later, the work ships. This page tells the
 story of everything in between: how the idea becomes a written, reviewed
 project, how AI agents build it end to end, and what happens once the goal
-is met. It is meant to be read whole. The manual for what you personally
+is met. All of it runs inside Claude Code, Anthropic's coding agent:
+every session this page describes is a Claude Code session, working from
+instructions and skills this package generates. The page is meant to be
+read whole. The manual for what you personally
 do while a build runs is [Running a session](running-a-session.md), and
 [Adopting the workflow](adopting-the-workflow.md) covers bringing all of
 this to your own codebase.
@@ -14,28 +17,33 @@ Three convictions run through everything below. None of them is a feature
 you install; they are how the workflow thinks.
 
 **Agents build on a curated foundation.** The stack and the patterns our
-agents work in were curated by hand for years before AI entered the
+agents work in were curated by hand for five years before AI entered the
 picture. The agents did not invent the standards they follow; they
 inherited them. The workflow exists to keep that inheritance current in
 every project at once, so a standard sharpened anywhere becomes the
 standard everywhere.
 
-**Everything that needs taste runs on the one model that has it.**
-Wherever the work calls for judgment (shaping, reviewing, deciding what a
-change really needs), we run the one model that has the taste for it, and
-we write that taste down into skills: step-by-step guides for recurring work
-that ship with the package. Good judgment is not one person's habit; it is
-a file every project generates.
+**Everything that needs taste runs on Fable.** Wherever the work calls
+for judgment (shaping a project, reviewing a change, deciding what
+quality demands), we run Fable, the strongest Claude model, because taste
+is exactly what it has and we have not found its match anywhere else.
+Everyday building runs on Opus, and wide review sweeps on Sonnet; the
+judgment always stays with Fable. And the taste itself is written down
+into skills: step-by-step guides for recurring work that ship with the
+package. Good judgment is not one person's habit; it is a file every
+project generates.
 
 **The agent's context window is cared for.** The context window is
 everything an agent is working from at a given moment, and it is finite.
 As it fills, the quality of the work degrades quietly, long before
 anything visibly fails, and an agent will happily keep working past that
-point. So the workflow slices work so that no single agent carries too
-much, keeps a ledger (a running file of the durable facts a long effort
-must not lose), and puts a person in charge of deciding when to compact
-(summarize the session so far to free space). The mechanics of that watch
-are the heart of [Running a session](running-a-session.md).
+point. We are frankly paranoid about this, and the paranoia is written
+into the workflow rather than left to habit: work is sliced so that no
+single agent carries too much, every long effort keeps a ledger (a
+running file of the durable facts the effort must not lose), and a
+person, not the agent, decides when to compact (summarize the session so
+far to free space). The numbers and the rhythm of that watch are the
+heart of [Running a session](running-a-session.md).
 
 ## The goals it serves today
 
@@ -70,23 +78,25 @@ build and why: precisely enough that agents can build from it without its
 author in the room, and honestly enough that a reviewer can spot what is
 wrong before anything gets built. Two entry points feed it:
 
-- **A raw idea**, brought straight to a shaping session: a working
-  conversation with the AI that interrogates the idea and ends in a
-  shaping document.
+- **A raw idea**, brought straight to a shaping session (started by
+  typing `/shaping`): a working conversation with the AI that
+  interrogates the idea and ends in a shaping document.
 - **Meeting recordings**, one or a batch, sometimes joined by existing
-  issues. They are parsed into precise request documents, and those
-  requests become shaping raw material.
+  issues. The `requests-from-meetings` skill parses them into precise
+  request documents, and those requests become shaping raw material.
 
 Exactly two kinds of work skip shaping:
 
 - **Urgent fixes.** The Andon cord, in the Lean Manufacturing sense:
-  anyone can pull it, and the fix runs now. It runs as a task with full
+  anyone can pull it, and the fix runs now. No command guards it; you ask
+  for the fix in plain conversation, and it runs as a task with full
   rigor, meaning the complete Definition of Done (the checklist a change
   must pass before it counts as done) and the full delegation machinery.
   The only thing it skips is the shaping.
-- **Quick mode.** Small polish to work already done, and only when a
-  person explicitly asks for it by typing `/quick`; the agent never
-  selects it on its own. It qualifies exactly as the shipped quick skill
+- **Quick mode.** Small polish to work already done ("Can you make the
+  button primary instead of ghost?"), and only when a person explicitly
+  asks for it by typing `/quick`; the agent never selects it on its own.
+  It qualifies exactly as the shipped quick skill
   rules it: a small fix or polish to something already built,
   disqualified the moment it needs a new route, a new table or migration,
   a new permission, or a new screen or machine-facing endpoint, along
@@ -112,13 +122,16 @@ Three departures, each with its own reason.
 ## From document to build
 
 A finished shaping document carries its own ignition: a goal, ready to
-paste. The build starts when a person types `/goal` with that text, and
+paste. The build starts when a person types `/goal` (Claude Code's own
+feature, not something this package ships) followed by that text, and
 from there agents carry the work.
 
-The top-level session acts as the orchestrator: it plans, delegates, and
-reads the results, but does not type the code itself. Building happens in
-parallel lanes, each an isolated copy of the repository (a git worktree),
-with its own databases and ports where the project declares them, so
+The session the goal was typed into acts as the orchestrator: it plans,
+delegates, reads the results, and rules on quality, but does not type the
+code itself. It runs on Fable, because everything it does is judgment.
+The building it delegates runs on Opus, in parallel lanes, each an
+isolated copy of the repository (a git worktree) with its own databases
+and ports where the project declares them, so
 independent pieces of work never collide. Every change lands through a
 pull request with the tests green and an adversarial review (one that
 tries to break the change
@@ -169,8 +182,9 @@ solution, the traps found and defused ahead of time, the things
 deliberately not being done. A reviewer reads it and corrects one wrong
 assumption before any code exists.
 
-The document's goal is pasted into `/goal`. The orchestrator splits the
-work into lanes, agents build and test in parallel, pull requests are
+The document's goal is pasted into `/goal` in a fresh Claude Code
+session. The orchestrator splits the work into lanes, agents build and
+test in parallel, pull requests are
 reviewed and merged, and the person checks in a few times a day to answer
 questions and compact the context. When the goal is met, the
 self-improvement pass files what the effort taught. The person watches the
