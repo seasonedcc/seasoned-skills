@@ -2,10 +2,12 @@
 
 Seasoned's skills to orchestrate the full product cycle with AI agents.
 
-This package carries one complete way of working: how an idea becomes a
-shaped project (one written down and thought through before any build
-starts), how AI agents build it end to end, and how the lessons learned
-along the way are kept. A project adopts it by installing the package and
+This package carries one complete way of working, run inside Claude
+Code, Anthropic's coding agent: how an idea becomes a shaped project
+(one written down and thought through before any build starts), how AI
+agents build it end to end, with everything that needs taste running on
+Fable, the strongest Claude model, and how the lessons learned along the
+way are kept. A project adopts it by installing the package and
 answering an interview once. From then on, everything the workflow needs
 inside the project is generated from the installed version: the standing
 instructions, the skills, the small supporting tools. The project commits

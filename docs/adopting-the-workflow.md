@@ -12,10 +12,12 @@ place first, or leave the matching option off until it exists.
 
 ## What every project needs
 
-- **Claude Code.** The workflow runs inside Claude Code, the coding tool
-  the agents work in: the package generates the instructions and skills
+- **Claude Code.** The workflow runs inside Claude Code, Anthropic's
+  coding agent: the package generates the instructions and skills
   Claude Code reads, and a shaped project's build starts with its `/goal`
-  feature, which this package does not ship.
+  feature, which this package does not ship. Plan the subscriptions too:
+  this way of working is token-intensive, and
+  [Running a session](running-a-session.md) says what to expect.
 - **A git repository with a GitHub remote.** The workflow works in
   branches, worktrees, and pull requests, and the review and
   self-improvement skills act on pull requests and issues through `gh`.
