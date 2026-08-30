@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Project title — shaping document</title>
+    <title>Lean skills — shaping document</title>
     <link rel="stylesheet" href="../assets/document.css" />
     <link rel="stylesheet" href="../assets/drawing/drawing.css" />
     <script src="../assets/document.js"></script>
@@ -32,10 +32,11 @@
       <!-- Part two: the status — one bit, built or not. -->
       <header class="masthead">
         <p class="masthead-eyebrow">Shaping document</p>
-        <h1>Project title</h1>
+        <h1>Lean skills</h1>
         <p class="essence">
-          One sentence saying what this project is. If a reader stops here, this line is
-          what they walk away with.
+          Define how the workflow&rsquo;s instructions are written and sized, enforce it
+          with tooling, and slim the existing skills to fit &mdash; so every improvement
+          we have been postponing can finally be built on top.
         </p>
         <!-- Flip data-built to "true" the day it ships. There is no third state. -->
         <p class="status" data-built="false">
@@ -61,31 +62,85 @@
 
         <h3>The struggling moment</h3>
         <p>
-          Tell the story of one real moment where someone got stuck: who they are, what
-          they were trying to get done, what they reached for, and what it cost them.
-          Name the day, the shift, the order — the concrete details are what make people
-          say &ldquo;yes, that is exactly it&rdquo; or &ldquo;no, that is not how it works
-          here.&rdquo;
+          Daniel stewards the workflow this repository ships: the written instructions
+          &mdash; the skills &mdash; that our agents read before doing any piece of work.
+          By late August 2026 the backlog of recorded lessons had reached 184 open
+          issues, most arriving with suggested wording ready to fold in, and Daniel had a
+          clear vision for improvements beyond them. He opened a shaping session to plan
+          that next round &mdash; and stopped before the first question. Almost every
+          lesson would land as a new paragraph on instructions that are already too long:
+          the corpus stands near 74,000 words, the orchestration skill alone near 9,500,
+          and an agent that reads too much before starting works measurably worse.
+          Folding the lessons in as filed would make the workflow worse, not better.
         </p>
 
         <figure class="quote">
           <blockquote>
             <p>
-              Quote the person word for word. Verbatim, not tidied up — their phrasing is
-              the evidence.
+              If I try to shape many improvements to our skills now, we&rsquo;ll probably
+              end up with a bloated context window before the agents even start the work.
             </p>
           </blockquote>
-          <figcaption>
-            <a href="#">Where this came from</a>
-          </figcaption>
+          <figcaption>Daniel, opening this shaping session, August 30, 2026</figcaption>
         </figure>
 
         <h3>Today's way, and where it breaks</h3>
         <p>
-          Describe how the work gets done right now, end to end, including the parts that
-          happen outside any system. Then say precisely where it breaks, and what people
-          do to cope when it does.
+          New instructions arrive from two directions. People write skills by hand, with
+          no written guide for how agent-facing prose should sound or how long it may
+          run &mdash; the workflow has exactly such a guide for its human-facing pages,
+          and nothing for the far larger body of prose the agents read. And every
+          finished task runs a self-improvement pass that files its lessons as
+          additions: a new rule, a new warning, a new paragraph, each individually
+          reasonable. Nothing pushes the other way. No tool measures how big a skill has
+          grown; the one size rule on the books &mdash; keep a skill under about five
+          thousand words &mdash; sits inside a skill and is enforced by nothing, and the
+          largest skill is nearly double it.
         </p>
+        <p>
+          It breaks in review. A person judging a proposed instruction change has to
+          hold the whole skill in their head to see whether the new rule is already
+          there in other words, contradicts a neighbor, or belongs somewhere else
+          &mdash; and at today&rsquo;s sizes nobody can, so additions pass and deletions
+          almost never happen. The record shows where that leads: one lesson codified
+          across ten separate issues in as many places, skills that contradict
+          themselves, and rules kept alive only to compensate for weaknesses long gone.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              A rule that exists to patch degraded behavior is bloat wearing a
+              refinement&rsquo;s clothes.
+            </p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/7"
+              >Issue 7, on the deletion criterion the corpus lacks</a
+            >
+          </figcaption>
+        </figure>
+
+        <p>
+          The projects that use the workflow repeat the pattern on their own side: each
+          adds its local instructions on top, with no bound on how much, and upgrades
+          never prune what the package has since absorbed &mdash; so the same rule ends
+          up stated twice, in slightly different words, drifting apart.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              The dual-channel rule manufactures this drift for every generalizable
+              lesson, which in practice is most lessons.
+            </p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/139"
+              >Issue 139, on how lessons travel today</a
+            >
+          </figcaption>
+        </figure>
 
         <h3>The outcome test</h3>
         <p>
@@ -96,9 +151,21 @@
 
         <h3>Why now</h3>
         <p>
-          What changed to make this worth doing this month rather than next year. Growth,
-          a deadline, a cost that keeps climbing, a promise already made.
+          Every improvement we want to make &mdash; the 184 recorded lessons and the
+          vision beyond them &mdash; lands as prose on this same corpus, so until the
+          corpus can absorb change without growing sicker, every other project stays
+          queued behind this one. The cost also compounds on its own: every agent, on
+          every task, in every project that uses the workflow, reads these instructions
+          before starting work, and the pile grows with each finished effort &mdash; the
+          newest third of the backlog arrived from a single one.
         </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>We literally can&rsquo;t shape anything else before we solve this.</p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
 
         <h3>The big hire and the little hires</h3>
         <p>
