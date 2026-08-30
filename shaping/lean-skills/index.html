@@ -374,6 +374,30 @@
           it in its own words rather than pointing at a file consumers do not have.
         </p>
         <p>
+          The sixth settled element is how size is enforced. The budgets bind the
+          generated artifacts &mdash; the woven skill files and the assembled
+          CLAUDE.md that agents actually load &mdash; so one rule covers the
+          package&rsquo;s prose and every consuming project&rsquo;s additions at once.
+          The sync refuses to write an artifact over budget, naming the file, the
+          excess, and agent-instructions as the guide for fixing it; the
+          package&rsquo;s own tests run the same check over every configuration it can
+          generate, so no release can break a consumer&rsquo;s sync. The numbers are
+          package-versioned constants &mdash; tuning one is a release, never a local
+          edit &mdash; starting near 2,000 words for a generated skill and 2,500 for
+          the generated CLAUDE.md.
+        </p>
+        <p>
+          The seventh settled element disarms the project&rsquo;s biggest time bombs
+          before the build. The three riskiest rewrites &mdash; agent-instructions
+          itself, orchestration, and subagents &mdash; are authored during shaping,
+          not during the build, following the precedent set when the guide for
+          human-facing pages was shaped: each is written into this project&rsquo;s
+          references folder, adjudicated with Daniel rule by rule under the change
+          bar, and installed by the build as a verbatim copy, verified byte for byte.
+          The budget numbers stand or fall on these three real rewrites, while
+          correcting them still costs a sentence.
+        </p>
+        <p>
           Describe the solution the way you would to the person in the story. What
           appears, where, and what it lets them do that they could not do before.
         </p>
@@ -433,15 +457,19 @@
           this document, before the build starts.
         </p>
         <dl class="time-bombs">
-          <dt>The danger, stated as the thing that could blow up mid-build.</dt>
+          <dt>
+            The biggest skills may not fit the budget. A 9,500-word skill asked to
+            become 2,000 could shed the very rules that make the workflow work, and
+            the loss would surface only later, as regressions in real efforts.
+          </dt>
           <dd>
             <span class="solution-label">How we defuse it</span>
-            The decision that takes it off the table.
-          </dd>
-          <dt>The second danger.</dt>
-          <dd>
-            <span class="solution-label">How we defuse it</span>
-            Its solution.
+            The three riskiest rewrites &mdash; agent-instructions, orchestration,
+            subagents &mdash; are finished during shaping, in this project&rsquo;s
+            references folder, with every kept, cut, and absorbed rule adjudicated
+            under the change bar. The build only installs the approved text by
+            verbatim copy. If the budget cannot hold, it is corrected here, in this
+            document, before anything is built.
           </dd>
         </dl>
 
