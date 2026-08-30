@@ -384,7 +384,16 @@
           generate, so no release can break a consumer&rsquo;s sync. The numbers are
           package-versioned constants &mdash; tuning one is a release, never a local
           edit &mdash; starting near 2,000 words for a generated skill and 2,500 for
-          the generated CLAUDE.md.
+          the generated CLAUDE.md. The budgets reach a skill&rsquo;s reference files
+          too: any prose file a skill carries for on-demand reading gets a budget of
+          its own, of the same order, and the writing guide binds it &mdash;
+          otherwise a budget on skill bodies would only push the overflow into the
+          references, hiding the bloat instead of removing it. The only exceptions
+          are named file by file in the package&rsquo;s own code, and today that
+          list holds exactly one family: the verbatim source texts the shaping skill
+          builds onto each machine, which our rules require byte for byte and no
+          lint may touch. Scripts are code, checked by the code linters the
+          repository already runs.
         </p>
         <p>
           The seventh settled element disarms the project&rsquo;s biggest time bombs
