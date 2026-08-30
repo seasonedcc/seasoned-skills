@@ -1,5 +1,11 @@
 # seasoned-skills
 
+## 0.0.6
+
+### Patch Changes
+
+- Two new skills, `/prepare-for-compaction` and `/reground`, ship to every project: the first brings the session ledger current and answers that compacting is safe; the second regrounds after a compaction from the ledger and the real sources of truth instead of the compacted summary. Every project content file is now optional, the doctrine file included, so the new skills arrive with no migration step and empty content files can be deleted; `install` no longer scaffolds them. In their place, sync fails loud on content that cannot load: a missing content directory, a top-level markdown file matching no known name, a `.markdown` or `.mdx` extension the loader passes over, a link whose target is gone, and a content file that exists without a section its skill requires — all reported in one failure. The package's one-line description is now "Seasoned's skills to orchestrate the full product cycle with AI agents", and the repository gains full documentation: a README front door, three teaching pages, and four reference pages kept true by an enumeration test.
+
 ## 0.0.5
 
 ### Patch Changes
