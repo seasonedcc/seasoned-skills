@@ -212,11 +212,10 @@
               <strong>Improvement passes invent.</strong> The pass that closes each
               effort does more than correct what went wrong: it proposes upside of its
               own &mdash; new skills, new abstractions in the product itself, refactors
-              that would change what the system can become, whole new systems. Because
-              most inventions deserve shaping before they are built, the pass files the
-              ones it judges shaping-worthy as issues on the project&rsquo;s own
-              repository &mdash; proposals waiting for a shaping session &mdash; not
-              only as ready-made changes. An orchestrator can design solutions humans
+              that would change what the system can become, whole new systems. Every
+              proposal arrives as an issue on the right repository &mdash; a proposal
+              waiting for a shaping session, never a ready-made change. An
+              orchestrator can design solutions humans
               would not think of, but only if it knows inventing is part of its job.
               The observable trace: the projects&rsquo; queues begin carrying
               agent-proposed inventions that surprise the people who read them.
@@ -246,8 +245,8 @@
               A person can read any skill, and judge any proposed instruction change,
               in one sitting &mdash; the prose in plain language, with nothing to
               translate. And over
-              the months after shipping, the passes that codify lessons delete and
-              rewrite as often as they add.
+              the months after shipping, the changes that land on the corpus delete
+              and rewrite as often as they add.
             </p>
           </li>
         </ol>
@@ -413,26 +412,21 @@
           The eighth settled element is how lessons travel. Today every generalizable
           lesson lands twice &mdash; as a local change on the project and as an issue
           on the package &mdash; and the copies drift apart the moment the package
-          absorbs one. The new rule is one channel per lesson. A project-specific
-          lesson lands on the project itself, and choosing its form is simple: if
-          writing it down completes the lesson, it becomes a pull request; if it
-          describes work still to be done, it becomes an issue. A finished lesson
-          &mdash; a measured number, a rule with its reason, a stale sentence to
-          delete &mdash; arrives as a pull request that argues its own case, leaving
-          only the yes or no. A lesson pointing at future work &mdash; an invention
-          worth shaping, a problem nobody knows how to fix yet, an urgent defect the
-          current effort cannot stop for &mdash; arrives as an issue carrying its
-          evidence and enough substance to start from. An issue is never a task in
-          disguise: if the work is ready to do, it is a pull request. A generalizable lesson
-          lands as a package issue only, written completely enough to shape from, and
-          never as local prose. One narrow escape hatch remains: a lesson causing
-          active, recurring harm may also land locally as an explicitly provisional
-          entry that names its package issue and is deleted by the upgrade that
-          absorbs it. The counterpart is a duty on the package &mdash; issues triaged
-          actively, releases cut fast &mdash; and a duty on the upgrade itself: each
-          upgrade reviews the project&rsquo;s own content layer and flags entries the
-          new version has made redundant, contradictory, or stale, so
-          yesterday&rsquo;s duplicates are thinned by machinery rather than memory.
+          absorbs one. The new rule is one channel per lesson, and the channel is
+          always an issue. The way of working admits exactly two ways for a change
+          to skip shaping &mdash; an urgent fix, and quick mode &mdash; and the
+          improvement pass is not a third: it changes no instructions itself. It
+          records what it learned as issues, deduplicated first: a project-specific
+          lesson as an issue on the project, a generalizable one as an issue on the
+          package, each carrying its evidence and written completely enough for a
+          shaping session to start from. An urgent, actively harmful defect is not
+          the pass&rsquo;s to fix either &mdash; that is the cord anyone pulls in
+          plain conversation, and the fix runs immediately with full rigor. The
+          counterpart is a duty on the package &mdash; issues triaged actively,
+          releases cut fast &mdash; and a duty on the upgrade itself: each upgrade
+          reviews the project&rsquo;s own content layer and flags entries the new
+          version has made redundant, contradictory, or stale, so yesterday&rsquo;s
+          duplicates are thinned by machinery rather than memory.
         </p>
         <p>
           The ninth settled element is the first act of the reorganization: the rules

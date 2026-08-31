@@ -59,7 +59,7 @@ When a dialect word carries a concept the instructions genuinely need, keep the 
 
 - Practice that holds across projects lives in the package: in a skill when it serves one kind of work, in CLAUDE.md content only when every task in every session needs it before doing anything.
 - A project's own facts live in that project's workflow content files — above all empirical detail about the project's tooling, which goes stale the moment the project fixes what the detail describes, and which only the project can amend in the same pull request as the fix.
-- How a finished lesson chooses its channel — a pull request or an issue, local or on the package — is the self-improvement skill's to teach.
+- How a lesson travels — as an issue on the project or on the package — is the self-improvement skill's to teach.
 
 ## Skill anatomy
 
