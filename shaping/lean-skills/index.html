@@ -522,6 +522,17 @@
             own. The contract was verified against the live implementations and
             the evidence recorded on the issue, so nothing is lost by waiting.
           </li>
+          <li>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/36"
+              >The write-side rule for stored JSON (issue 36)</a
+            >
+            is restored as one sentence in the kysely skill, beside the read-side
+            rule it completes: normalize any external payload &mdash; a vendor
+            export&rsquo;s snake_case JSON &mdash; to camelCase keys before storing
+            it in a jsonb column. Reading re-keys the stored value, so keys stored
+            in the vendor&rsquo;s own casing come back mangled on every ordinary
+            read &mdash; the damage is done at write time and unfixable afterwards.
+          </li>
         </ul>
         <p>
           Describe the solution the way you would to the person in the story. What
