@@ -348,9 +348,9 @@
           The fourth settled element is the boundary. This project carries: the
           writing guide for agent-facing instructions; size budgets enforced by
           tooling, in the package and in every consuming project; the rework of the
-          skill that teaches skill-writing; the reorganization of the corpus &mdash; a
+          skill-management skill; the reorganization of the corpus &mdash; a
           home for the goal-effort rules that today live scattered across six skills,
-          the calibrations folded into the skill that reads them, the content lost in
+          the calibrations folded into the subagents skill that reads them, the content lost in
           the move to the package restored; the rework of the improvement pass &mdash;
           invention, deduplication, the change bar, the issue rules; and the slimming
           rewrite of every existing skill under the new guide. As it touches each
@@ -449,10 +449,10 @@
         <p>
           The tenth settled element folds the calibration record into the skill that
           uses it. The measured costs that guide how big to make each delegated task
-          live today in a separate file that the sizing skill points at by a path
+          live today in a separate file that the subagents skill points at by a path
           &mdash; and the path breaks in the very working copies where the skill is
           read, so the instruction quietly reads nothing. Instead, the calibrations
-          become part of that skill&rsquo;s own text: each project&rsquo;s measured
+          become part of the subagents skill&rsquo;s own text: each project&rsquo;s measured
           numbers are layered into the generated skill the same way its other local
           additions are, so there is no path to break. Living inside the skill also
           puts them under its size budget, and that is the point: the calibrations
@@ -474,9 +474,9 @@
         <ul>
           <li>
             <a href="https://github.com/seasonedcc/seasoned-skills/issues/44"
-              >The browser skill&rsquo;s process-hygiene rules (issue 44)</a
+              >The agent-browser skill&rsquo;s process-hygiene rules (issue 44)</a
             >
-            are restored into the browser skill&rsquo;s own text &mdash; they bind
+            are restored into the agent-browser skill&rsquo;s own text &mdash; they bind
             whoever does the browser work, so they must load with it; today they
             survive only in the orchestration skill, which the agent doing the
             browser work often never loads. The duplicate this creates in
@@ -486,21 +486,21 @@
           </li>
           <li>
             <a href="https://github.com/seasonedcc/seasoned-skills/issues/46"
-              >The design skill&rsquo;s pointer to append-only deletion (issue
+              >The design-system skill&rsquo;s pointer to append-only deletion (issue
               46)</a
             >
-            is restored as one sentence in the design content for append-only
+            is restored as one sentence in the design-system content for append-only
             projects: destructive-looking interface verbs &mdash; a delete button, a
             status toggle &mdash; map to appended events, and status is always
-            derived, per the database rules. A pointer, not a copy: the database
-            content stays the one home for the mechanics, and the sentence sits
-            exactly where the wrong instinct fires.
+            derived, per the database-design skill. A pointer, not a copy: the
+            database-design skill stays the one home for the mechanics, and the
+            sentence sits exactly where the wrong instinct fires.
           </li>
           <li>
             <a href="https://github.com/seasonedcc/seasoned-skills/issues/43"
               >The migration proof ritual (issue 43)</a
             >
-            is restored as one bullet in the database skill&rsquo;s existing
+            is restored as one bullet in the kysely skill&rsquo;s existing
             section on proving migrations: unless a migration is declared
             irreversible &mdash; a last resort &mdash; prove it reversible by
             running it, rolling it back, and running it again before applying it
@@ -512,10 +512,11 @@
               >The form-input fallback ordering (issue 45)</a
             >
             is deliberately left open. Adjudicating it surfaced two bigger
-            questions, now recorded as their own demand records: the skill that
-            would carry the clause teaches application patterns beyond the library
-            it is named for, and it documents helpers that live as first-party code
-            in each project rather than in anything the package ships &mdash; so
+            questions, now recorded as their own demand records: the
+            composable-functions skill, which would carry the clause, teaches
+            application patterns beyond the library it is named for, and it
+            documents helpers that live as first-party code in each project rather
+            than in anything the package ships &mdash; so
             the skill itself may not survive in its current form. Ruling on a
             sentence inside it would be this project solving a problem it does not
             own. The contract was verified against the live implementations and
