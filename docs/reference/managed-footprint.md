@@ -27,8 +27,10 @@ including your own hook registrations and the rest of your permissions block.
 `autoMemoryEnabled`, and `skillListingBudgetFraction` are assumptions the whole
 workflow is written against, and they travel with the package version: sync
 rewrites each one on every run, and changing one is a release, not a project
-decision. The `$schema` line is different: sync adds it so your editor knows the
-file, and a value you already have is left alone.
+decision. The `model` value names a family alias, so the model it resolves to
+follows Claude Code's own releases even though the value itself still changes
+only with ours. The `$schema` line is different: sync adds it so your editor
+knows the file, and a value you already have is left alone.
 
 ### The hooks it registers
 
