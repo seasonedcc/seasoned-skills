@@ -1,5 +1,11 @@
 # seasoned-skills
 
+## 0.0.7
+
+### Patch Changes
+
+- Write the managed model setting as the `fable[1m]` family alias instead of a pinned model id, so the orchestrator runs the newest Fable as soon as Claude Code ships it, with no package release in between. The `[1m]` suffix keeps the million-token context window the subagent sizing assumes.
+
 ## 0.0.6
 
 ### Patch Changes
