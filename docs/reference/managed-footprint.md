@@ -13,7 +13,7 @@ including your own hook registrations and the rest of your permissions block.
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| `model` | `claude-fable-5[1m]` | The `[1m]` suffix is the million-token context window every subagent's task is sized against. |
+| `model` | `fable[1m]` | The family alias resolves to the newest Fable, so a new model reaches your agents without a package release. The `[1m]` suffix is the million-token context window every subagent's task is sized against. |
 | `effortLevel` | `high` | How hard the model thinks before it acts. The rules are written for this setting. |
 | `alwaysThinkingEnabled` | `true` | Thinking is never skipped, however small the step looks. |
 | `autoCompactEnabled` | `false` | You decide when to compact the session's context. Automatic compaction would take that moment away, and the moment is the whole craft. |
@@ -27,8 +27,10 @@ including your own hook registrations and the rest of your permissions block.
 `autoMemoryEnabled`, and `skillListingBudgetFraction` are assumptions the whole
 workflow is written against, and they travel with the package version: sync
 rewrites each one on every run, and changing one is a release, not a project
-decision. The `$schema` line is different: sync adds it so your editor knows the
-file, and a value you already have is left alone.
+decision. The `model` value names a family alias, so the model it resolves to
+follows Claude Code's own releases even though the value itself still changes
+only with ours. The `$schema` line is different: sync adds it so your editor
+knows the file, and a value you already have is left alone.
 
 ### The hooks it registers
 
