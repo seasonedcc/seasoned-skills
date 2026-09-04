@@ -7,7 +7,7 @@ describe('mergeManagedSettings', () => {
       model: 'claude-3-haiku',
       somethingProjectOwned: { keep: true },
     })
-    expect(merged.model).toBe('claude-fable-5[1m]')
+    expect(merged.model).toBe('fable[1m]')
     expect(merged.effortLevel).toBe('high')
     expect(merged.alwaysThinkingEnabled).toBe(true)
     expect(merged.autoCompactEnabled).toBe(false)

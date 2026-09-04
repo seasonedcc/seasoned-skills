@@ -13,7 +13,7 @@ including your own hook registrations and the rest of your permissions block.
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| `model` | `claude-fable-5[1m]` | The `[1m]` suffix is the million-token context window every subagent's task is sized against. |
+| `model` | `fable[1m]` | The family alias resolves to the newest Fable, so a new model reaches your agents without a package release. The `[1m]` suffix is the million-token context window every subagent's task is sized against. |
 | `effortLevel` | `high` | How hard the model thinks before it acts. The rules are written for this setting. |
 | `alwaysThinkingEnabled` | `true` | Thinking is never skipped, however small the step looks. |
 | `autoCompactEnabled` | `false` | You decide when to compact the session's context. Automatic compaction would take that moment away, and the moment is the whole craft. |
