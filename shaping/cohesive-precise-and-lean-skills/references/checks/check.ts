@@ -218,6 +218,17 @@ const checkFile = (file: string) => {
     }
   })
 
+  if (isSkill) {
+    const referencesDir = path.join(path.dirname(file), 'references')
+    if (existsSync(referencesDir))
+      for (const reference of readdirSync(referencesDir, { recursive: true, withFileTypes: true })) {
+        if (!reference.isFile()) continue
+        const relative = path.relative(path.dirname(file), path.join(reference.parentPath, reference.name))
+        if (!body.includes(relative))
+          report(file, bodyStartLine, 'error', 'orphan-reference', `The body never names ${relative}, so no step reads it. Name the step that reads it, or delete the file.`)
+      }
+  }
+
   for (const alert of valeOverText(text))
     report(file, alert.Line, alert.Severity, alert.Check, alert.Message)
 }

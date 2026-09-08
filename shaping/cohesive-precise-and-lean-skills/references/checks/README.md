@@ -52,3 +52,7 @@ node shaping/cohesive-precise-and-lean-skills/references/checks/check.ts <files>
 A list item nested inside another fails the file (`nested-list`). Lists stay flat: split the outer list under subheadings, or rewrite the items as prose.
 
 The grade check reads each list item as a sentence of its own. Before this, items ending in a semicolon and starting lowercase merged into one long sentence, and the grade rose for a list a reader takes item by item.
+
+## Orphan reference files
+
+Every file under a skill's `references/` folder must be named by path somewhere in the skill's body (`orphan-reference`), since a reference file is only ever read at the step that names it. Today the testing skill's `references/examples.md` fails this.
