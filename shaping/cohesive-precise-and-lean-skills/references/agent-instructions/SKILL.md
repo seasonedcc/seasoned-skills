@@ -91,7 +91,7 @@ A change that can't argue its case isn't made. The same bar covers every edit: a
 ## Reviewing a change to instructions
 
 - Judge the change by the case it argues, and judge it against the whole file. Read the skill as its reader would, never the diff alone. After a series of fixes, re-read every touched file whole. A set of locally right edits can flatten what the file teaches.
-- The author never judges their own round. A fresh reader with this skill loaded reads every touched file whole. It reports each sentence that breaks a principle and names the principle. The author fixes or declines each finding in the pull request. Then a new fresh reader reads again. The cycle ends when a reader finds nothing.
+- The author never judges their own round. A fresh reader with this skill loaded reads every touched file whole. It reports each sentence that breaks a principle and names the principle. The author judges each finding, never at face value, and fixes or declines it in the pull request. Then a new fresh reader reads again. The cycle ends when the author is satisfied with the file, not when a reader runs out of findings.
 - A contradiction between a concrete recipe and a stated principle is a defect. The recipe is what an agent copies, so the recipe complies or the principle changes, never both left standing.
 - One sitting is the bar. When a person can't read the file and judge the change in one sitting, the file is too big or the prose too dense. That is a finding to fix, not a fact of life.
 
