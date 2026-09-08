@@ -5,11 +5,11 @@ description: Write and edit the instructions agents read. That covers skills, CL
 
 # Agent instructions
 
-Write every instruction the way a developer shares what they know with a peer. Be plain and warm. Use words people say out loud. Never write like a rulebook, and never like a system talking to itself.
+Write every instruction the way a developer shares what they know with a peer. Be plain and warm, in words people say out loud. Never write like a rulebook, and never like a system talking to itself.
 
 ## Who reads these files
 
-People and agents read the same file, and they need different things from it. The person reviews every change. They have to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
+People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
 
 ## Core principles
 
@@ -17,7 +17,7 @@ People and agents read the same file, and they need different things from it. Th
 
 2. **Plain speech, no AI dialect.** Words agents use with each other do not belong in instructions people review. See the translation table below.
 
-3. **Situation before rule.** Start with the situation. Then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
+3. **Situation before rule.** Start with the situation, then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
 4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the kysely skill, never "the database skill". Watch the phrases you coin the same way. "Worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase asks of them, say the concrete thing instead.
 
@@ -33,7 +33,7 @@ People and agents read the same file, and they need different things from it. Th
 
 10. **Mark the unsettled.** Describe today's way plainly, and say what is still in motion. A reader who takes an unsettled rule as settled is worse off than one who knows it is evolving.
 
-11. **One idea per sentence.** Packing two ideas into one sentence feels like economy. It costs a second read. Give each idea its own sentence, the long way if the short way needs a re-read. Keep a word out of a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
+11. **One idea per sentence.** Packing two ideas into one sentence feels like economy, and it costs a second read. Give each idea its own sentence, the long way if the short way needs a re-read. One idea is not one clause: two clauses that belong together stay together. Keep a word out of a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
 
 ## AI dialect translation table
 
@@ -56,7 +56,7 @@ Words from the workflow's internal dialect that never appear in the instructions
 | ergonomics | how it feels to use |
 | corpus | the reference library (the books and posts the method draws on) |
 
-Sometimes a dialect word carries a concept the instructions really need. Keep the concept. Teach it under a plain name, and define it on first use. Never smuggle the word.
+Sometimes a dialect word carries a concept the instructions really need. Keep the concept, teach it under a plain name, and define it on first use. Never smuggle the word.
 
 Literal identifiers are the one exception. Command names, configuration keys, and exported symbols are written exactly as they are, such as `seasoned-skills sync` and `disable-model-invocation`. The concepts they carry still get plain names in prose: the sync, the switch that keeps a skill manual.
 
@@ -64,7 +64,7 @@ Literal identifiers are the one exception. Command names, configuration keys, an
 
 A lesson has to land somewhere. The wrong home is the usual way a good rule goes bad. It gets restated until the copies disagree, or it goes stale in a file nobody thinks to amend.
 
-- Practice that holds across projects lives in the package. It goes in a skill when it serves one kind of work. It goes in CLAUDE.md content only when every task in every session needs it before doing anything.
+- Practice that holds across projects lives in the package. It goes in a skill when it serves one kind of work, and in CLAUDE.md content only when every task in every session needs it before doing anything.
 - A project's own facts live in that project's workflow content files. Above all, facts about the project's tooling live there. They go stale the moment the project fixes what they describe, and only the project can fix the text in the same pull request as the fix.
 - A lesson travels as an issue, on the project or on the package. How is the self-improvement skill's to teach.
 
@@ -87,21 +87,21 @@ Every line an agent loads costs tokens on every use. A file a person can't read 
 
 Run `seasoned-skills check` before you commit. It runs the same checks the sync runs, over the generated files, and names what broke. Give it file paths to check a draft the sync doesn't know yet.
 
-When a change breaks a budget, make room honestly. Cut what fails the change bar. Move enforcement to tooling. Move detail only some uses need to a reference file. Never squeeze prose into dialect to fit — the budget counts words, but the point is what each word teaches.
+When a change breaks a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move detail only some uses need to a reference file. Never squeeze prose into dialect to fit — the budget counts words, but the point is what each word teaches.
 
 ## The change bar
 
 Once you know how these files work, here is what it takes to change one. Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. The bar is the same whichever way the change points.
 
 - An addition names the upside it creates or the live failure it prevents. It shows the rule is not already on the books in other words. It shows tooling would not do the job better.
-- A deletion names why the text is dead. It made up for a weakness that is gone. It repeats a rule stated elsewhere. Tooling now does its job. Or it teaches nothing that creates upside or prevents a live failure.
+- A deletion names why the text is dead: it made up for a weakness that is gone, it repeats a rule stated elsewhere, tooling now does its job, or it teaches nothing that creates upside or prevents a live failure.
 
 A change that cannot argue its case is not made. The same bar covers every edit: a lesson from a finished task, a slimming pass, a brand-new skill.
 
 ## Reviewing a change to instructions
 
 - Judge the change by the case it argues, and judge it against the whole file. Read the skill as its reader would, never the diff alone. After a series of fixes, re-read every touched file whole. A set of locally right edits can flatten what the file teaches.
-- A contradiction between a concrete recipe and a stated principle is a defect. The recipe is what an agent copies. So the recipe complies or the principle changes, never both left standing.
+- A contradiction between a concrete recipe and a stated principle is a defect. The recipe is what an agent copies, so the recipe complies or the principle changes, never both left standing.
 - One sitting is the bar. When a person can't read the file and judge the change in one sitting, the file is too big or the prose too dense. That is a finding to fix, not a fact of life.
 
 ## Anti-patterns (never do these)
