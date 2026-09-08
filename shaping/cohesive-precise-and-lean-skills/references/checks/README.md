@@ -46,3 +46,9 @@ Facts about the tools:
 ```sh
 node shaping/cohesive-precise-and-lean-skills/references/checks/check.ts <files>
 ```
+
+## Nested lists and list items as sentences
+
+A list item nested inside another fails the file (`nested-list`). Lists stay flat: split the outer list under subheadings, or rewrite the items as prose.
+
+The grade check reads each list item as a sentence of its own. Before this, items ending in a semicolon and starting lowercase merged into one long sentence, and the grade rose for a list a reader takes item by item.

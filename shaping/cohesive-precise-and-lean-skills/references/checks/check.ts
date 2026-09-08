@@ -87,14 +87,17 @@ const prose = (body: string) => {
     }
     if (inFence) continue
     if (/^\s*(#|\||\[|-{3,})/.test(line)) continue
+    const isListItem = /^\s*(\d+\.|-)\s+/.test(line)
     const cleaned = line
       .replace(/^\s*(\d+\.|-)\s+/, '')
       .replace(/\*\*/g, '')
       .replace(/`[^`]*`/g, 'x')
       .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[;:,]$/, '')
       .trim()
     if (!cleaned) continue
-    kept.push(/[.!?]$/.test(cleaned) ? cleaned : cleaned + '.')
+    const sentence = isListItem ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : cleaned
+    kept.push(/[.!?]$/.test(sentence) ? sentence : sentence + '.')
   }
   return kept.join(' ')
 }
@@ -199,6 +202,8 @@ const checkFile = (file: string) => {
     if (inFence) return
     const heading = line.match(/^#{1,6}\s+(.*?)\s*#*\s*$/)
     if (heading) checkHeading(file, lineNumber, heading[1] ?? '')
+    if (/^\s+([-*+]|\d+[.)])\s/.test(line))
+      report(file, lineNumber, 'error', 'nested-list', 'The list item is nested inside another. Lists stay flat: split the outer list under subheadings, or rewrite the items as prose.')
     for (const match of line.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
       const target = match[1] ?? ''
       if (/^(https?:|mailto:|#)/.test(target)) continue

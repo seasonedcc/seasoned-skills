@@ -444,7 +444,7 @@
           repository already runs.
         </p>
         <p>
-          The same mechanism carries four checks on the shape of a skill, not only
+          The same mechanism carries five checks on the shape of a skill, not only
           its length. A skill&rsquo;s name follows the open Agent Skills
           specification: one to sixty-four characters, lowercase letters, digits, and
           hyphens only, never starting, ending, or doubling a hyphen, and matching
@@ -456,7 +456,12 @@
           1,024 is the open specification&rsquo;s own cap. Em dashes are rationed the
           way the voice guide already asks, as a number the sync can count: none in
           the front matter, at most two in any generated file or reference file.
-          And a reading-grade ceiling holds the sentences short: the generated file,
+          Lists stay flat: a list item nested inside another fails the file, since
+          each level is one more thing for a reader to hold, and the fix is a
+          subheading over a flat list or a rewrite as prose. Today two skills and
+          one CLAUDE.md fragment nest lists, and the guide&rsquo;s own draft nested
+          nine items before the check existed. And a reading-grade ceiling holds
+          the sentences short: the generated file,
           with its front matter, headings, tables, and code stripped, scores no
           higher than sixth grade on the Flesch-Kincaid scale, a plain formula over
           words per sentence and syllables per word that any open-source library

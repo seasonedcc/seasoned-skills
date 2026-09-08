@@ -22,7 +22,7 @@ A skill is a folder named after the skill, holding a `SKILL.md`. A project insta
 
 ## How these files are made
 
-The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. A per-skill content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over the generated files or any file paths you give it. The check runs Vale, a prose linter, for the prose rules.
+The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. A per-skill content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over the generated files or any file paths you give it. Vale, a prose linter, runs inside the check.
 
 ## Core principles
 
@@ -46,7 +46,7 @@ The package also carries content for CLAUDE.md, the rules every session loads fi
 
 10. **Mark the unsettled.** Describe today's way plainly, with "today" in front of it, and say what may change. A reader who takes an unsettled rule as settled is worse off than one who knows it is evolving.
 
-11. **One idea per sentence.** Two ideas in one sentence cost a second read. Give each idea its own sentence. One idea is not one clause: two clauses that belong together stay together. A longer sentence that reads once beats a short one that needs a re-read.
+11. **One idea per sentence.** Two ideas in one sentence cost a second read. Give each idea its own sentence. One idea is not one clause: two clauses that belong together stay together.
 
 12. **No sentence that reads wrong first.** "Instructions nobody reviews drift" sends the eye to a noun first. Write "Instructions drift when nobody reviews them."
 
@@ -69,12 +69,12 @@ Every line an agent loads costs tokens on every use. A file too long for one sit
 - a generated description within 1,024 characters, the project's `triggers:` words included;
 - em dashes: none in the front matter, and at most two in any file, since past two the voice reads affected;
 - a reading grade of six or lower, as the check computes it, for the body's prose and for the description on its own;
-- the prose rules:
-  - no dialect word, jargon, hedge such as "may want to consider", or shouting in capitals;
-  - no heading in Title Case;
-  - no sentence past 30 words;
-  - no misspelling, dead link, or paragraph repeated from another file;
-  - no "the … skill" phrase naming a skill by anything but its folder name.
+- no dialect word, jargon, hedge such as "may want to consider", or shouting in capitals;
+- no heading in Title Case;
+- no sentence past 30 words;
+- no list nested in another, since each level is one more thing to hold;
+- no misspelling, dead link, or paragraph repeated from another file;
+- no "the … skill" phrase naming a skill by anything but its folder name.
 
 Run `seasoned-skills check` before you commit, so the failure reaches you and not the reviewer.
 
@@ -84,12 +84,14 @@ When a sentence reads well and still fails, change it so the check passes. Then 
 
 Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. A sentence like "the list lives elsewhere, never here" is the case leaking in. Readers after the merge never had the old version, so it explains nothing to them.
 
-- An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching the generated files, that no existing rule says the same thing in other wording. The author also shows that tooling wouldn't do the job better.
-- A deletion names why the text is dead. Four reasons count:
-  - it made up for a weakness the model or the tooling no longer has;
-  - it repeats a rule stated elsewhere;
-  - tooling now does its job;
-  - it teaches nothing that creates upside or prevents a failure that has happened.
+An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching the generated files, that no existing rule says the same thing in other wording. The author also shows that tooling wouldn't do the job better.
+
+A deletion names why the text is dead. Four reasons count:
+
+- it made up for a weakness the model or the tooling no longer has;
+- it repeats a rule stated elsewhere;
+- tooling now does its job;
+- it teaches nothing that creates upside or prevents a failure that has happened.
 
 When a change breaks a budget, make room honestly. Cut what fails the bar, move enforcement to tooling, or move detail to a reference file when only some uses need it.
 
