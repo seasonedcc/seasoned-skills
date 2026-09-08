@@ -61,7 +61,11 @@
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "@vvago/vale": "3.20.0",
+    "cspell": "10.3.0",
+    "jscpd": "5.2.0",
     "seasoned-skills": "link:.",
+    "text-readability": "1.1.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
@@ -70,5 +74,10 @@
     "jiti": "^2.7.0",
     "pg": "^8.23.0",
     "zod": "^4.4.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@vvago/vale"
+    ]
   }
 }

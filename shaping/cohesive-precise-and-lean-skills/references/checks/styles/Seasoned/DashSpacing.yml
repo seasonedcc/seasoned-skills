@@ -1,0 +1,7 @@
+extends: existence
+message: "Put spaces around an em dash."
+level: error
+nonword: true
+tokens:
+  - '[^\s*_`]—'
+  - '—[^\s*_`]'

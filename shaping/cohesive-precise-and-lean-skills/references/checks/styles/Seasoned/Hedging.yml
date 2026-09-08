@@ -1,0 +1,14 @@
+extends: existence
+message: "'%s' hedges. Give the rule and its scope instead."
+level: error
+ignorecase: true
+scope:
+  - paragraph
+  - list
+tokens:
+  - should probably
+  - may want to consider
+  - might want to consider
+  - may want to
+  - might want to
+  - it is recommended
