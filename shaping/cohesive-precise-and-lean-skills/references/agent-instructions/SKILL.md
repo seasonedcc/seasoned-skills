@@ -28,7 +28,7 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 1. **Sentence case for all headings.** In Title Case, a reader can't tell a name from a word.
 
-2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. Vale, the prose linter inside `seasoned-skills check`, carries the list in its `Seasoned.Dialect` rule and prints the plain word beside each flagged one. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
+2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `seasoned-skills check` command carries the list: it flags each dialect word and prints the plain one beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
 
 3. **Situation before rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -36,7 +36,7 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason lets a reader handle a case you never saw coming.
 
-6. **Define terms on first meeting.** The instructions may teach a term of art, such as lane, or name a tool, such as Vale. The first time a reader meets either, a plain-words definition sits beside it. Name a tool before you describe it and the reader guesses which one.
+6. **Define terms on first meeting.** The instructions may teach a term of art, such as lane, or name a tool, such as the sync. The first time a reader meets either, a plain-words definition sits beside it. Name a tool before you describe it and the reader guesses which one.
 
 7. **One home per rule.** A rule lives in exactly one place. Everywhere else that needs it points there. Two copies of one rule drift apart the moment one is edited.
 
