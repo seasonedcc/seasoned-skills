@@ -26,9 +26,9 @@ The package also carries content for CLAUDE.md, the rules every session loads fi
 
 ## Core principles
 
-1. **Sentence case for all headings.** Write "Reviewing a change", never "Reviewing A Change". In Title Case, a reader can't tell a name from a word.
+1. **Sentence case for all headings.** In Title Case, a reader can't tell a name from a word.
 
-2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `Seasoned.Dialect` rule in Vale carries the list and names the plain word for each. When the check flags a word, it prints the plain word beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
+2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `Seasoned.Dialect` rule in Vale carries the list, and the check prints the plain word beside each flagged one. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
 
 3. **Situation before rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -36,7 +36,7 @@ The package also carries content for CLAUDE.md, the rules every session loads fi
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason lets a reader handle a case you never saw coming.
 
-6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator or lane, or name a tool, such as Vale. The first time a reader meets either, a plain-words definition sits right beside it. Name a tool before you describe it and the reader guesses which one.
+6. **Define terms on first meeting.** The instructions may teach a term of art, such as lane, or name a tool, such as Vale. The first time a reader meets either, a plain-words definition sits beside it. Name a tool before you describe it and the reader guesses which one.
 
 7. **One home per rule.** A rule lives in exactly one place. Everywhere else that needs it points there. Two copies of one rule drift apart the moment one is edited.
 
@@ -50,13 +50,13 @@ The package also carries content for CLAUDE.md, the rules every session loads fi
 
 12. **No sentence that reads wrong first.** "Instructions nobody reviews drift" sends the eye to a noun first. Write "Instructions drift when nobody reviews them."
 
-13. **Active voice where an agent acts.** "The tests should be run" hides who acts. Write "Run the tests."
+13. **Active voice where an agent acts.** A passive step hides who acts.
 
 ## Where a rule lives
 
 A rule in the wrong home gets restated until the copies disagree, or goes stale where nobody thinks to amend it. Each home has a cost.
 
-- CLAUDE.md loads in every session before anything else. It carries only what every task needs before doing anything.
+- CLAUDE.md loads in every session before anything else. It carries only what every task needs first.
 - A skill's description sits in every session's context, used or not, and its body loads whole once an agent judges the situation fits. So a skill needs a situation of its own: one an agent can tell from the description alone, and meets without another skill's work. Rules for one situation that several skills carry belong in a skill for that situation.
 - A reference file costs nothing until a step in the body sends the agent to it, so it takes detail that only some uses of the skill need. One no step names is dead text, and the check refuses it.
 - Never split a skill for size alone. A part with no situation of its own is one no agent loads.
@@ -89,7 +89,7 @@ Every change argues its case in the pull request that carries it, never in the i
 
 An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching CLAUDE.md and every skill, that no existing rule says the same thing, and that tooling wouldn't do the job better.
 
-A deletion names why the text is dead. Five reasons count:
+A deletion names why the text is dead. Budget pressure makes every sentence look dead. So before you cut one, read it as the rule it states and hold the cut to it. The sentence that judges a cut is the easiest one to lose. Five reasons count:
 
 - it made up for a weakness the models or the tooling no longer have;
 - it repeats a rule stated elsewhere;
@@ -102,7 +102,7 @@ When a change breaks a budget, make room. Cut what fails the bar, move enforceme
 ## Reviewing a change to instructions
 
 - The reviewer, person or agent, judges the change by the case it argues. They judge it against the whole file, read as its reader would, never as a diff, and again after a series of fixes. A set of locally right edits can flatten what the file teaches.
-- The author never reviews their own round of edits: they read the file as they meant it, not as it is. A fresh agent, with this skill loaded and no memory of the edits, reviews as above, with the pull request and every touched file. The agent reports each sentence that breaks a rule this file states, naming the rule. The author answers each finding in the pull request, fixing or declining it. The author takes none at face value: a fresh reader knows the rules, not the history behind a sentence. Then a new fresh agent reads again. The cycle ends when the author is satisfied with the file, not when a reader runs out of findings.
+- The author never reviews their own round of edits: they read the file as they meant it, not as it is. A fresh agent, with this skill loaded and no memory of the edits, reviews as above, with the pull request and every touched file. The agent reports each sentence that breaks a rule this file states, naming the rule. The author answers each finding in the pull request, fixing or declining it. The author takes none at face value: a fresh reader knows the rules, not the history behind a sentence. Then a new fresh agent reads. The cycle ends when the author is satisfied with the file, not when a reader runs out of findings.
 - A concrete step, like a command to run, can contradict a stated principle. The step is what an agent copies, so change the step to comply, or the principle to match.
 - When the person reviewing couldn't read the file and judge the change in one sitting, the file is too big or too dense. Fix that first.
 
