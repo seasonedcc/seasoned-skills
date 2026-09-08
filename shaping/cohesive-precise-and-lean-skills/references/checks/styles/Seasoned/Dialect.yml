@@ -1,0 +1,32 @@
+extends: substitution
+message: "Write '%s' instead of '%s'. The second is AI dialect."
+level: error
+ignorecase: true
+scope:
+  - paragraph
+  - list
+  - heading
+swap:
+  load-bearing: essential
+  binding: required
+  doctrine: standing instructions
+  charter: instructions
+  invoke: run
+  invoked: ran
+  invokes: runs
+  adjudicate: decide
+  adjudicated: decided
+  adjudicates: decides
+  adjudication: ruling
+  materialize: create
+  materialized: created
+  materializes: creates
+  canonical: official
+  affordance: control
+  affordances: controls
+  artifact: file
+  artifacts: files
+  downstream: later
+  upstream: earlier
+  ergonomics: how it feels to use
+  corpus: reference library

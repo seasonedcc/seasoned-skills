@@ -1,0 +1,23 @@
+extends: existence
+message: "'%s' is corporate jargon. Say the plain thing."
+level: error
+ignorecase: true
+scope:
+  - paragraph
+  - list
+  - heading
+tokens:
+  - leverages?
+  - leveraged
+  - utilizes?
+  - utilized
+  - seamless(ly)?
+  - robust(ly)?
+  - best-in-class
+  - cutting-edge
+  - empowers?
+  - empowered
+  - optimizes?
+  - optimized
+  - synerg(y|ies)
+  - solutions?

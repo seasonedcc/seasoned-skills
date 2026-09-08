@@ -1,0 +1,6 @@
+extends: occurrence
+message: "Four or more commas in one sentence. Is this more than one idea?"
+level: warning
+scope: sentence
+max: 3
+token: ','

@@ -1,0 +1,9 @@
+extends: existence
+message: "'%s' claims a whole set nobody counted. Write the mechanism and one verified example instead."
+level: warning
+ignorecase: true
+scope:
+  - paragraph
+  - list
+raw:
+  - \b(all \d+ \w+|every (caller|call site|case|instance|occurrence|usage|test|file in the repo)|in (all|every) cases?|always (works|passes|holds|succeeds)|never (fails|breaks))\b

@@ -1,0 +1,23 @@
+extends: existence
+message: "'%s' is vague. Give the number or the name."
+level: warning
+ignorecase: true
+scope:
+  - paragraph
+  - list
+tokens:
+  - many
+  - various
+  - several
+  - a few
+  - a number of
+  - quickly
+  - significantly
+  - substantially
+  - extremely
+  - fairly
+  - quite
+  - relatively
+  - largely
+  - mostly
+  - very

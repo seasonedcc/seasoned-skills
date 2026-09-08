@@ -1,0 +1,22 @@
+extends: substitution
+message: "Write '%s' for '%s'. That is how people talk."
+level: suggestion
+ignorecase: true
+scope:
+  - paragraph
+  - list
+swap:
+  do not: don't
+  does not: doesn't
+  did not: didn't
+  is not: isn't
+  are not: aren't
+  was not: wasn't
+  were not: weren't
+  cannot: can't
+  could not: couldn't
+  will not: won't
+  would not: wouldn't
+  should not: shouldn't
+  has not: hasn't
+  have not: haven't

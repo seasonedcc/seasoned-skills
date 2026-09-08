@@ -1,0 +1,10 @@
+extends: capitalization
+message: "'%s' is not in sentence case."
+level: error
+scope: heading
+match: $sentence
+exceptions:
+  - AI
+  - CLAUDE.md
+  - README
+  - Title Case

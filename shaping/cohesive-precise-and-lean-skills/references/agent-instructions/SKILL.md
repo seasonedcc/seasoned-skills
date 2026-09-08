@@ -17,11 +17,11 @@ People and agents read the same file, and they need different things from it. Th
 
 1. **Sentence case for all titles.** Write "Reviewing a change", never "Reviewing A Change".
 
-2. **Plain speech, no AI dialect.** Words agents use with each other do not belong in instructions people review. See the translation table below.
+2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. See the translation table below.
 
 3. **Situation before rule.** Start with the situation, then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
-4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the kysely skill, never "the database skill". Watch the phrases you coin the same way. "Worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase asks of them, say the concrete thing instead.
+4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the worktrees skill, never "the skill for branches". Watch the phrases you coin the same way. "Worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase asks of them, say the concrete thing instead.
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle a case you never saw coming. Without it, a bare rule gets applied with confidence to the wrong case.
 
@@ -98,10 +98,14 @@ When a change breaks a budget, make room honestly: cut what fails the change bar
 
 Once you know how these files work, here is what it takes to change one. Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. The bar is the same whichever way the change points.
 
-- An addition names the upside it creates or the live failure it prevents. It shows the rule is not already on the books in other words. It shows tooling would not do the job better.
-- A deletion names why the text is dead. Four reasons count: it made up for a weakness that is gone, it repeats a rule stated elsewhere, tooling now does its job, or it teaches nothing that creates upside or prevents a live failure.
+- An addition names the upside it creates or the live failure it prevents. It shows the rule isn't already on the books in other words. It shows tooling wouldn't do the job better.
+- A deletion names why the text is dead. Four reasons count:
+  - it made up for a weakness that is gone;
+  - it repeats a rule stated elsewhere;
+  - tooling now does its job;
+  - it teaches nothing that creates upside or prevents a live failure.
 
-A change that cannot argue its case is not made. The same bar covers every edit: a lesson from a finished task, a slimming pass, a brand-new skill.
+A change that can't argue its case isn't made. The same bar covers every edit: a lesson from a finished task, a slimming pass, a brand-new skill.
 
 ## Reviewing a change to instructions
 
