@@ -22,7 +22,7 @@ The `seasoned-skills` npm package keeps its skills under `content/skills/`. A pr
 
 ## How these files are made
 
-The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over what the sync would generate or any file paths you give it. Vale, a prose linter, runs inside the check.
+The `seasoned-skills sync` command generates CLAUDE.md and every package skill from two sources: the package's content, and the project's content files. The seasoned-skills skill teaches that pipeline, from the configuration to a failed sync; load it before you touch a content file. The `seasoned-skills check` command runs the writing checks listed in Size and shape below, over what the sync would generate or any files you name. Vale, a prose linter, runs inside it.
 
 ## Core principles
 
@@ -60,7 +60,7 @@ A rule in the wrong home gets restated until the copies disagree, or goes stale 
 - A skill's description sits in every session's context, used or not, and its body loads whole once an agent judges the situation fits. So a skill needs a situation of its own: one an agent can tell from the description alone, and meets without another skill's work. Rules for one situation that several skills carry belong in a skill for that situation.
 - A reference file costs nothing until a step in the body sends the agent to it, so it takes detail that only some uses of the skill need. One no step names is dead text, and the check refuses it.
 - Never split a skill for size alone. A part with no situation of its own is one no agent loads.
-- Practice that holds across projects lives in the package. A project's own facts live in its workflow content files, workarounds for its tooling included, deleted in the same pull request that fixes what they worked around.
+- Practice that holds across projects lives in the package. A project's own facts live in its content files, workarounds for its tooling included, deleted in the same pull request that fixes what they worked around.
 - A lesson from a task never lands in any home directly. It travels as an issue, on the project or on the package, and reaches the text later in a pull request of its own. The self-improvement skill teaches how.
 
 ## Size and shape
