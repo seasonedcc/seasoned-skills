@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -12,7 +11,7 @@ const emDashesPerFile = 2
 const wordsThatAreNotSkillNames = new Set(['same', 'new', 'right', 'wrong', 'whole', 'first', 'last', 'other', 'generic', 'live', 'one', 'each', 'every', 'this', 'that', 'next', 'previous', 'existing', 'current', 'missing', 'correct', 'matching', 'relevant', 'loaded', 'installed', 'manual', 'package', 'project', 'consuming', 'shared', 'whole', 'entire', 'original', 'old', 'full', 'wider', 'broader', 'narrower', 'smaller', 'larger', 'bigger'])
 const properNouns = new Set(['Vale', 'GitHub', 'Kysely', 'Claude', 'Biome', 'Playwright', 'Postgres', 'PostgreSQL', 'React', 'Remix', 'Vitest', 'Zod', 'Discord', 'Slack', 'Google', 'Linear', 'Notion', 'Docker', 'Node', 'TypeScript', 'JavaScript', 'Python', 'Anthropic', 'Seasoned', 'Graphile', 'Worker', 'Title', 'Case', 'Definition', 'Done', 'Map', 'Set'])
 
-const findRoot = (from) => {
+const findRoot = (from: string): string => {
   let dir = from
   while (dir !== path.dirname(dir)) {
     if (existsSync(path.join(dir, 'node_modules', '.bin', 'vale'))) return dir
@@ -21,20 +20,25 @@ const findRoot = (from) => {
   throw new Error('No node_modules/.bin/vale above ' + from)
 }
 const root = findRoot(checksDir)
-const bin = (name) => path.join(root, 'node_modules', '.bin', name)
+const bin = (name: string) => path.join(root, 'node_modules', '.bin', name)
 
 const files = process.argv.slice(2).map((f) => path.resolve(f))
 if (files.length === 0) {
-  console.error('usage: node check.mjs <markdown files>')
+  console.error('usage: node check.ts <markdown files>')
   process.exit(2)
 }
 
-const findings = []
-const report = (file, line, level, rule, message) =>
+type Level = 'error' | 'warning' | 'suggestion'
+type Finding = { file: string; line: number; level: Level; rule: string; message: string }
+type ValeAlert = { Line: number; Severity: Level; Check: string; Message: string }
+type Duplicate = { lines: number; firstFile: { name: string; start: number }; secondFile: { name: string; start: number } }
+
+const findings: Finding[] = []
+const report = (file: string, line: number, level: Level, rule: string, message: string) =>
   findings.push({ file, line, level, rule, message })
 
 const skillFolders = () => {
-  const names = new Set()
+  const names = new Set<string>()
   for (const dir of ['.claude/skills', 'content/skills']) {
     const full = path.join(root, dir)
     if (existsSync(full)) for (const name of readdirSync(full)) names.add(name)
@@ -45,7 +49,7 @@ const skillFolders = () => {
 }
 const roster = skillFolders()
 
-const splitFrontMatter = (text) => {
+const splitFrontMatter = (text: string) => {
   if (!text.startsWith('---\n')) return { frontMatter: null, body: text, bodyStartLine: 1 }
   const end = text.indexOf('\n---\n', 4)
   if (end === -1) return { frontMatter: null, body: text, bodyStartLine: 1 }
@@ -57,21 +61,21 @@ const splitFrontMatter = (text) => {
   }
 }
 
-const frontMatterField = (frontMatter, key) => {
+const frontMatterField = (frontMatter: string, key: string) => {
   const lines = frontMatter.split('\n')
   const index = lines.findIndex((l) => l.startsWith(key + ':'))
   if (index === -1) return null
-  let value = lines[index].slice(key.length + 1).trim()
+  let value = (lines[index] ?? '').slice(key.length + 1).trim()
   if (value === '>' || value === '|' || value === '') {
     const rest = []
-    for (let i = index + 1; i < lines.length && /^\s+\S/.test(lines[i]); i++) rest.push(lines[i].trim())
+    for (let i = index + 1; i < lines.length && /^\s+\S/.test(lines[i] ?? ''); i++) rest.push((lines[i] ?? '').trim())
     value = rest.join(' ')
   }
   return { value, line: index + 2 }
 }
 
-const prose = (body) => {
-  const kept = []
+const prose = (body: string) => {
+  const kept: string[] = []
   let inFence = false
   for (const line of body.split('\n')) {
     if (/^\s*```/.test(line)) {
@@ -92,26 +96,26 @@ const prose = (body) => {
   return kept.join(' ')
 }
 
-const grade = (text) => Number(readability.fleschKincaidGrade(text).toFixed(1))
-const countEmDashes = (text) => (text.match(/—/g) ?? []).length
+const grade = (text: string) => Number(readability.fleschKincaidGrade(text).toFixed(1))
+const countEmDashes = (text: string) => (text.match(/—/g) ?? []).length
 
-const blankQuotedMentions = (text) =>
-  text.replace(/["\u201c]([^"\u201c\u201d\n]*)["\u201d]/g, (match, inside) => '"' + ' '.repeat(inside.length) + '"')
+const blankQuotedMentions = (text: string) =>
+  text.replace(/["\u201c]([^"\u201c\u201d\n]*)["\u201d]/g, (_match: string, inside: string) => '"' + ' '.repeat(inside.length) + '"')
 
-const valeOverText = (text) => {
+const valeOverText = (text: string): ValeAlert[] => {
   const run = spawnSync(bin('vale'), ['--config', path.join(checksDir, '.vale.ini'), '--ext=.md', '--output=JSON'], {
     input: blankQuotedMentions(text),
     encoding: 'utf8',
   })
-  const parsed = run.stdout.trim() ? JSON.parse(run.stdout) : {}
+  const parsed: Record<string, ValeAlert[]> = run.stdout.trim() ? JSON.parse(run.stdout) : {}
   return Object.values(parsed).flat()
 }
 
-const identifierLike = (word) => /[`._\-/()\d]/.test(word) || /[a-z][A-Z]/.test(word) || /^[A-Z]{2,}$/.test(word)
+const identifierLike = (word: string) => /[`._\-/()\d]/.test(word) || /[a-z][A-Z]/.test(word) || /^[A-Z]{2,}$/.test(word)
 
-const checkHeading = (file, lineNumber, heading) => {
+const checkHeading = (file: string, lineNumber: number, heading: string) => {
   const words = heading.replace(/`[^`]*`/g, '`code`').split(/\s+/).filter(Boolean)
-  if (/^\d+[.)]$/.test(words[0])) words.shift()
+  if (/^\d+[.)]$/.test(words[0] ?? '')) words.shift()
   const first = words[0]
   if (first && /^[a-z]/.test(first) && !identifierLike(first))
     report(file, lineNumber, 'error', 'heading-case', `"${heading}" starts with a lowercase word. Headings start with a capital, and an identifier used as a heading goes in backticks.`)
@@ -122,7 +126,7 @@ const checkHeading = (file, lineNumber, heading) => {
   }
 }
 
-const checkFile = (file) => {
+const checkFile = (file: string) => {
   const text = readFileSync(file, 'utf8')
   const { frontMatter, body, bodyStartLine } = splitFrontMatter(text)
   const isSkill = path.basename(file) === 'SKILL.md'
@@ -173,17 +177,18 @@ const checkFile = (file) => {
     if (/^\s*```/.test(line)) inFence = !inFence
     if (inFence) return
     const heading = line.match(/^#{1,6}\s+(.*?)\s*#*\s*$/)
-    if (heading) checkHeading(file, lineNumber, heading[1])
+    if (heading) checkHeading(file, lineNumber, heading[1] ?? '')
     for (const match of line.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
-      const target = match[1]
+      const target = match[1] ?? ''
       if (/^(https?:|mailto:|#)/.test(target)) continue
-      const resolved = path.resolve(path.dirname(file), target.split('#')[0])
+      const resolved = path.resolve(path.dirname(file), target.split('#')[0] ?? '')
       if (!existsSync(resolved))
         report(file, lineNumber, 'error', 'link', `The link "${target}" points at a file that does not exist.`)
     }
     for (const match of blankQuotedMentions(line).matchAll(/\bthe ([a-z][a-z0-9-]*) skill\b/g)) {
-      if (!roster.has(match[1]) && !wordsThatAreNotSkillNames.has(match[1]))
-        report(file, lineNumber, 'error', 'skill-name', `"the ${match[1]} skill" is not a name in the roster. Name the skill, or reword so it does not read as one.`)
+      const name = match[1] ?? ''
+      if (!roster.has(name) && !wordsThatAreNotSkillNames.has(name))
+        report(file, lineNumber, 'error', 'skill-name', `"the ${name} skill" is not a name in the roster. Name the skill, or reword so it does not read as one.`)
     }
   })
 
@@ -200,7 +205,7 @@ const spelling = spawnSync(bin('cspell'), ['lint', '--no-progress', '--no-summar
 rmSync(spellingDir, { recursive: true, force: true })
 for (const line of (spelling.stdout + spelling.stderr).split('\n')) {
   const match = line.match(/^(.+?):(\d+):\d+ - Unknown word \((.+)\)/)
-  if (match) report(path.resolve(match[1]), Number(match[2]), 'error', 'spelling', `"${match[3]}" is not a word the dictionary knows. Fix the spelling. If it is a real term, add it to cspell.json and say so in the pull request.`)
+  if (match) report(path.resolve(match[1] ?? ''), Number(match[2]), 'error', 'spelling', `"${match[3]}" is not a word the dictionary knows. Fix the spelling. If it is a real term, add it to cspell.json and say so in the pull request.`)
 }
 
 if (files.length > 1) {
@@ -208,7 +213,8 @@ if (files.length > 1) {
   spawnSync(bin('jscpd'), ['--min-tokens', '50', '--format', 'markdown', '--reporters', 'json', '--output', out, '--silent', ...files], { encoding: 'utf8' })
   const reportPath = path.join(out, 'jscpd-report.json')
   if (existsSync(reportPath)) {
-    for (const d of JSON.parse(readFileSync(reportPath, 'utf8')).duplicates ?? [])
+    const duplicates: Duplicate[] = JSON.parse(readFileSync(reportPath, 'utf8')).duplicates ?? []
+    for (const d of duplicates)
       report(d.firstFile.name, d.firstFile.start, 'error', 'duplicate', `${d.lines} lines repeat ${path.relative(root, d.secondFile.name)}:${d.secondFile.start}. One home per rule.`)
   }
   rmSync(out, { recursive: true, force: true })
@@ -217,6 +223,6 @@ if (files.length > 1) {
 findings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)
 for (const f of findings)
   console.log(`${path.relative(process.cwd(), f.file)}:${f.line} ${f.level} ${f.rule}: ${f.message}`)
-const count = (level) => findings.filter((f) => f.level === level).length
+const count = (level: Level) => findings.filter((f) => f.level === level).length
 console.log(`\n${count('error')} errors, ${count('warning')} warnings, ${count('suggestion')} suggestions`)
 process.exit(count('error') > 0 ? 1 : 0)
