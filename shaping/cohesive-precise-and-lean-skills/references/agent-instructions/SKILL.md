@@ -20,15 +20,15 @@ The `seasoned-skills` npm package keeps its skills under `content/skills/`. A pr
 - The description tells an agent when to load the skill: what it does, then "Use when …" with the concrete situations. Write it for the reader deciding whether to load, not for the reader already inside.
 - The body carries what every use needs. A file under `references/` holds detail read at the step in the body that names it. Helper programs go to `scripts/`.
 
-## How these files are made
+## What you edit
 
-The `seasoned-skills sync` command generates CLAUDE.md and every package skill from two sources: the package's content, and the project's content files. The seasoned-skills skill teaches that pipeline, from the configuration to a failed sync; load it before you touch a content file. The `seasoned-skills check` command runs the writing checks listed in Size and shape below, over what the sync would generate or any files you name. Vale, a prose linter, runs inside it.
+For CLAUDE.md and every package skill, the file an agent loads is not the file you edit. The `seasoned-skills sync` command generates them from two sources: the package's content, and the project's content files. The seasoned-skills skill teaches that pipeline, from the configuration to a failed sync; load it before you touch a content file.
 
 ## Core principles
 
 1. **Sentence case for all headings.** In Title Case, a reader can't tell a name from a word.
 
-2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `Seasoned.Dialect` rule in Vale carries the list, and the check prints the plain word beside each flagged one. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
+2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. Vale, the prose linter inside `seasoned-skills check`, carries the list in its `Seasoned.Dialect` rule and prints the plain word beside each flagged one. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
 
 3. **Situation before rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -79,7 +79,7 @@ Every line an agent loads costs tokens on every use. A file too long for one sit
 - no misspelling, dead link, reference file the body never names, or paragraph repeated from another file;
 - no "the … skill" phrase naming a skill by anything but its folder name.
 
-Run `seasoned-skills check` before you commit, so the failure reaches you, not the reviewer.
+Run `seasoned-skills check` before you commit, so the failure reaches you, not the reviewer. It runs these checks over what the sync would generate, or over any files you name.
 
 When a sentence reads well and still fails, change it so the check passes. Then say in the pull request that the rule may be what to fix.
 
