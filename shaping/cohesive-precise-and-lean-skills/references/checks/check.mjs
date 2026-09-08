@@ -9,7 +9,8 @@ const checksDir = path.dirname(new URL(import.meta.url).pathname)
 const readingGradeCeiling = 6
 const descriptionMaxCharacters = 1024
 const emDashesPerFile = 2
-const termsOfArt = ['orchestrator', 'lane', 'gate', 'ledger', 'roster', 'footprint']
+const wordsThatAreNotSkillNames = new Set(['same', 'new', 'right', 'wrong', 'whole', 'first', 'last', 'other', 'generic', 'live', 'one', 'each', 'every', 'this', 'that', 'next', 'previous', 'existing', 'current', 'missing', 'correct', 'matching', 'relevant', 'loaded', 'installed', 'manual', 'package', 'project', 'consuming', 'shared', 'whole', 'entire', 'original', 'old', 'full', 'wider', 'broader', 'narrower', 'smaller', 'larger', 'bigger'])
+const properNouns = new Set(['Vale', 'GitHub', 'Kysely', 'Claude', 'Biome', 'Playwright', 'Postgres', 'PostgreSQL', 'React', 'Remix', 'Vitest', 'Zod', 'Discord', 'Slack', 'Google', 'Linear', 'Notion', 'Docker', 'Node', 'TypeScript', 'JavaScript', 'Python', 'Anthropic', 'Seasoned', 'Graphile', 'Worker', 'Title', 'Case', 'Definition', 'Done', 'Map', 'Set'])
 
 const findRoot = (from) => {
   let dir = from
@@ -94,21 +95,31 @@ const prose = (body) => {
 const grade = (text) => Number(readability.fleschKincaidGrade(text).toFixed(1))
 const countEmDashes = (text) => (text.match(/—/g) ?? []).length
 
+const blankQuotedMentions = (text) =>
+  text.replace(/["\u201c]([^"\u201c\u201d\n]*)["\u201d]/g, (match, inside) => '"' + ' '.repeat(inside.length) + '"')
+
 const valeOverText = (text) => {
   const run = spawnSync(bin('vale'), ['--config', path.join(checksDir, '.vale.ini'), '--ext=.md', '--output=JSON'], {
-    input: text,
+    input: blankQuotedMentions(text),
     encoding: 'utf8',
   })
   const parsed = run.stdout.trim() ? JSON.parse(run.stdout) : {}
   return Object.values(parsed).flat()
 }
 
-const valeOverFile = (file) => {
-  const run = spawnSync(bin('vale'), ['--config', path.join(checksDir, '.vale.ini'), '--output=JSON', file], {
-    encoding: 'utf8',
-  })
-  const parsed = run.stdout.trim() ? JSON.parse(run.stdout) : {}
-  return Object.values(parsed).flat()
+const identifierLike = (word) => /[`._\-/()\d]/.test(word) || /[a-z][A-Z]/.test(word) || /^[A-Z]{2,}$/.test(word)
+
+const checkHeading = (file, lineNumber, heading) => {
+  const words = heading.replace(/`[^`]*`/g, '`code`').split(/\s+/).filter(Boolean)
+  if (/^\d+[.)]$/.test(words[0])) words.shift()
+  const first = words[0]
+  if (first && /^[a-z]/.test(first) && !identifierLike(first))
+    report(file, lineNumber, 'error', 'heading-case', `"${heading}" starts with a lowercase word. Headings start with a capital, and an identifier used as a heading goes in backticks.`)
+  for (const word of words.slice(1)) {
+    const bare = word.replace(/^[("]+|[):,."]+$/g, '')
+    if (/^[A-Z][a-z]/.test(bare) && !identifierLike(bare) && !properNouns.has(bare))
+      report(file, lineNumber, 'error', 'heading-case', `"${heading}" is in Title Case. Write it in sentence case.`)
+  }
 }
 
 const checkFile = (file) => {
@@ -156,8 +167,13 @@ const checkFile = (file) => {
       report(file, bodyStartLine, 'error', 'grade', `The file reads at grade ${bodyGrade}. The ceiling is ${readingGradeCeiling}. Shorten its sentences.`)
   }
 
+  let inFence = false
   body.split('\n').forEach((line, index) => {
     const lineNumber = bodyStartLine + index
+    if (/^\s*```/.test(line)) inFence = !inFence
+    if (inFence) return
+    const heading = line.match(/^#{1,6}\s+(.*?)\s*#*\s*$/)
+    if (heading) checkHeading(file, lineNumber, heading[1])
     for (const match of line.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
       const target = match[1]
       if (/^(https?:|mailto:|#)/.test(target)) continue
@@ -165,22 +181,13 @@ const checkFile = (file) => {
       if (!existsSync(resolved))
         report(file, lineNumber, 'error', 'link', `The link "${target}" points at a file that does not exist.`)
     }
-    for (const match of line.matchAll(/\bthe ([a-z][a-z0-9-]*) skill\b/g)) {
-      if (!roster.has(match[1]))
-        report(file, lineNumber, 'warning', 'skill-name', `"the ${match[1]} skill" is not a name in the roster. Skills go by their real names.`)
+    for (const match of blankQuotedMentions(line).matchAll(/\bthe ([a-z][a-z0-9-]*) skill\b/g)) {
+      if (!roster.has(match[1]) && !wordsThatAreNotSkillNames.has(match[1]))
+        report(file, lineNumber, 'error', 'skill-name', `"the ${match[1]} skill" is not a name in the roster. Name the skill, or reword so it does not read as one.`)
     }
   })
 
-  const sentences = bodyProse.split(/(?<=[.!?])\s+(?=[A-Z"])/)
-  for (const term of termsOfArt) {
-    const first = sentences.find((s) => new RegExp(`\\b${term}s?\\b`, 'i').test(s))
-    if (!first) continue
-    const defined = /[:(]| is | are | means |, the |such as/.test(first)
-    if (!defined)
-      report(file, bodyStartLine, 'suggestion', 'term', `"${term}" first appears without a definition beside it: "${first.slice(0, 80)}"`)
-  }
-
-  for (const alert of valeOverFile(file))
+  for (const alert of valeOverText(text))
     report(file, alert.Line, alert.Severity, alert.Check, alert.Message)
 }
 
@@ -193,7 +200,7 @@ const spelling = spawnSync(bin('cspell'), ['lint', '--no-progress', '--no-summar
 rmSync(spellingDir, { recursive: true, force: true })
 for (const line of (spelling.stdout + spelling.stderr).split('\n')) {
   const match = line.match(/^(.+?):(\d+):\d+ - Unknown word \((.+)\)/)
-  if (match) report(path.resolve(match[1]), Number(match[2]), 'error', 'spelling', `"${match[3]}" is not a word the dictionary knows.`)
+  if (match) report(path.resolve(match[1]), Number(match[2]), 'error', 'spelling', `"${match[3]}" is not a word the dictionary knows. Fix the spelling. If it is a real term, add it to cspell.json and say so in the pull request.`)
 }
 
 if (files.length > 1) {

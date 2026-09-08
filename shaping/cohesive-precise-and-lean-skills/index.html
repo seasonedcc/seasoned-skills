@@ -463,43 +463,38 @@
           The grade ceiling proved that a formula can carry part of the editing,
           so the checks grow a prose linter beside it. The engine is Vale, an
           open-source linter for prose whose rules are small, readable files, so the
-          standard itself is something a person can review, and whose editor
-          extension shows every flag while a person reads. The package ships it
+          standard itself is something a person can review. The package ships it
           through its npm wrapper, carries our rules as one Vale style, and installs
-          both into every consuming project as part of the managed footprint. The
-          rules come in two tiers. The first tier decides on its own and fails the
-          file, like the budgets: the dialect translation table, the jargon and
-          hedging lists, shouting, sentence case in headings, a cap on words per
-          sentence, spelling against a project dictionary, blocks of prose repeated
-          verbatim across files, and links between files that no longer resolve.
-          The second tier only points, at warning level, and the agent answers each
-          flag in the pull request: passive voice, vague quantifiers, claims about
-          &ldquo;always&rdquo; and &ldquo;every&rdquo; over sets the text never
-          defines, too many clauses in one sentence, a word that reads as both noun
-          and verb right after a noun, a term of art used before it is defined, and
-          a skill referred to by anything but the name in the roster. No second-tier
-          list ships as it comes: a spike ran the popular ones over seven sentences
-          Daniel had flagged in one review, and they caught none of the seven while
-          flagging &ldquo;actually&rdquo; and &ldquo;then&rdquo; in sentences he had
-          just approved. Rules we wrote for the purpose caught two of the seven.
-          Left alone, such flags misguide agents in two ways we have watched
-          happen: an agent treats a warning like a rule and applies it everywhere,
-          rewriting approved sentences to silence it, and a rule that can be
-          satisfied mechanically gets satisfied mechanically, the way the grade
-          ceiling first produced choppy fragments instead of clear sentences. Three
-          guards hold the tools to their job. A first-tier rule turns on only after
-          it has run over our own files with no false positives, and a rule that
-          produces one is demoted. The banned words themselves live only in the
-          rule files, never in the skill, so no file quotes what it bans, and the
-          skill keeps only what no check can see. A second-tier flag is a question, never a
-          verdict: the agent answers each one in the pull request, where review
-          happens, and &ldquo;the sentence is right as written&rdquo; is a legal
-          answer, so an agent that changes a sentence has to say why. And rules face
-          the change bar like prose: a second-tier rule whose flags are dismissed
-          more often than they are fixed is deleted. What is left for a person is
-          the reading no rule can take over. One thing stays to confirm before this
-          element is final: that the npm wrapper installs the Vale binary cleanly on
-          a fresh machine and in continuous integration.
+          both into every consuming project as part of the managed footprint. Every
+          rule fails the file, the way the budgets do, and there is no second tier
+          of warnings: the dialect translation table, the jargon and hedging lists,
+          shouting, sentence case in headings, a cap of thirty words per sentence,
+          spelling against a project dictionary, blocks of prose repeated verbatim
+          across files, links between files that no longer resolve, and a skill
+          referred to by anything but its roster name. A rule earns its place by
+          measurement: it runs over our own files first, its hits are read by hand,
+          and it turns on only when every hit was real. A rule that cannot get
+          there is deleted, never demoted to a warning, because a warning misguides
+          agents in two ways we watched happen: an agent treats it like a rule and
+          applies it everywhere, rewriting approved sentences to silence it, and a
+          rule that can be satisfied mechanically gets satisfied mechanically, the
+          way the grade ceiling first produced choppy fragments. The first pass over
+          the package&rsquo;s own thirty-three skills settled the list: passive
+          voice (523 hits, almost none a defect), vague quantifiers, universal
+          claims, comma counts, contractions, and a part-of-speech rule for words
+          that read as both noun and verb all failed the bar and are gone, while
+          &ldquo;solution&rdquo; left the jargon list because twenty of its
+          twenty-three hits were the word&rsquo;s plain meaning. Text in double
+          quotes is a mention, not a use, so a rule can quote the phrase it bans.
+          The banned words themselves live only in the rule files, never in the
+          skill, so no file quotes what it bans, and the skill keeps only what no
+          check can see. Rules face the change bar like prose: a rule whose
+          failures turn out wrong is fixed or deleted in the pull request that
+          found it. What is left for a person is the reading no rule can take over.
+          One thing stays to confirm before this element is final: that the npm
+          wrapper installs the Vale binary cleanly on a fresh machine and in
+          continuous integration, which under pnpm 10 needs the package&rsquo;s
+          build step approved.
         </p>
         <p>
           The seventh settled element disarms the project&rsquo;s biggest time bombs

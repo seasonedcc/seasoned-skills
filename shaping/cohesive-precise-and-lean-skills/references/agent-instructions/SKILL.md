@@ -69,11 +69,11 @@ Every line an agent loads costs tokens on every use. A file a person can't read 
 - a generated description within 1,024 characters, project trigger words included;
 - em dashes: none in the front matter, at most two in any file;
 - a reading grade of six or lower for the whole file, and for the description on its own, which in practice means short sentences;
-- a prose linter. Some of its rules fail the file, such as a dialect word or a heading in Title Case. Others only warn, such as passive voice or a claim about "every".
+- a prose linter. It fails the file on a dialect word, jargon, a hedge, shouting, a heading in Title Case, or a sentence past 30 words. It also fails on a misspelling, a dead link, a skill named by anything but its roster name, or a block repeated from another file.
 
 Run `seasoned-skills check` before you commit. It runs the same checks the sync runs, over the generated files, and names what broke. Give it file paths to check a draft the sync doesn't know yet.
 
-A warning from the linter is a question, never a verdict. Answer each one in the pull request, and "the sentence is right as written" is a real answer. Never change a sentence only to make a flag go away. A sentence that reads well and still trips a rule is a finding against the rule.
+Every check fails the file, and there are no warnings to weigh. A rule that could not be made exact was deleted instead. When a sentence reads well and still fails, say so in the pull request. The rule may be the thing to fix.
 
 When a change breaks a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move detail only some uses need to a reference file. Never squeeze prose into dialect to fit — the budget counts words, but the point is what each word teaches.
 
@@ -98,7 +98,7 @@ A change that can't argue its case isn't made. The same bar covers every edit: a
 
 ## What the checks can't see
 
-The checks catch Title Case, em dashes, jargon, dialect, shouting, and hedging on their own. These slip past them, so watch for them yourself:
+The checks catch what a rule can state exactly. These slip past them, so watch for them yourself:
 
 - Passive voice where an agent acts: "The ledger should be updated" → "Update the ledger"
 - Teaching a direction as if it were settled practice
