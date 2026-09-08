@@ -5,17 +5,17 @@ description: Write and edit the instructions agents read. That covers skills, CL
 
 # Agent instructions
 
-Write every instruction the way a developer shares what they know with a peer. Be plain and warm, in words people say out loud. Never write like a rulebook, and never like a system talking to itself.
+Write every instruction the way a seasoned developer shares what they know with a peer. Be plain and warm, in words people say in real life. Never write like a rulebook, and never like a system talking to itself.
 
-This is one of the hardest writing jobs there is. A file at its word budget and its reading ceiling has no free space. Every sentence you add is paid for by one you cut or tighten, and the meaning has to survive both. Bring your best reasoning and your patience. Slow, careful work is the job, not a delay.
+This is one of the hardest writing jobs there is. A file at its word limit has nowhere to grow. Every sentence you add is paid for by one you cut or tighten. And the true meaning has to always survive: we should never throw the baby out with the bath water. Bring your best reasoning and patience. Slow, careful work is the job, not a delay.
 
 ## Who reads these files
 
-People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting. So the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Then nobody notices when the text stops matching how we work. The agent follows it, right or wrong.
+People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting. So the file needs to read like something a colleague wrote. The agent follows the text exactly as written, so every sentence has to mean what it says and nothing more. Prose that works for a person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Then nobody notices when the text stops matching how we work.
 
 ## Skill anatomy
 
-The `seasoned-skills` npm package keeps its skills under `content/skills/`. A project commits its own under `.claude/skills/`.
+The `seasoned-skills` npm package keeps its skills under its `content/skills/` folder. A project using it commits its custom skills under `.claude/skills/`.
 
 - The description tells an agent when to load the skill: what it does, then "Use when …" with the concrete situations. Write it for the reader deciding whether to load, not for the reader already inside.
 - The body carries what every use needs. A file under `references/` holds detail read at the step in the body that names it. Helper programs go to `scripts/`.
