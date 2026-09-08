@@ -477,12 +477,24 @@
           list ships as it comes: a spike ran the popular ones over seven sentences
           Daniel had flagged in one review, and they caught none of the seven while
           flagging &ldquo;actually&rdquo; and &ldquo;then&rdquo; in sentences he had
-          just approved. Rules we wrote for the purpose caught two of the seven. So
-          every list is run against our own files and pruned before it turns on,
-          and the reading a person still has to do is the reading no rule can take
-          over. One thing stays to confirm before this element is final: that the
-          npm wrapper installs the Vale binary cleanly on a fresh machine and in
-          continuous integration.
+          just approved. Rules we wrote for the purpose caught two of the seven.
+          Left alone, such flags misguide agents in two ways we have watched
+          happen: an agent treats a warning like a rule and applies it everywhere,
+          rewriting approved sentences to silence it, and a rule that can be
+          satisfied mechanically gets satisfied mechanically, the way the grade
+          ceiling first produced choppy fragments instead of clear sentences. Three
+          guards hold the tools to their job. A first-tier rule turns on only after
+          it has run over our own files with no false positives, with the
+          translation table itself exempt from the words it lists, and a rule that
+          produces one is demoted. A second-tier flag is a question, never a
+          verdict: the agent answers each one in the pull request, where review
+          happens, and &ldquo;the sentence is right as written&rdquo; is a legal
+          answer, so an agent that changes a sentence has to say why. And rules face
+          the change bar like prose: a second-tier rule whose flags are dismissed
+          more often than they are fixed is deleted. What is left for a person is
+          the reading no rule can take over. One thing stays to confirm before this
+          element is final: that the npm wrapper installs the Vale binary cleanly on
+          a fresh machine and in continuous integration.
         </p>
         <p>
           The seventh settled element disarms the project&rsquo;s biggest time bombs
