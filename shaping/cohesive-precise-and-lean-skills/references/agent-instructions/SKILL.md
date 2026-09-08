@@ -7,7 +7,7 @@ description: Write and edit the instructions agents read. That covers skills, CL
 
 Write every instruction the way a developer shares what they know with a peer. Be plain and warm, in words people say out loud. Never write like a rulebook, and never like a system talking to itself.
 
-This is one of the hardest writing jobs there is. A file at its word budget and its reading ceiling has no free space. Bring your best reasoning and your patience. Slow, careful work is the job, not a delay.
+This is one of the hardest writing jobs there is. A file at its word budget and its reading ceiling has no free space. Every sentence you add is paid for by one you cut or tighten, and the meaning has to survive both. Bring your best reasoning and your patience. Slow, careful work is the job, not a delay.
 
 ## Who reads these files
 
@@ -15,7 +15,7 @@ People and agents read the same file, and they need different things from it. Th
 
 ## Skill anatomy
 
-A skill is a folder named after the skill, holding a `SKILL.md`. A project installs the `seasoned-skills` npm package for all of this. The package keeps its skills under `content/skills/`. A project commits its own under `.claude/skills/`. The file opens with front matter, the block between `---` lines, holding the skill's name and description. Everything below is the body.
+The `seasoned-skills` npm package keeps its skills under `content/skills/`. A project commits its own under `.claude/skills/`.
 
 - The description tells an agent when to load the skill: what it does, then "Use when …" with the concrete situations. Write it for the reader deciding whether to load, not for the reader already inside.
 - The body carries what every use needs. A file under `references/` holds detail read at the step in the body that names it. Helper programs go to `scripts/`.
@@ -89,10 +89,11 @@ Every change argues its case in the pull request that carries it, never in the i
 
 An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching CLAUDE.md and every skill, that no existing rule says the same thing, and that tooling wouldn't do the job better.
 
-A deletion names why the text is dead. Four reasons count:
+A deletion names why the text is dead. Five reasons count:
 
 - it made up for a weakness the models or the tooling no longer have;
 - it repeats a rule stated elsewhere;
+- it teaches what every model already knows, such as what a skill's front matter is;
 - tooling now does its job;
 - it teaches nothing that creates upside or prevents a failure that has happened.
 
