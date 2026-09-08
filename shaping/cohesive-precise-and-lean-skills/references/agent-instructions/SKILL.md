@@ -17,7 +17,7 @@ People and agents read the same file, and they need different things from it. Th
 
 1. **Sentence case for all titles.** Write "Reviewing a change", never "Reviewing A Change".
 
-2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The package ships a prose linter. It fails a file on each of them and names the plain word to write. So the list lives in the linter's rules, never here.
+2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The `seasoned-skills check` command fails a file on each one and names the plain word to write. Its `Seasoned.Dialect` rule is the list, so this file never repeats it.
 
 3. **Situation before rule.** Start with the situation, then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -25,7 +25,7 @@ People and agents read the same file, and they need different things from it. Th
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle a case you never saw coming. Without it, a bare rule gets applied with confidence to the wrong case.
 
-6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator, lane, or gate. They may also name a tool of their own, such as the linter. The first time a reader meets either, a plain-words definition sits right beside it. A tool named before it is described reads as some other tool.
+6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator, lane, or gate. They may also name a tool, such as Vale. The first time a reader meets either, a plain-words definition sits right beside it. A tool named before it is described reads as some other tool.
 
 7. **One home per rule.** A rule lives in exactly one place. Everywhere else that needs it points there. Two copies of one rule drift apart the moment one is edited.
 
@@ -67,7 +67,7 @@ Every line an agent loads costs tokens on every use. A file a person can't read 
 - a generated description within 1,024 characters, project trigger words included;
 - em dashes: none in the front matter, at most two in any file;
 - a reading grade of six or lower for the whole file, and for the description on its own, which in practice means short sentences;
-- a prose linter. It fails the file on a dialect word, jargon, a hedge, shouting, a heading in Title Case, or a sentence past 30 words. It also fails on a misspelling, a dead link, a skill named by anything but its roster name, or a block repeated from another file.
+- Vale, a prose linter, running our rules. It fails the file on a dialect word, jargon, a hedge, shouting, a heading in Title Case, or a sentence past 30 words. It also fails on a misspelling, a dead link, a skill named by anything but its roster name, or a block repeated from another file.
 
 Run `seasoned-skills check` before you commit. It runs the same checks the sync runs, over the generated files, and names what broke. Give it file paths to check a draft the sync doesn't know yet.
 
