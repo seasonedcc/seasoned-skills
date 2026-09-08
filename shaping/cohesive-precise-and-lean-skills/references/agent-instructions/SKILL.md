@@ -89,7 +89,7 @@ Every change argues its case in the pull request that carries it, never in the i
 
 An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching CLAUDE.md and every skill, that no existing rule says the same thing, and that tooling wouldn't do the job better.
 
-A deletion names why the text is dead. Under a budget, every sentence looks dead. So before you cut one, think hard: what goes wrong without it? If it is a rule, does your cut break it? Five reasons count:
+A deletion names why the text is dead. Under a budget, every sentence looks dead. Before you cut one, think hard: what goes wrong without it? If it is a rule, does your cut break it? Five reasons count:
 
 - it made up for a weakness the models or the tooling no longer have;
 - it repeats a rule stated elsewhere;
@@ -101,8 +101,8 @@ When a change breaks a budget, make room. Cut what fails the bar, move enforceme
 
 ## Reviewing a change to instructions
 
-- Before judging a change, the reviewer, person or agent, understands the file deeply: why it exists, who loads it and when, and why each section is there. The test is whether they could say what goes wrong without any part of it. For a content file, that means the generated file it feeds. Then they understand the change the same way: what its author meant to achieve, from the case the pull request argues. The question is whether the change serves both, never whether a sentence matches a rule. A sentence can pass every rule and still teach what another skill owns, or name a thing its reader never acts on. Findings made by matching rules each look right alone, and together they grow the file past its budget.
-- They judge against the whole file, read as its reader would, never as a diff, and again after a series of fixes. A set of locally right edits can flatten what the file teaches.
+- Before judging a change, the reviewer, person or agent, understands the file deeply: why it exists, who loads it and when, and why each section is there. The test is whether they could say what the whole does for its reader that no part does alone, and what goes wrong without any part. For a content file, that means the generated file it feeds. Then they understand the change the same way: what its author meant to achieve, from the case the pull request argues. The question is whether the change serves both, never whether a sentence matches a rule. A sentence can pass every rule and still teach what another skill owns. Findings made by matching rules each look right alone, and together they grow the file past its budget.
+- They judge against the whole file, read as its reader would, never as a diff, and again after fixes. A set of locally right edits can flatten what the file teaches.
 - The author never reviews their own round of edits: they read the file as they meant it, not as it is. A fresh agent, with this skill loaded and no memory of the edits, reviews as above, with the pull request and every touched file. It reports where the file fails its reader: a rule they couldn't apply, a sentence read wrong, a thing missing, a thing not needed. A finding that asks for words names the home they belong to and the words it would cut to pay. The author answers each finding in the pull request under the change bar, and declines what fails it. Then a new fresh agent reads. The cycle ends when the author is satisfied with the file, not when a reader runs out of findings.
 - A concrete step, like a command to run, can contradict a stated principle. The step is what an agent copies, so change the step to comply, or the principle to match.
 - When the person reviewing couldn't read the file and judge the change in one sitting, the file is too big or too dense. Fix that first.
