@@ -48,7 +48,7 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 12. **No sentence that reads wrong first.** "Instructions nobody reviews drift" sends the eye to a noun first. Write "Instructions drift when nobody reviews them."
 
-13. **Instruct the reader where an agent acts.** Write "never review your own edits", not "the author never reviews" or "a review judges". Those hide who acts, as a passive does.
+13. **Say what to do, in the imperative.** Write "run the check before you commit", not "the check runs before a commit". Write "never review your own edits", not "the author never reviews" or "a review judges".
 
 ## Where a rule lives
 
