@@ -50,7 +50,7 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 12. **No sentence that reads wrong first.** "Instructions nobody reviews drift" sends the eye to a noun first. Write "Instructions drift when nobody reviews them."
 
-13. **Active voice where an agent acts.** A passive step hides who acts.
+13. **Instruct the reader where an agent acts.** Write "never review your own edits", not "the author never reviews" or "a review judges". Those hide who acts, as a passive does.
 
 ## Where a rule lives
 
@@ -85,11 +85,11 @@ When a sentence reads well and still fails, change it so the check passes. Then 
 
 ## The change bar
 
-Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. A sentence like "the list moved out of this file" is the case leaking in. Readers after the merge never had the old version, so it explains nothing.
+Argue every change in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. A sentence like "the list moved out of this file" is the case leaking in. Readers after the merge never had the old version, so it explains nothing.
 
-An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching CLAUDE.md and every skill, that no existing rule says the same thing, and that tooling wouldn't do the job better.
+For an addition, name the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. Show, by searching CLAUDE.md and every skill, that no existing rule says the same thing, and that tooling wouldn't do the job better.
 
-A deletion names why the text is dead. Under a budget, every sentence looks dead. Before you cut one, think hard: what goes wrong without it? If it is a rule, does your cut break it? Five reasons count:
+For a deletion, name why the text is dead. Under a budget, every sentence looks dead. Before you cut one, think hard: what goes wrong without it? If it is a rule, does your cut break it? Five reasons count:
 
 - it made up for a weakness the models or the tooling no longer have;
 - it repeats a rule stated elsewhere;
@@ -101,11 +101,11 @@ When a change breaks a budget, make room. Cut what fails the bar, move enforceme
 
 ## Reviewing a change to instructions
 
-A review judges whether the change achieves what its author meant, and whether the file still does what it is for. It never matches sentences to rules one by one: findings made that way are each right alone, and together they bloat the file. So the reviewer first understands the file as its owner would: what it does for its reader as a whole, and why each part is there. They understand the change the same way, from the case in the pull request. For a content file, they understand the generated file it feeds. Then they read the whole file as its reader, never the diff.
+Before you judge a change, understand the file as its owner would: what it does for its reader, and why each part is there. For a content file, that means the generated file it feeds. Take the change's intent from the case in the pull request. Then judge whether the change achieves it, and whether the whole file still does its job. Never match sentences to rules one by one: each finding looks right alone, and together they bloat the file.
 
-The author never reviews their own edits: they read what they meant, not what is there. A fresh agent with this skill loaded and no memory of the edits reviews instead. The author answers each finding under the change bar, then hands the file to another fresh agent. The cycle ends when the author is satisfied.
+Never review your own edits: you read what you meant, not what is there. Hand the pull request to a fresh agent with this skill loaded, answer each finding under the change bar, then hand it to another fresh agent. Stop when you are satisfied.
 
-A step an agent copies, like a command, can contradict a principle. Fix one or the other: the step is what the agent follows.
+When a step contradicts a principle, fix one of them. The step is what an agent follows.
 
 ## Voice guide
 
