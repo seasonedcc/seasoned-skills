@@ -1,6 +1,6 @@
 ---
 name: agent-instructions
-description: Write and edit the instructions agents read, from skills and CLAUDE.md content to a project's own workflow content, so they stay plain, scoped, and worth their place. Use when writing a skill, recording a lesson as prose, editing instruction files, or reviewing a change to any of them.
+description: Write and edit the instructions agents read, from skills and CLAUDE.md content to a project's own workflow content, so they stay cohesive, precise, and lean. Use when writing a skill, recording a lesson as prose, editing instruction files, or reviewing a change to any of them.
 ---
 
 # Agent instructions
@@ -82,7 +82,7 @@ Every line an agent loads costs tokens on every use, and a file a person can't r
 - a generated description, project trigger words included, within 1,024 characters;
 - em dashes: none in the front matter, at most two in any file.
 
-When a change breaches a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move on-demand detail to a reference file. Never compress prose into dialect to fit — the budget measures words, but the bar is worth per word.
+When a change breaches a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move on-demand detail to a reference file. Never compress prose into dialect to fit — the budget counts words, but the point is what each word teaches.
 
 ## The change bar
 
