@@ -24,29 +24,29 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 ## Core principles
 
-1. **Sentence case for all headings.** In Title Case, a reader can't tell a name from a word.
+1. **Write headings in sentence case.** In Title Case, a reader can't tell a name from a word.
 
-2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `seasoned-skills check` command carries the list: it flags each dialect word and prints the plain one beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Things that already have a name are the one exception: commands, settings, files, exports. You can't rename `seasoned-skills corpus` just because its name is a dialect word. Write the name in backticks, which the check skips, and only the name. Everywhere else, write the plain word: the reference library.
+2. **Write plain speech, never AI dialect.** Keep the words agents use with each other out of instructions people review. The `seasoned-skills check` command flags each one and prints the plain word beside it. Write the name of a command, setting, or file as it is, in backticks, which the check skips. Write `seasoned-skills corpus` for the command and the reference library for what it builds.
 
-3. **Situation before rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
+3. **Put the situation before the rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
-4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the worktrees skill, never "the skill for branches". A real name is what a reader can search for and load. A coined phrase like "worth its place" sounds like a rule but names no test. Say what the line has to do.
+4. **Be specific.** Write "run `pnpm test:unit`", not "run the tests". Call skills, commands, files, and models by their real names: the worktrees skill, never "the skill for branches". A real name is what a reader can search for and load. A coined phrase like "worth its place" sounds like a rule but names no test. Say what the line has to do.
 
-5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason lets a reader handle a case you never saw coming.
+5. **Give every rule its scope and its reason.** Say when it applies, when it doesn't, and why. The reason lets a reader handle a case you never saw coming.
 
-6. **Define terms on first meeting.** The instructions may teach a term of art, such as lane, or name a tool, such as the sync. The first time a reader meets either, a plain-words definition sits beside it. Name a tool before you describe it and the reader guesses which one.
+6. **Define terms on first meeting.** The instructions may teach a term of art, such as lane, or name a tool, such as the sync. The first time a reader meets either, put a plain-words definition beside it. Name a tool before you describe it and the reader guesses which one.
 
-7. **One home per rule.** A rule lives in exactly one place. Everywhere else that needs it points there. Two copies of one rule drift apart the moment one is edited. A short fact a reader acts on, like which model reviews instructions, may be repeated where it is used. A pointer there would cost a skill load.
+7. **Give each rule one home.** Everywhere else that needs it, point there. Two copies of one rule drift apart the moment one is edited. Repeat a short fact a reader acts on, like which model reviews instructions, where it is used. A pointer there would cost a skill load.
 
-8. **No claims nobody can count.** "Every caller", "all N cases", and "always" are promises prose can't keep over a set nobody counted. Say what guarantees it, and give one example you checked yourself. Keep claims about "all" for sets the text itself defines.
+8. **Make no claim nobody can count.** "Every caller", "all N cases", and "always" are promises prose can't keep over a set nobody counted. Say what guarantees it, and give one example you checked yourself. Keep claims about "all" for sets the text itself defines.
 
 9. **Prefer tooling to prose.** A rule broken once may be chance. Broken twice, the prose isn't holding, and a louder paragraph is more of the same. Build a mechanical guard, or write the case it was broken in as the rule's situation. When a check can enforce the rule, build it and keep only the reason in prose.
 
 10. **Mark the unsettled.** Describe today's way plainly, with "today" in front of it, and say what may change. A reader who takes an unsettled rule as settled applies it after it changes.
 
-11. **One idea per sentence.** Two ideas in one sentence cost a second read. One idea is not one clause: two clauses that belong together stay together.
+11. **Put one idea in each sentence.** Two ideas in one sentence cost a second read. One idea is not one clause: two clauses that belong together stay together.
 
-12. **No sentence that reads wrong first.** "Instructions nobody reviews drift" sends the eye to a noun first. Write "Instructions drift when nobody reviews them."
+12. **Never write a sentence that reads wrong first.** "Instructions nobody reviews drift" sends the eye to a noun first. Write "Instructions drift when nobody reviews them."
 
 13. **Say what to do, in the imperative.** Write "run the check before you commit", not "the check runs before a commit". Write "never review your own edits", not "the author never reviews" or "a review judges".
 
@@ -54,12 +54,12 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 A rule in the wrong home gets restated until the copies disagree, or goes stale where nobody thinks to amend it. Each home has a cost.
 
-- CLAUDE.md loads in every session before anything else. It carries only what every task needs first.
-- A skill's description sits in every session's context, used or not, and its body loads whole once an agent judges the situation fits. So a skill needs a situation of its own: one an agent can tell from the description alone, and meets without another skill's work. Rules for one situation that several skills carry belong in a skill for that situation.
-- A reference file costs nothing until a step in the body sends the agent to it, so it takes detail that only some uses of the skill need. One no step names is dead text, and the check refuses it.
+- CLAUDE.md loads in every session before anything else. Give it only what every task needs first.
+- A skill's description sits in every session's context, used or not, and its body loads whole once an agent judges the situation fits. So give a skill a situation of its own: one an agent can tell from the description alone, and meets without another skill's work. Move rules for one situation that several skills carry into a skill for that situation.
+- A reference file costs nothing until a step in the body sends the agent to it, so give it the detail that only some uses of the skill need. One no step names is dead text, and the check refuses it.
 - Never split a skill for size alone. A part with no situation of its own is one no agent loads.
-- Practice that holds across projects lives in the package. A project's own facts live in its content files, workarounds for its tooling included, deleted in the same pull request that fixes what they worked around.
-- A lesson from a task never lands in any home directly. It travels as an issue, on the project or on the package, and reaches the text later in a pull request of its own. The self-improvement skill teaches how.
+- Put practice that holds across projects in the package, and a project's own facts in its content files, workarounds for its tooling included. Delete a workaround in the same pull request that fixes what it worked around.
+- Never land a lesson from a task in any home directly. File it as an issue, on the project or on the package, and let it reach the text later in a pull request of its own. The self-improvement skill teaches how.
 
 ## Size and shape
 
