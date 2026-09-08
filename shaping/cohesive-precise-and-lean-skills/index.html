@@ -456,6 +456,35 @@
           the reference pages and their enumeration test like the other seven.
         </p>
         <p>
+          The grade ceiling proved that a formula can carry part of the editing,
+          so the checks grow a prose linter beside it. The engine is Vale, an
+          open-source linter for prose whose rules are small, readable files, so the
+          standard itself is something a person can review, and whose editor
+          extension shows every flag while a person reads. The package ships it
+          through its npm wrapper, carries our rules as one Vale style, and installs
+          both into every consuming project as part of the managed footprint. The
+          rules come in two tiers. The first tier decides on its own and fails the
+          file, like the budgets: the dialect translation table, the jargon and
+          hedging lists, shouting, sentence case in headings, a cap on words per
+          sentence, spelling against a project dictionary, blocks of prose repeated
+          verbatim across files, and links between files that no longer resolve.
+          The second tier only points, at warning level, and the agent answers each
+          flag in the pull request: passive voice, vague quantifiers, claims about
+          &ldquo;always&rdquo; and &ldquo;every&rdquo; over sets the text never
+          defines, too many clauses in one sentence, a word that reads as both noun
+          and verb right after a noun, a term of art used before it is defined, and
+          a skill referred to by anything but the name in the roster. No second-tier
+          list ships as it comes: a spike ran the popular ones over seven sentences
+          Daniel had flagged in one review, and they caught none of the seven while
+          flagging &ldquo;actually&rdquo; and &ldquo;then&rdquo; in sentences he had
+          just approved. Rules we wrote for the purpose caught two of the seven. So
+          every list is run against our own files and pruned before it turns on,
+          and the reading a person still has to do is the reading no rule can take
+          over. One thing stays to confirm before this element is final: that the
+          npm wrapper installs the Vale binary cleanly on a fresh machine and in
+          continuous integration.
+        </p>
+        <p>
           The seventh settled element disarms the project&rsquo;s biggest time bombs
           before the build. The five riskiest rewrites &mdash; agent-instructions
           itself, orchestration, subagents, self-improvement, and shaping &mdash; are
