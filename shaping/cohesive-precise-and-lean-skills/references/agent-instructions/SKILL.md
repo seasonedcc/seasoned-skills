@@ -11,7 +11,7 @@ This is one of the hardest writing jobs there is. A file at its word budget and 
 
 ## Who reads these files
 
-People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
+People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
 
 ## Core principles
 
