@@ -17,11 +17,11 @@ People and agents read the same file, and they need different things from it. Th
 
 1. **Sentence case for all titles.** Write "Reviewing a change", never "Reviewing A Change".
 
-2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The linter carries the list.
+2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The package ships a prose linter. It fails a file on each of them and names the plain word to write. So the list lives in the linter's rules, never here.
 
 3. **Situation before rule.** Start with the situation, then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
-4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the worktrees skill, never "the skill for branches". Watch the phrases you coin the same way. "Worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase asks of them, say the concrete thing instead.
+4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the worktrees skill, never "the skill for branches". The same goes for phrases you coin. "Every line has to be worth its place" sounds like a rule. It doesn't say what a line has to do to stay. Say that instead: a line stays when it teaches something the reader doesn't already have.
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle a case you never saw coming. Without it, a bare rule gets applied with confidence to the wrong case.
 
@@ -38,8 +38,6 @@ People and agents read the same file, and they need different things from it. Th
 11. **One idea per sentence.** Packing two ideas into one sentence feels like economy, and it costs a second read. Give each idea its own sentence, the long way if the short way needs a re-read. One idea is not one clause: two clauses that belong together stay together. Keep a word out of a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
 
 ## AI dialect
-
-The linter carries the dialect words and their plain replacements. When it flags one, it names the word and the word to write instead. The rule file is the list, so this file never repeats it.
 
 Sometimes a dialect word carries a concept the instructions really need. Keep the concept, teach it under a plain name, and define it on first use. Never smuggle the word.
 
