@@ -9,7 +9,7 @@ This folder is the working copy of the checks the shaping document describes in 
 - `styles/Seasoned/` holds the prose rules, one file each. The rules that fail the file: `Dialect` (the translation table), `Jargon`, `Hedging`, `Shouting`, `DashSpacing`, `HeadingCase`, and `SentenceLength` (30 words). The rules that only warn: `Passive`, `Vague`, `Universal`, `Clauses`, `Surface`. `Contractions` is a suggestion.
 - `cspell.json` is the spelling dictionary. Add a word here when it is a real name the dictionary lacks.
 
-The roster comes from the folders in `.claude/skills` and `content/skills` above this folder, plus the folder of every SKILL.md being checked.
+The roster comes from the folders in `.claude/skills` and `content/skills` above this folder, plus the folder of every SKILL.md being checked. Every roster name is also a word the spelling check accepts.
 
 ## What the first runs taught
 

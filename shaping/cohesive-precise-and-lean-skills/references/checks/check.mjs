@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import readability from 'text-readability'
@@ -186,7 +186,11 @@ const checkFile = (file) => {
 
 for (const file of files) checkFile(file)
 
-const spelling = spawnSync(bin('cspell'), ['lint', '--no-progress', '--no-summary', '--no-color', '--config', path.join(checksDir, 'cspell.json'), ...files], { encoding: 'utf8' })
+const spellingDir = mkdtempSync(path.join(tmpdir(), 'cspell-'))
+const spellingConfig = path.join(spellingDir, 'cspell.json')
+writeFileSync(spellingConfig, JSON.stringify({ import: [path.join(checksDir, 'cspell.json')], words: [...roster] }))
+const spelling = spawnSync(bin('cspell'), ['lint', '--no-progress', '--no-summary', '--no-color', '--config', spellingConfig, ...files], { encoding: 'utf8' })
+rmSync(spellingDir, { recursive: true, force: true })
 for (const line of (spelling.stdout + spelling.stderr).split('\n')) {
   const match = line.match(/^(.+?):(\d+):\d+ - Unknown word \((.+)\)/)
   if (match) report(path.resolve(match[1]), Number(match[2]), 'error', 'spelling', `"${match[3]}" is not a word the dictionary knows.`)
