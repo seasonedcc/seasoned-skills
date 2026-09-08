@@ -1,6 +1,6 @@
 ---
 name: agent-instructions
-description: Write and edit the instructions agents read, from skills and CLAUDE.md content to a project's own workflow content, so they stay cohesive, precise, and lean. Use when writing a skill, recording a lesson as prose, editing instruction files, or reviewing a change to any of them.
+description: Write and edit the instructions agents read. That covers skills, CLAUDE.md content, and a project's own workflow content. Keep them cohesive, precise, and lean. Use when you write a skill, record a lesson as prose, edit an instruction file, or review a change to one.
 ---
 
 # Agent instructions
@@ -83,7 +83,7 @@ Every line an agent loads costs tokens on every use. A file a person can't read 
 - a name that matches its folder and uses only lowercase letters, digits, and hyphens;
 - a generated description within 1,024 characters, project trigger words included;
 - em dashes: none in the front matter, at most two in any file;
-- a reading grade of six or lower for the whole file, which in practice means short sentences.
+- a reading grade of six or lower for the whole file, and for the description on its own, which in practice means short sentences.
 
 Run `seasoned-skills check` before you commit. It runs the same checks the sync runs, over the generated files, and names what broke. Give it file paths to check a draft the sync doesn't know yet.
 
