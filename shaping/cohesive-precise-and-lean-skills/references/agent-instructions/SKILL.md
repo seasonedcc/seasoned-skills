@@ -22,7 +22,7 @@ A skill is a folder named after the skill, holding a `SKILL.md`. A project insta
 
 ## How these files are made
 
-The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. A per-skill content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over the generated files or any file paths you give it. Vale, a prose linter, runs inside the check.
+The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. A per-skill content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over what the sync would generate or any file paths you give it. Vale, a prose linter, runs inside the check.
 
 ## Core principles
 
@@ -62,7 +62,7 @@ A rule in the wrong home gets restated until the copies disagree, or goes stale 
 
 ## Size and shape
 
-Every line an agent loads costs tokens on every use. A file too long for one sitting goes without review. So the sync refuses what doesn't fit, naming the generated file, what broke, and this skill. Fix the source: the package skill or the project's content file. The limits:
+Every line an agent loads costs tokens on every use. A file too long for one sitting goes without review. So the sync refuses what doesn't fit, naming the generated file, what broke, and this skill. Fix the source: the package's content or the project's content file. The limits:
 
 - word budgets: 2,000 words for a skill body or a reference file, and 2,500 for the generated CLAUDE.md;
 - a `name` that matches the skill's folder and uses only lowercase letters, digits, and hyphens;
@@ -82,18 +82,18 @@ When a sentence reads well and still fails, change it so the check passes. Then 
 
 ## The change bar
 
-Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. A sentence like "the list lives elsewhere, never here" is the case leaking in. Readers after the merge never had the old version, so it explains nothing to them.
+Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. A sentence like "the list moved out of this file" is the case leaking in. Readers after the merge never had the old version, so it explains nothing to them.
 
-An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching the generated files, that no existing rule says the same thing in other wording. The author also shows that tooling wouldn't do the job better.
+An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching CLAUDE.md and every skill, that no existing rule says the same thing. The author also shows that tooling wouldn't do the job better.
 
 A deletion names why the text is dead. Four reasons count:
 
-- it made up for a weakness the model or the tooling no longer has;
+- it made up for a weakness the models or the tooling no longer have;
 - it repeats a rule stated elsewhere;
 - tooling now does its job;
 - it teaches nothing that creates upside or prevents a failure that has happened.
 
-When a change breaks a budget, make room honestly. Cut what fails the bar, move enforcement to tooling, or move detail to a reference file when only some uses need it.
+When a change breaks a budget, make room. Cut what fails the bar, move enforcement to tooling, or move detail to a reference file when only some uses need it.
 
 ## Reviewing a change to instructions
 
