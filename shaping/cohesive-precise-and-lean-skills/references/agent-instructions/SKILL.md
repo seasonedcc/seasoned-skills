@@ -19,7 +19,7 @@ Two readers, and they want different things from the same text. A person reviews
 
 3. **Situation before rule.** Show the reader the moment the rule is for, then state the rule, and order a file the same way: what the thing is and how it works comes before how to change it. A rule that arrives before its situation reads as arbitrary, and an agent applies an arbitrary rule everywhere or nowhere.
 
-4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests", and skills, commands, files, and models go by their real names: the kysely skill, never "the database skill".
+4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests", and skills, commands, files, and models go by their real names: the kysely skill, never "the database skill". Watch the phrases you coin the same way: "worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase requires of them, say the concrete thing it was standing in for.
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle the case you never anticipated. Without it, an unqualified rule gets applied confidently to the wrong situation.
 
