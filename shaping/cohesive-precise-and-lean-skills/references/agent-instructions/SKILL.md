@@ -15,8 +15,6 @@ People and agents read the same file, and they need different things from it. Th
 
 ## Skill anatomy
 
-The `seasoned-skills` npm package keeps its skills under its `content/skills/` folder. A project using it commits its custom skills under `.claude/skills/`.
-
 - The description tells an agent when to load the skill: what it does, then "Use when …" with the concrete situations. Write it for the reader deciding whether to load, not for the reader already inside.
 - The body carries what every use needs. A file under `references/` holds detail read at the step in the body that names it. Helper programs go to `scripts/`.
 
