@@ -11,24 +11,24 @@ This is one of the hardest writing jobs there is. A file at its word budget and 
 
 ## Who reads these files
 
-People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting. So the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Over time, instructions that no person reads stop matching how we actually work.
+People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting. So the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Instructions no person reads stop matching how we work.
 
 ## Skill anatomy
 
-A skill is a folder named after the skill, holding a `SKILL.md`. The `seasoned-skills` package keeps its skills under `content/skills/`; a project commits its own under `.claude/skills/`. The file opens with front matter, the block between `---` lines, holding the skill's name and description. Everything below is the body. An agent decides whether to load a skill from its description alone. Once it loads one, the whole body loads.
+A skill is a folder named after the skill, holding a `SKILL.md`. A project installs the `seasoned-skills` npm package for all of this. The package keeps its skills under `content/skills/`. A project commits its own under `.claude/skills/`. The file opens with front matter, the block between `---` lines, holding the skill's name and description. Everything below is the body. An agent decides whether to load a skill from its description alone. Once it loads one, the whole body loads.
 
 - The description tells an agent when to load the skill: what it does, then "Use when …" with the concrete situations. Write it for the reader deciding whether to load, not for the reader already inside.
-- The body carries what every use needs. Detail that only some uses need goes to a file under `references/`, loaded on demand. Helper programs go to `scripts/`, which the checks in Size and shape skip.
+- The body carries what every use needs. Detail that only some uses need goes to a file under `references/`, loaded on demand. Helper programs go to `scripts/`.
 
 ## How these files are made
 
-The package carries the skills and the CLAUDE.md content every project shares. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. A workflow content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The `seasoned-skills sync` command weaves both into the files agents load: one CLAUDE.md, and one skill for every package skill, extended or not. They land under `.claude/`, beside a project's own skills, and the sync keeps them out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over the generated files or any file paths you give it. The check runs Vale, a prose linter, for the prose rules.
+The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. A per-skill content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over the generated files or any file paths you give it. The check runs Vale, a prose linter, for the prose rules.
 
 ## Core principles
 
 1. **Sentence case for all headings.** Write "Reviewing a change", never "Reviewing A Change". In Title Case, a reader can't tell a name from a word.
 
-2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `Seasoned.Dialect` rule in Vale carries the list and names the plain word for each. When the check flags a word, it prints the plain word beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. A reader has to type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
+2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `Seasoned.Dialect` rule in Vale carries the list and names the plain word for each. When the check flags a word, it prints the plain word beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Literal identifiers are the one exception. Readers type or search for them as they are. Write `seasoned-skills sync` exactly so, and give the concept a plain name in prose: the sync.
 
 3. **Situation before rule.** Give the situation first, then the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -42,7 +42,7 @@ The package carries the skills and the CLAUDE.md content every project shares. A
 
 8. **No claims nobody can count.** "Every caller", "all N cases", and "always" are promises prose can't keep over a set nobody counted. Say what guarantees it, and give one example you checked yourself. Keep claims about "all" for sets the text itself defines.
 
-9. **Prefer tooling to prose.** A rule broken once may be chance. Broken twice, the prose isn't holding, and a louder paragraph is more of the same. Build a mechanical guard, or name the case it was broken in. When a check can enforce the rule, build it and keep only the reason in prose. The checks live in the package, so building one is a pull request there.
+9. **Prefer tooling to prose.** A rule broken once may be chance. Broken twice, the prose isn't holding, and a louder paragraph is more of the same. Build a mechanical guard, or write the case it was broken in as the rule's situation. When a check can enforce the rule, build it and keep only the reason in prose. The checks live in the package, so building one is a pull request there.
 
 10. **Mark the unsettled.** Describe today's way plainly, with "today" in front of it, and say what may change. A reader who takes an unsettled rule as settled is worse off than one who knows it is evolving.
 
@@ -54,27 +54,27 @@ The package carries the skills and the CLAUDE.md content every project shares. A
 
 ## Where a rule lives
 
-A rule in the wrong home goes bad two ways. Authors restate it until the copies disagree. Or it goes stale in a file nobody thinks to amend.
+A rule in the wrong home gets restated until the copies disagree, or goes stale where nobody thinks to amend it.
 
 - Practice that holds across projects lives in the package. It goes in a skill when it serves one kind of work. It goes in CLAUDE.md content only when every task in every session needs it before doing anything.
-- A project's own facts live in that project's workflow content files. That includes workarounds for its tooling. A workaround goes stale the moment the project fixes what it worked around. Delete the workaround text in the same pull request that fixes the tooling.
-- A lesson from a task never lands in either home directly. The task that found it is not the place to argue its case. It travels as an issue, on the project or on the package. The change to the text comes later, in a pull request of its own. The self-improvement skill teaches how.
+- A project's own facts live in that project's workflow content files. That includes workarounds for its tooling, deleted in the same pull request that fixes what they worked around.
+- A lesson from a task never lands in either home directly. It travels as an issue, on the project or on the package. The change to the text comes later, in a pull request of its own. The self-improvement skill teaches how.
 
 ## Size and shape
 
-Every line an agent loads costs tokens on every use. A file too long for one sitting goes without review. So the sync refuses what doesn't fit, naming the file, what broke, and this skill. The limits:
+Every line an agent loads costs tokens on every use. A file too long for one sitting goes without review. So the sync refuses what doesn't fit, naming the generated file, what broke, and this skill. Fix the source: the package skill or the project's content file. The limits:
 
 - word budgets: 2,000 words for a skill body or a reference file, and 2,500 for the generated CLAUDE.md;
 - a `name` that matches the skill's folder and uses only lowercase letters, digits, and hyphens;
 - a generated description within 1,024 characters, the project's `triggers:` words included;
 - em dashes: none in the front matter, and at most two in any file, since past two the voice reads affected;
-- a reading grade of six or lower, as the check computes it, for the whole file and for the description on its own;
+- a reading grade of six or lower, as the check computes it, for the body's prose and for the description on its own;
 - the prose rules:
   - no dialect word, jargon, hedge such as "may want to consider", or shouting in capitals;
   - no heading in Title Case;
   - no sentence past 30 words;
   - no misspelling, dead link, or paragraph repeated from another file;
-  - no skill named by anything but its folder name.
+  - no "the … skill" phrase naming a skill by anything but its folder name.
 
 Run `seasoned-skills check` before you commit, so the failure reaches you and not the reviewer.
 
@@ -96,7 +96,7 @@ When a change breaks a budget, make room honestly. Cut what fails the bar, move 
 ## Reviewing a change to instructions
 
 - Whoever reviews, the person or an agent, judges the change by the case it argues. They judge it against the whole file, read as its reader would, never as a diff, and again after a series of fixes. A set of locally right edits can flatten what the file teaches.
-- The author never reviews their own round of edits: they read the file as they meant it, not as it is. A fresh agent reviews as above, with the pull request and every touched file. A fresh agent has this skill loaded and no memory of the edits. The agent reports each sentence that breaks a rule in this file, naming the rule. The author answers each finding in the pull request, fixing or declining it. The author takes none at face value: a fresh reader knows the rules, not the history behind a sentence. Then a new fresh agent reads again. The cycle ends when the author is satisfied with the file, not when a reader runs out of findings.
+- The author never reviews their own round of edits: they read the file as they meant it, not as it is. A fresh agent reviews as above, with the pull request and every touched file. A fresh agent has this skill loaded and no memory of the edits. The agent reports each sentence that breaks a rule this file states, naming the rule. The author answers each finding in the pull request, fixing or declining it. The author takes none at face value: a fresh reader knows the rules, not the history behind a sentence. Then a new fresh agent reads again. The cycle ends when the author is satisfied with the file, not when a reader runs out of findings.
 - A concrete step, like a command to run, can contradict a stated principle. That is a defect. The step is what an agent copies. So change the step to comply, or change the principle to match.
 - When the person reviewing couldn't read the file and judge the change in one sitting, the file is too big or too dense. That is a finding to fix, not a fact of life.
 
