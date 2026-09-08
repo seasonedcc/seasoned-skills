@@ -85,6 +85,8 @@ Every line an agent loads costs tokens on every use. A file a person can't read 
 - em dashes: none in the front matter, at most two in any file;
 - a reading grade of six or lower for the whole file, which in practice means short sentences.
 
+Run `seasoned-skills check` before you commit. It runs the same checks the sync runs, over the generated files, and names what broke. Give it file paths to check a draft the sync doesn't know yet.
+
 When a change breaks a budget, make room honestly. Cut what fails the change bar. Move enforcement to tooling. Move detail only some uses need to a reference file. Never squeeze prose into dialect to fit — the budget counts words, but the point is what each word teaches.
 
 ## The change bar

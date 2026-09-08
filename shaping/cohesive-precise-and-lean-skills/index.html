@@ -433,6 +433,20 @@
           corpus stays the one exempt family here too.
         </p>
         <p>
+          Agents get to run the same checks before they sync. A new command,
+          <code>seasoned-skills check</code>, is a dry run of the sync: with no
+          arguments it generates the project&rsquo;s whole footprint in memory from
+          its configuration and content files, runs every check the sync runs,
+          reports each failure with the file, the line, and what broke, writes
+          nothing, and exits non-zero. Given file paths, it checks those markdown
+          files as they are, which is what an agent drafting a skill outside the
+          roster needs, and what a project needs for a content file before it is
+          woven. The command and the sync share one implementation, so they can
+          never disagree, and the agent-instructions skill tells agents to run it
+          before they commit. It is the package&rsquo;s eighth command, and lands in
+          the reference pages and their enumeration test like the other seven.
+        </p>
+        <p>
           The seventh settled element disarms the project&rsquo;s biggest time bombs
           before the build. The five riskiest rewrites &mdash; agent-instructions
           itself, orchestration, subagents, self-improvement, and shaping &mdash; are
