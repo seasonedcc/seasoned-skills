@@ -25,7 +25,7 @@ People and agents read the same file, and they need different things from it. Th
 
 5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle a case you never saw coming. Without it, a bare rule gets applied with confidence to the wrong case.
 
-6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator, lane, or gate. The first time a reader meets it, a plain-words definition sits right beside it.
+6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator, lane, or gate. They may also name a tool of their own, such as the linter. The first time a reader meets either, a plain-words definition sits right beside it. A tool named before it is described reads as some other tool.
 
 7. **One home per rule.** A rule lives in exactly one place. Everywhere else that needs it points there. Two copies of one rule drift apart the moment one is edited.
 
