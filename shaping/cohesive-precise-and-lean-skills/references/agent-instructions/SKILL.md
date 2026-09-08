@@ -26,7 +26,7 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 1. **Sentence case for all headings.** In Title Case, a reader can't tell a name from a word.
 
-2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `seasoned-skills check` command carries the list: it flags each dialect word and prints the plain one beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Things that already have a name are the one exception: commands, settings, files, exports. You can't rename `seasoned-skills corpus` just because its name is a dialect word. Write the name in backticks, which the check skips, and only the name. Everywhere else, write the plain word: the reference library, never the corpus.
+2. **Plain speech, no AI dialect.** Words that agents use with each other don't belong in instructions people review. The `seasoned-skills check` command carries the list: it flags each dialect word and prints the plain one beside it. Sometimes a dialect word carries a concept the instructions need. Keep the concept under a plain name and let the word go. Things that already have a name are the one exception: commands, settings, files, exports. You can't rename `seasoned-skills corpus` just because its name is a dialect word. Write the name in backticks, which the check skips, and only the name. Everywhere else, write the plain word: the reference library.
 
 3. **Situation before rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
