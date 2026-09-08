@@ -34,6 +34,7 @@ Deleted, with the sampled precision that sank them:
 
 Facts about the tools:
 
+- Vale does not end a sentence at a file name such as `CLAUDE.md.`, so two sentences merge and the length rule flags the pair. The runner rewrites the extension's dot to a hyphen when sentence punctuation follows it, before Vale reads the text; the line count and every other character stay the same.
 - Vale never reads YAML front matter, so the runner feeds every file to Vale over standard input, with quoted mentions blanked and line numbers preserved, and lints the description the same way.
 - Vale's `paragraph`, `list`, and `heading` scopes leave table cells alone, so a table anywhere escapes the prose rules.
 - Vale's own capitalization rule could not tell an identifier from a lowercase word, so heading case lives in the runner: a heading starts with a capital unless its first word is an identifier, and every later word is lowercase unless it is an identifier, an acronym, or a proper noun the runner lists.

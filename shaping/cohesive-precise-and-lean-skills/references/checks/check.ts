@@ -102,9 +102,11 @@ const countEmDashes = (text: string) => (text.match(/—/g) ?? []).length
 const blankQuotedMentions = (text: string) =>
   text.replace(/["\u201c]([^"\u201c\u201d\n]*)["\u201d]/g, (_match: string, inside: string) => '"' + ' '.repeat(inside.length) + '"')
 
+const endSentencesAfterFileNames = (text: string) => text.replace(/\.([a-z]{1,4})(?=[.!?](\s|$))/g, '-$1')
+
 const valeOverText = (text: string): ValeAlert[] => {
   const run = spawnSync(bin('vale'), ['--config', path.join(checksDir, '.vale.ini'), '--ext=.md', '--output=JSON'], {
-    input: blankQuotedMentions(text),
+    input: endSentencesAfterFileNames(blankQuotedMentions(text)),
     encoding: 'utf8',
   })
   const parsed: Record<string, ValeAlert[]> = run.stdout.trim() ? JSON.parse(run.stdout) : {}
