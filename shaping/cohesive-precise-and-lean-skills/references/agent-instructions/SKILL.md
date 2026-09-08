@@ -89,7 +89,7 @@ Every change argues its case in the pull request that carries it, never in the i
 
 An addition names the upside it creates or the failure it prevents. A failure counts once it has happened. Anyone can imagine one. The author shows, by searching CLAUDE.md and every skill, that no existing rule says the same thing, and that tooling wouldn't do the job better.
 
-A deletion names why the text is dead. Budget pressure makes every sentence look dead. So before you cut one, read it as the rule it states and hold the cut to it. The sentence that judges a cut is the easiest one to lose. Five reasons count:
+A deletion names why the text is dead. Under a budget, every sentence looks dead. So before you cut one, say what goes wrong without it. If the sentence is a rule, check your cut against that rule first. Five reasons count:
 
 - it made up for a weakness the models or the tooling no longer have;
 - it repeats a rule stated elsewhere;
