@@ -9,7 +9,7 @@ Write every instruction as a developer sharing what they know with a peer: plain
 
 ## Who reads these files
 
-Two readers, and they want different things from the same text. A person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. An agent follows the text exactly as written, at the moment it needs it, so every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text nobody reviews, and instructions nobody reviews drift.
+A person and an agent read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it, so every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text nobody reviews, and instructions nobody reviews slowly stop matching how we actually work.
 
 ## Core principles
 
@@ -32,6 +32,8 @@ Two readers, and they want different things from the same text. A person reviews
 9. **Prefer tooling to prose.** A rule broken twice wants a mechanical guard or sharper phrasing, never a louder paragraph. When a check can enforce the rule, build the check and delete the paragraph.
 
 10. **Mark the unsettled.** Describe today's way plainly and say what is still in motion. A reader who adopts an unsettled rule as settled is worse off than one who knows it is evolving.
+
+11. **One idea per sentence.** Packing two ideas into one sentence feels like economy and costs a second read. Say each idea in its own sentence, the long way if the short way needs a re-read, and keep a word away from a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
 
 ## AI dialect translation table
 
