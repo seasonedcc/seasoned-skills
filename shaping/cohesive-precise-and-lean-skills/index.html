@@ -387,7 +387,18 @@
           what it generates, the way each skill&rsquo;s content file is named after its
           skill; the code module and fragments that carry that word follow; and so does
           any other name the rewrite exposes as dialect. A design that
-          bans a word in prose and keeps it as a file name is not cohesive. The build sequences the
+          bans a word in prose and keeps it as a file name is not cohesive. The same
+          cohesion rule removes one piece of the content format that no document ever
+          designed: today a content file may open with a front matter block holding a
+          single key, <code>triggers:</code>, whose words the sync appends to that
+          skill&rsquo;s generated description. It arrived with the first generation
+          code, no page documents it, no project uses it, and it is the one part of the
+          format that is neither typed configuration nor prose. The build deletes the
+          parser and the key, so a content file is markdown and nothing else. Should a
+          project ever need its own words in a skill&rsquo;s description, the field
+          returns in the configuration, typed, named after Claude Code&rsquo;s own
+          <code>when_to_use</code>, in a pull request that names the case that needed
+          it. The build sequences the
           foundation before the slimming, so the guide and the checks ship &mdash; and
           release &mdash; before the rewrite lanes consume them.
         </p>
@@ -430,8 +441,7 @@
           edit: 2,000 words for a generated skill&rsquo;s body and 2,500 for the
           generated CLAUDE.md. A skill&rsquo;s budget counts its body alone,
           everything below the front matter, because the two front matter fields
-          already have caps of their own and a description that grows with a
-          project&rsquo;s trigger words must not eat body budget. A word is a
+          already have caps of their own. A word is a
           whitespace-separated token holding a letter or a digit, so code counts
           and list markers do not. The budgets reach a skill&rsquo;s reference files
           too: any prose file a skill carries for on-demand reading gets 2,000 words
@@ -455,8 +465,7 @@
           specification: one to sixty-four characters, lowercase letters, digits, and
           hyphens only, never starting, ending, or doubling a hyphen, and matching
           the skill&rsquo;s folder &mdash; today the build guarantees the match by
-          construction, and nothing checks the characters. The generated description,
-          measured after a project&rsquo;s trigger words are woven in, stays within
+          construction, and nothing checks the characters. The description stays within
           1,024 characters: Claude Code truncates a longer one at 1,536 and cuts from
           the end, which is exactly where the &ldquo;use when&rdquo; half lives, and
           1,024 is the open specification&rsquo;s own cap. Em dashes are rationed the

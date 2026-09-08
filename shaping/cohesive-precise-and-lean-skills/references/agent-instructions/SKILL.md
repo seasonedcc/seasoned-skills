@@ -22,7 +22,7 @@ The `seasoned-skills` npm package keeps its skills under `content/skills/`. A pr
 
 ## How these files are made
 
-The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. A per-skill content file may open with front matter holding a `triggers:` line. The sync adds those words to that skill's generated description. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over what the sync would generate or any file paths you give it. Vale, a prose linter, runs inside the check.
+The package also carries content for CLAUDE.md, the rules every session loads first. A project adds its own facts in its workflow content files. Those are `claude.md` for CLAUDE.md, plus one per package skill it extends, named after the skill. The `contentDir` key in `seasoned-skills.config.ts` names their folder. The `seasoned-skills sync` command weaves the package's content and the project's files into the files agents load. That is one CLAUDE.md, and one skill for every package skill, extended or not. The skills land under `.claude/skills/`, beside a project's own; CLAUDE.md lands at the project root. The sync keeps both out of git. Never edit a generated file; the next sync overwrites it. The sync checks what it generates under the limits in Size and shape below. The `seasoned-skills check` command runs the same checks, over what the sync would generate or any file paths you give it. Vale, a prose linter, runs inside the check.
 
 ## Core principles
 
@@ -69,7 +69,7 @@ Every line an agent loads costs tokens on every use. A file too long for one sit
 
 - word budgets: 2,000 words for a skill body or a reference file, and 2,500 for the generated CLAUDE.md;
 - a `name` that matches the skill's folder and uses only lowercase letters, digits, and hyphens;
-- a generated description within 1,024 characters, the project's `triggers:` words included;
+- a description within 1,024 characters;
 - em dashes: none in the front matter, and at most two in any file, since past two the voice reads affected;
 - a reading grade of six or lower, as the check computes it, for the body's prose and for the description on its own;
 - no dialect word, jargon, hedge such as "may want to consider", or shouting in capitals;
