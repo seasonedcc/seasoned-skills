@@ -332,9 +332,10 @@
           Judging that case is never the author&rsquo;s own job. Every change to an
           instruction file goes through a fresh-reader cycle before a person sees it:
           a reader with the agent-instructions skill loaded and no memory of the edits
-          first understands the file deeply, why it exists, who loads it and when, and
-          why each section is there, well enough to say what the whole does for its reader that no part does
-          alone, and what goes wrong without any part, and understands the change the same way, what its author meant
+          first understands the file deeply, why it exists, who loads it and when, why
+          each section is there, and how it relates to the other skills, well enough
+          to say what the whole does for its reader that no part does alone, and
+          what goes wrong without any part, and understands the change the same way, what its author meant
           to achieve, from the case the pull request argues. Only then does it read every touched file whole, never the diff, and
           report where the change or the file fails. The question is
           whether the change serves the file&rsquo;s intent, never whether a sentence
@@ -343,7 +344,10 @@
           review that matches principles asks for every term defined and every tool
           named, each finding right alone and all of them together past the budget.
           The author judges each finding under the change
-          bar, like any other change, and fixes or declines it in the pull request;
+          bar, like any other change, never at face value, and fixes or declines it
+          in the pull request. Two errors rank the judgment: bloating the file is
+          worse than leaving it slightly imprecise, and removing essential
+          information is worse than either;
           then a new fresh reader reads again. The cycle ends when the author is satisfied with the
           file, not when a reader runs out of findings. It is a cycle, not a pass,
           the way the review loop in the Definition of Done is. The rule was earned during this

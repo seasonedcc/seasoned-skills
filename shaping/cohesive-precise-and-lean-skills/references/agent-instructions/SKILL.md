@@ -101,11 +101,11 @@ When a change breaks a budget, make room. Cut what fails the bar, move enforceme
 
 ## Reviewing a change to instructions
 
-Before you judge a change, understand the file as its owner would: what it does for its reader, and why each part is there. For a content file, that means the generated file it feeds. Take the change's intent from the case in the pull request. Then judge whether the change achieves it, and whether the whole file still does its job. Never match sentences to rules one by one: each finding looks right alone, and together they bloat the file.
+After making changes to instructions, go through a review cycle with fresh Fable subagents with the agent-instructions skill loaded and the full context to evaluate the changes. The review agents should deeply understand the whole of the file and how it relates to other skills, not only each fact in isolation.
 
-Never review your own edits: you read what you meant, not what is there. Hand the pull request to a fresh agent with this skill loaded, answer each finding under the change bar, then hand it to another fresh agent. Stop when you are satisfied.
+When evaluating each reviewer's output, do not take their feedback at face value. Bloating an instruction file is worse than having it slightly imprecise. At the same time, the worst error of all is removing essential information: do not throw the baby out with the bath water.
 
-When a step contradicts a principle, fix one of them. The step is what an agent follows.
+Loop until you are satisfied with the quality, not until you get a clean report.
 
 ## Voice guide
 
