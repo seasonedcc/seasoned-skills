@@ -14,7 +14,7 @@ The roster comes from the folders in `.claude/skills` and `content/skills` above
 ## What the first runs taught
 
 - Vale never reads YAML front matter, so the runner lints the description on its own by feeding it to Vale over standard input.
-- Vale's `paragraph`, `list`, and `heading` scopes leave table cells alone, which is what keeps the translation table from failing its own rule. It also means a table anywhere escapes the prose rules.
+- Vale's `paragraph`, `list`, and `heading` scopes leave table cells alone, so a table anywhere escapes the prose rules.
 - A part-of-speech rule for words that read as both noun and verb flagged nearly every noun, so it is not here. The tagger falls into the same traps a reader does.
 - The universal-claim rule as a plain word list ("every", "all", "always") flagged dozens of ordinary sentences. It now matches only claim-shaped phrases such as "every caller" and "in all cases".
 - Contractions for "it is", "that is", and "there is" were more often wrong than right, so those three are not suggested.

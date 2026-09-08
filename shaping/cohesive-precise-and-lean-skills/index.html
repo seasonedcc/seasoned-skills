@@ -372,8 +372,12 @@
           instruction agents read: the skills, the always-loaded rules in CLAUDE.md,
           and the local additions each consuming project layers on. One skill, loaded
           for any act of instruction-writing, carrying structure, prose, and size
-          together, with its own translation table for the dialect agents produce by
-          default &mdash; and every size check points at it when it fails. The
+          together &mdash; and every size check points at it when it fails. The
+          dialect agents produce by default is caught by the linter, not by a table
+          in the skill: the rule files hold the words and their replacements, and
+          the skill points at them, because a list that lives in the skill and in
+          the rule is two homes for one rule, and a skill that quotes the words it
+          bans fails its own check. The
           repo&rsquo;s guide for human-facing pages, docs-copywriting, stays what it
           is; agent-instructions inherits its voice by starting from a verbatim copy
           of its text &mdash; years of adjudicated input live in that voice, and
@@ -484,9 +488,10 @@
           satisfied mechanically gets satisfied mechanically, the way the grade
           ceiling first produced choppy fragments instead of clear sentences. Three
           guards hold the tools to their job. A first-tier rule turns on only after
-          it has run over our own files with no false positives, with the
-          translation table itself exempt from the words it lists, and a rule that
-          produces one is demoted. A second-tier flag is a question, never a
+          it has run over our own files with no false positives, and a rule that
+          produces one is demoted. The banned words themselves live only in the
+          rule files, never in the skill, so no file quotes what it bans, and the
+          skill keeps only what no check can see. A second-tier flag is a question, never a
           verdict: the agent answers each one in the pull request, where review
           happens, and &ldquo;the sentence is right as written&rdquo; is a legal
           answer, so an agent that changes a sentence has to say why. And rules face
