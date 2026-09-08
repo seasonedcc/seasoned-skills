@@ -17,7 +17,7 @@ People and agents read the same file, and they need different things from it. Th
 
 2. **Plain speech, no AI dialect.** Words agents use with each other do not belong in instructions people review. See the translation table below.
 
-3. **Situation before rule.** Show the reader the moment the rule is for. Then state the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
+3. **Situation before rule.** Start with the situation. Then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
 4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the kysely skill, never "the database skill". Watch the phrases you coin the same way. "Worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase asks of them, say the concrete thing instead.
 
