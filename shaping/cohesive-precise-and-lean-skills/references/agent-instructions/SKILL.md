@@ -17,7 +17,7 @@ People and agents read the same file, and they need different things from it. Th
 
 1. **Sentence case for all titles.** Write "Reviewing a change", never "Reviewing A Change".
 
-2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The `seasoned-skills check` command fails a file on each one and names the plain word to write. Its `Seasoned.Dialect` rule is the list, so this file never repeats it.
+2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The `seasoned-skills check` command fails a file on each one and names the plain word to write. The list is its `Seasoned.Dialect` rule.
 
 3. **Situation before rule.** Start with the situation, then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
