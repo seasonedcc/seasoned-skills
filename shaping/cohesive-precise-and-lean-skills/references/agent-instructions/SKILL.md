@@ -5,35 +5,35 @@ description: Write and edit the instructions agents read, from skills and CLAUDE
 
 # Agent instructions
 
-Write every instruction as a developer sharing what they know with a peer: plainly, warmly, and in words people say out loud. Never as a rulebook, and never as a system talking to itself.
+Write every instruction the way a developer shares what they know with a peer. Be plain and warm. Use words people say out loud. Never write like a rulebook, and never like a system talking to itself.
 
 ## Who reads these files
 
-People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it, so every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text people skip over, and over time, instructions no person reads stop matching how we actually work.
+People and agents read the same file, and they need different things from it. The person reviews every change. They have to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
 
 ## Core principles
 
 1. **Sentence case for all titles.** Write "Reviewing a change", never "Reviewing A Change".
 
-2. **Plain speech, no AI dialect.** Words agents use with each other do not survive into instructions people review. See the translation table below.
+2. **Plain speech, no AI dialect.** Words agents use with each other do not belong in instructions people review. See the translation table below.
 
-3. **Situation before rule.** Show the reader the moment the rule is for, then state the rule, and order a file the same way: what the thing is and how it works comes before how to change it. A rule that arrives before its situation reads as arbitrary, and an agent applies an arbitrary rule everywhere or nowhere.
+3. **Situation before rule.** Show the reader the moment the rule is for. Then state the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
-4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests", and skills, commands, files, and models go by their real names: the kysely skill, never "the database skill". Watch the phrases you coin the same way: "worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase requires of them, say the concrete thing it was standing in for.
+4. **Specific over vague.** "Run `pnpm test:unit`" beats "run the tests". Skills, commands, files, and models go by their real names: the kysely skill, never "the database skill". Watch the phrases you coin the same way. "Worth their place" sounds like a standard and names none. If a reader would have to ask what a phrase asks of them, say the concrete thing instead.
 
-5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle the case you never anticipated. Without it, an unqualified rule gets applied confidently to the wrong situation.
+5. **Every rule carries its scope and its reason.** Say when it applies, when it doesn't, and why. The reason is what lets a reader handle a case you never saw coming. Without it, a bare rule gets applied with confidence to the wrong case.
 
-6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator, lane, or gate, but the first time a reader meets it, a plain-words definition sits right beside it.
+6. **Define terms on first meeting.** The instructions may teach a term of art, such as orchestrator, lane, or gate. The first time a reader meets it, a plain-words definition sits right beside it.
 
-7. **One home per rule.** A rule lives in exactly one place, and everywhere else that needs it points there. Two statements of one rule drift apart the moment one is edited.
+7. **One home per rule.** A rule lives in exactly one place. Everywhere else that needs it points there. Two copies of one rule drift apart the moment one is edited.
 
-8. **No claims nobody can count.** "Every caller", "all N cases", and "always" are promises prose can't keep over a set nobody counted. Write the mechanism and a verified example instead, and keep totality claims for sets the text itself defines.
+8. **No claims nobody can count.** "Every caller", "all N cases", and "always" are promises prose can't keep over a set nobody counted. Write the mechanism and one verified example instead. Keep claims about "all" for sets the text itself defines.
 
-9. **Prefer tooling to prose.** A rule broken twice wants a mechanical guard or sharper phrasing, never a louder paragraph. When a check can enforce the rule, build the check and delete the paragraph.
+9. **Prefer tooling to prose.** A rule broken twice wants a mechanical guard or sharper wording, never a louder paragraph. When a check can enforce the rule, build the check and delete the paragraph.
 
-10. **Mark the unsettled.** Describe today's way plainly and say what is still in motion. A reader who adopts an unsettled rule as settled is worse off than one who knows it is evolving.
+10. **Mark the unsettled.** Describe today's way plainly, and say what is still in motion. A reader who takes an unsettled rule as settled is worse off than one who knows it is evolving.
 
-11. **One idea per sentence.** Packing two ideas into one sentence feels like economy and costs a second read. Say each idea in its own sentence, the long way if the short way needs a re-read, and keep a word away from a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
+11. **One idea per sentence.** Packing two ideas into one sentence feels like economy. It costs a second read. Give each idea its own sentence, the long way if the short way needs a re-read. Keep a word out of a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
 
 ## AI dialect translation table
 
@@ -56,50 +56,51 @@ Words from the workflow's internal dialect that never appear in the instructions
 | ergonomics | how it feels to use |
 | corpus | the reference library (the books and posts the method draws on) |
 
-When a dialect word carries a concept the instructions genuinely need, keep the concept and teach it under a plain name with a first-use definition — never smuggle the word.
+Sometimes a dialect word carries a concept the instructions really need. Keep the concept. Teach it under a plain name, and define it on first use. Never smuggle the word.
 
-Literal identifiers are the one exception: command names, configuration keys, and exported symbols are written exactly as they are, `seasoned-skills sync` and `disable-model-invocation` included, and the concepts they carry get plain names in prose (the sync, the switch that keeps a skill manual).
+Literal identifiers are the one exception. Command names, configuration keys, and exported symbols are written exactly as they are, such as `seasoned-skills sync` and `disable-model-invocation`. The concepts they carry still get plain names in prose: the sync, the switch that keeps a skill manual.
 
 ## Where a rule lives
 
-A lesson has to land somewhere, and the wrong home is the usual way a good rule goes bad: it gets restated until the copies disagree, or it goes stale in a file nobody thinks to amend.
+A lesson has to land somewhere. The wrong home is the usual way a good rule goes bad. It gets restated until the copies disagree, or it goes stale in a file nobody thinks to amend.
 
-- Practice that holds across projects lives in the package: in a skill when it serves one kind of work, in CLAUDE.md content only when every task in every session needs it before doing anything.
-- A project's own facts live in that project's workflow content files. Above all, empirical detail about the project's tooling lives there: it goes stale the moment the project fixes what the detail describes, and only the project can amend it in the same pull request as the fix.
-- How a lesson travels, as an issue on the project or on the package, is the self-improvement skill's to teach.
+- Practice that holds across projects lives in the package. It goes in a skill when it serves one kind of work. It goes in CLAUDE.md content only when every task in every session needs it before doing anything.
+- A project's own facts live in that project's workflow content files. Above all, facts about the project's tooling live there. They go stale the moment the project fixes what they describe, and only the project can fix the text in the same pull request as the fix.
+- A lesson travels as an issue, on the project or on the package. How is the self-improvement skill's to teach.
 
 ## Skill anatomy
 
-An agent decides whether to load a skill from its description alone, and pays for the whole body once it does.
+An agent decides whether to load a skill from its description alone. Once it does, it pays for the whole body.
 
 - The description tells an agent when to load the skill: what it does, then "Use when …" with the concrete situations. Write it for the reader deciding whether to load, not for the reader already inside.
-- The body carries what every use needs. Detail only some uses need goes to a file under `references/`, loaded on demand; executable helpers go to `scripts/`.
+- The body carries what every use needs. Detail only some uses need goes to a file under `references/`, loaded on demand. Helper programs go to `scripts/`.
 
 ## Size and shape
 
-Every line an agent loads costs tokens on every use, and a file a person can't read in one sitting is a file nobody reviews. So the sync measures what it generates and refuses what doesn't fit, naming the file, what broke, and this skill:
+Every line an agent loads costs tokens on every use. A file a person can't read in one sitting is a file nobody reviews. So the sync measures what it generates and refuses what doesn't fit. It names the file, what broke, and this skill:
 
 - word budgets on every generated skill, its reference files, and the generated CLAUDE.md;
 - a name that matches its folder and uses only lowercase letters, digits, and hyphens;
-- a generated description, project trigger words included, within 1,024 characters;
-- em dashes: none in the front matter, at most two in any file.
+- a generated description within 1,024 characters, project trigger words included;
+- em dashes: none in the front matter, at most two in any file;
+- a reading grade of six or lower for the whole file, which in practice means short sentences.
 
-When a change breaches a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move on-demand detail to a reference file. Never compress prose into dialect to fit — the budget counts words, but the point is what each word teaches.
+When a change breaks a budget, make room honestly. Cut what fails the change bar. Move enforcement to tooling. Move detail only some uses need to a reference file. Never squeeze prose into dialect to fit — the budget counts words, but the point is what each word teaches.
 
 ## The change bar
 
-Once you know how these files work, here is what it takes to change one. Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it; the pull request keeps the case for changing it, so a reviewer can judge it. The bar is the same whichever direction the change points.
+Once you know how these files work, here is what it takes to change one. Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. The bar is the same whichever way the change points.
 
-- An addition names the upside it creates or the live failure it prevents, shows the rule is not already on the books in other words, and shows the job would not be done better by tooling.
-- A deletion names why the text is dead: it compensated for a weakness that is gone, it duplicates a rule stated elsewhere, tooling now does its job, or it teaches nothing that creates upside or prevents a live failure.
+- An addition names the upside it creates or the live failure it prevents. It shows the rule is not already on the books in other words. It shows tooling would not do the job better.
+- A deletion names why the text is dead. It made up for a weakness that is gone. It repeats a rule stated elsewhere. Tooling now does its job. Or it teaches nothing that creates upside or prevents a live failure.
 
 A change that cannot argue its case is not made. The same bar covers every edit: a lesson from a finished task, a slimming pass, a brand-new skill.
 
 ## Reviewing a change to instructions
 
-- Judge the change by the case it argues, and judge it against the whole file: read the skill as its reader would, never the diff alone. After a series of fixes, re-read every touched file whole, because a set of locally right edits can flatten what the file teaches.
-- A contradiction between a concrete recipe and a stated principle is a defect. The recipe is what an agent copies, so the recipe complies or the principle changes, never both left standing.
-- One sitting is the bar. When a person can't read the file and judge the change in one sitting, the file is too big or the prose too dense, and that is a finding to fix, not a fact of life.
+- Judge the change by the case it argues, and judge it against the whole file. Read the skill as its reader would, never the diff alone. After a series of fixes, re-read every touched file whole. A set of locally right edits can flatten what the file teaches.
+- A contradiction between a concrete recipe and a stated principle is a defect. The recipe is what an agent copies. So the recipe complies or the principle changes, never both left standing.
+- One sitting is the bar. When a person can't read the file and judge the change in one sitting, the file is too big or the prose too dense. That is a finding to fix, not a fact of life.
 
 ## Anti-patterns (never do these)
 
