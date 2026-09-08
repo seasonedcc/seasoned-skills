@@ -9,7 +9,7 @@ Write every instruction as one senior practitioner briefing another: plainly, di
 
 ## The change bar
 
-Every change to the instructions argues its case in the change itself, whichever direction it points.
+Every change to the instructions argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it; the pull request keeps the case for changing it, so a reviewer can judge it. The bar is the same whichever direction the change points.
 
 - An addition names the upside it creates or the live failure it prevents, shows the rule is not already on the books in other words, and shows the job would not be done better by tooling.
 - A deletion names why the text is dead: it compensated for a weakness that is gone, it duplicates a rule stated elsewhere, tooling now does its job, or it teaches nothing that creates upside or prevents a live failure.
