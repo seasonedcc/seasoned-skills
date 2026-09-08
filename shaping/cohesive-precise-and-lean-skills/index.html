@@ -332,15 +332,27 @@
           Judging that case is never the author&rsquo;s own job. Every change to an
           instruction file goes through a fresh-reader cycle before a person sees it:
           a reader with the agent-instructions skill loaded and no memory of the edits
-          reads every touched file whole and reports each sentence that breaks a
-          principle, naming the principle; the author judges each finding, never at
-          face value, and fixes or declines it in the pull request; then a new fresh
-          reader reads again. The cycle ends when the author is satisfied with the
+          reads every touched file whole, as someone about to use it for a real task,
+          and reports where the file fails that use: a rule it could not apply, a
+          sentence read wrong, a thing it needed and could not find, a thing it did
+          not need. It never grades sentences against the principles one by one: a
+          reader in that mode wants every term defined and every tool named, and the
+          file grows past its budget on findings that were each right alone. A
+          finding that asks for words names the home they belong to and the words it
+          would cut to pay for them. The author judges each finding under the change
+          bar, like any other change, and fixes or declines it in the pull request;
+          then a new fresh reader reads again. The cycle ends when the author is satisfied with the
           file, not when a reader runs out of findings. It is a cycle, not a pass,
           the way the review loop in the Definition of Done is. The rule was earned during this
-          project&rsquo;s own shaping: every finding the person raised on the draft
-          skill was a rule already written in the file, broken by its author editing
-          one sentence at a time.
+          project&rsquo;s own shaping, twice. First, every finding the person raised on
+          the draft skill was a rule already written in the file, broken by its author
+          editing one sentence at a time. Then the cycle itself overshot: five rounds
+          of rule-by-rule findings grew the draft from 1,873 to 2,215 words, past its
+          budget, with a section re-teaching the pipeline the package&rsquo;s own skill
+          already teaches, a line describing a feature no project used, and a tool
+          named by its engine and its rule&rsquo;s internal name &mdash; each accepted by
+          an author taking findings at face value, and each removed again when the
+          person read the file whole.
         </p>
         <p>
           A second settled element: <strong>the improvement pass deduplicates before it
