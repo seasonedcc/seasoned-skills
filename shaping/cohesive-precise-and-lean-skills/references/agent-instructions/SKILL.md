@@ -11,13 +11,13 @@ This is one of the hardest writing jobs there is. A file at its word budget and 
 
 ## Who reads these files
 
-People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
+People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting. So the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true: dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
 
 ## Core principles
 
 1. **Sentence case for all titles.** Write "Reviewing a change", never "Reviewing A Change".
 
-2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. See the translation table below.
+2. **Plain speech, no AI dialect.** Words agents use with each other don't belong in instructions people review. The linter carries the list.
 
 3. **Situation before rule.** Start with the situation, then give the rule. Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -37,26 +37,9 @@ People and agents read the same file, and they need different things from it. Th
 
 11. **One idea per sentence.** Packing two ideas into one sentence feels like economy, and it costs a second read. Give each idea its own sentence, the long way if the short way needs a re-read. One idea is not one clause: two clauses that belong together stay together. Keep a word out of a spot where it reads two ways: "instructions nobody reviews drift" sends the eye to a noun first.
 
-## AI dialect translation table
+## AI dialect
 
-Words from the workflow's internal dialect that never appear in the instructions:
-
-| Dialect | Write instead |
-|---------|---------------|
-| load-bearing | essential, "that everything depends on" |
-| binding | required, "the rule is" |
-| doctrine | standing instructions, the rules |
-| surface (as a noun) | page, screen, place |
-| charter | instructions, the task |
-| invoke | run, type, use |
-| adjudicate | decide, rule on |
-| materialize | create, generate |
-| canonical | official, "the one source" |
-| affordance | button, link, control |
-| artifact | file, document, result |
-| downstream / upstream | later / earlier |
-| ergonomics | how it feels to use |
-| corpus | the reference library (the books and posts the method draws on) |
+The linter carries the dialect words and their plain replacements. When it flags one, it names the word and the word to write instead. The rule file is the list, so this file never repeats it.
 
 Sometimes a dialect word carries a concept the instructions really need. Keep the concept, teach it under a plain name, and define it on first use. Never smuggle the word.
 
@@ -113,15 +96,11 @@ A change that can't argue its case isn't made. The same bar covers every edit: a
 - A contradiction between a concrete recipe and a stated principle is a defect. The recipe is what an agent copies, so the recipe complies or the principle changes, never both left standing.
 - One sitting is the bar. When a person can't read the file and judge the change in one sitting, the file is too big or the prose too dense. That is a finding to fix, not a fact of life.
 
-## Anti-patterns (never do these)
+## What the checks can't see
 
-- Title Case headlines
-- Em dashes without spaces, more than two in a file, or any in the front matter
-- Corporate jargon: leverage, utilize, seamless, robust, best-in-class, cutting-edge, empower, optimize, synergy, solution
-- AI dialect from the table above
-- Shouting: capitals, bold, and "critical" where a scoped rule would do
+The checks catch Title Case, em dashes, jargon, dialect, shouting, and hedging on their own. These slip past them, so watch for them yourself:
+
 - Passive voice where an agent acts: "The ledger should be updated" → "Update the ledger"
-- Hedging: "should probably", "may want to consider"
 - Teaching a direction as if it were settled practice
 - The case for a change written into the text instead of the pull request
 - Restating what the reader already loaded: the rest of CLAUDE.md and the other skills are already in front of them
