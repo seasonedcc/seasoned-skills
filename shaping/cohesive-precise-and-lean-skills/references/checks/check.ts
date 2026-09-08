@@ -8,6 +8,9 @@ const checksDir = path.dirname(new URL(import.meta.url).pathname)
 const readingGradeCeiling = 6
 const descriptionMaxCharacters = 1024
 const emDashesPerFile = 2
+const skillBodyBudget = 2000
+const referenceFileBudget = 2000
+const standingInstructionsBudget = 2500
 const wordsThatAreNotSkillNames = new Set(['same', 'new', 'right', 'wrong', 'whole', 'first', 'last', 'other', 'generic', 'live', 'one', 'each', 'every', 'this', 'that', 'next', 'previous', 'existing', 'current', 'missing', 'correct', 'matching', 'relevant', 'loaded', 'installed', 'manual', 'package', 'project', 'consuming', 'shared', 'whole', 'entire', 'original', 'old', 'full', 'wider', 'broader', 'narrower', 'smaller', 'larger', 'bigger'])
 const properNouns = new Set(['Vale', 'GitHub', 'Kysely', 'Claude', 'Biome', 'Playwright', 'Postgres', 'PostgreSQL', 'React', 'Remix', 'Vitest', 'Zod', 'Discord', 'Slack', 'Google', 'Linear', 'Notion', 'Docker', 'Node', 'TypeScript', 'JavaScript', 'Python', 'Anthropic', 'Seasoned', 'Graphile', 'Worker', 'Title', 'Case', 'Definition', 'Done', 'Map', 'Set'])
 
@@ -97,6 +100,15 @@ const prose = (body: string) => {
 }
 
 const grade = (text: string) => Number(readability.fleschKincaidGrade(text).toFixed(1))
+const countWords = (text: string) => text.split(/\s+/).filter((token) => /[\p{L}\p{N}]/u.test(token)).length
+
+const wordBudget = (file: string): { words: number; budget: number; scope: string } | null => {
+  const base = path.basename(file)
+  if (base === 'SKILL.md') return { words: 0, budget: skillBodyBudget, scope: 'body' }
+  if (base === 'CLAUDE.md') return { words: 0, budget: standingInstructionsBudget, scope: 'file' }
+  if (file.split(path.sep).includes('references')) return { words: 0, budget: referenceFileBudget, scope: 'file' }
+  return null
+}
 const countEmDashes = (text: string) => (text.match(/—/g) ?? []).length
 
 const blankQuotedMentions = (text: string) =>
@@ -160,6 +172,13 @@ const checkFile = (file: string) => {
     }
   } else if (isSkill) {
     report(file, 1, 'error', 'front-matter', 'A skill starts with front matter.')
+  }
+
+  const budget = wordBudget(file)
+  if (budget) {
+    const words = countWords(body)
+    if (words > budget.budget)
+      report(file, bodyStartLine, 'error', 'budget', `The ${budget.scope} is ${words} words. The budget is ${budget.budget}. Cut what fails the change bar, move enforcement to tooling, or move detail to a reference file.`)
   }
 
   const dashes = countEmDashes(body)

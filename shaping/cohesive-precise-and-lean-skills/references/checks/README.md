@@ -6,7 +6,7 @@ Every check fails the file. There are no warnings: a rule that could not be made
 
 ## What each file is
 
-- `check.ts` is the runner, TypeScript that Node 22 runs as is. Give it markdown files. It checks the front matter (name, description length, description reading grade, no em dashes), the em dash ration, the reading grade of the body, sentence case in headings, links between files, and skill names against the roster. Then it runs Vale, cspell, and jscpd and reports everything in one list, exiting non-zero when anything failed.
+- `check.ts` is the runner, TypeScript that Node 22 runs as is. Give it markdown files. It checks the front matter (name, description length, description reading grade, no em dashes), the word budget (2,000 words for a skill body, everything below the front matter, since the name and description have caps of their own; 2,000 for a file under `references/`; 2,500 for a CLAUDE.md; a word is a whitespace-separated token holding a letter or a digit, so code counts and list markers do not), the em dash ration, the reading grade of the body, sentence case in headings, links between files, and skill names against the roster. Then it runs Vale, cspell, and jscpd and reports everything in one list, exiting non-zero when anything failed.
 - `.vale.ini` points Vale at the style below.
 - `styles/Seasoned/` holds the prose rules, one file each: `Dialect` (the translation table, `surface` included), `Jargon`, `Hedging`, `Shouting`, `DashSpacing`, and `SentenceLength` (30 words).
 - `text-readability.d.ts` declares the four functions the runner uses from the readability library, which ships no types.
