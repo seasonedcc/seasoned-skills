@@ -67,9 +67,9 @@ When a dialect word carries a concept the instructions genuinely need, keep the 
 - The skill body carries what every use needs. Detail only some uses need goes to a file under `references/`, loaded on demand; executable helpers go to `scripts/`.
 - Headings use sentence case: "Reviewing a change", never "Reviewing A Change".
 
-## Size
+## Size and shape
 
-Budgets cover the generated files agents actually load: the sync refuses a file over budget and names the file, the excess, and this skill. When a change breaches a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move on-demand detail to a reference file. Never compress prose into dialect to fit — the budget measures words, but the bar is worth per word.
+Budgets cover the generated files agents actually load, reference files included: the sync refuses a file over budget and names the file, the excess, and this skill. The sync checks a skill's shape the same way: the name matches its folder and uses only lowercase letters, digits, and hyphens; the generated description, project trigger words included, stays within 1,024 characters; and em dashes stay out of the front matter and number at most two in any file. When a change breaches a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move on-demand detail to a reference file. Never compress prose into dialect to fit — the budget measures words, but the bar is worth per word.
 
 ## Reviewing a change to instructions
 

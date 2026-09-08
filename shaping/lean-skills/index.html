@@ -401,6 +401,25 @@
           repository already runs.
         </p>
         <p>
+          The same mechanism carries four checks on the shape of a skill, not only
+          its length. A skill&rsquo;s name follows the open Agent Skills
+          specification: one to sixty-four characters, lowercase letters, digits, and
+          hyphens only, never starting, ending, or doubling a hyphen, and matching
+          the skill&rsquo;s folder &mdash; today the build guarantees the match by
+          construction, and nothing checks the characters. The generated description,
+          measured after a project&rsquo;s trigger words are woven in, stays within
+          1,024 characters: Claude Code truncates a longer one at 1,536 and cuts from
+          the end, which is exactly where the &ldquo;use when&rdquo; half lives, and
+          1,024 is the open specification&rsquo;s own cap. Em dashes are rationed the
+          way the voice guide already asks, as a number the sync can count: none in
+          the front matter, at most two in any generated file or reference file.
+          Every check fails the way the budgets fail, naming the file and the line
+          and pointing at agent-instructions, and every one turns on with the
+          slimming rewrite, since today&rsquo;s corpus breaks them all &mdash; the
+          orchestration skill alone carries over a hundred em dashes. The shaping
+          corpus stays the one exempt family here too.
+        </p>
+        <p>
           The seventh settled element disarms the project&rsquo;s biggest time bombs
           before the build. The five riskiest rewrites &mdash; agent-instructions
           itself, orchestration, subagents, self-improvement, and shaping &mdash; are
