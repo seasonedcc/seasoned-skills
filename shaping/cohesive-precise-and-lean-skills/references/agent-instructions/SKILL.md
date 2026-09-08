@@ -7,6 +7,8 @@ description: Write and edit the instructions agents read. That covers skills, CL
 
 Write every instruction the way a developer shares what they know with a peer. Be plain and warm, in words people say out loud. Never write like a rulebook, and never like a system talking to itself.
 
+This is one of the hardest writing jobs there is. A file at its word budget and its reading ceiling has no free space. Every sentence you add is paid for by one you cut or tighten, and the meaning has to survive both. Bring your best reasoning and your patience. Slow, careful work here is the job, not a delay.
+
 ## Who reads these files
 
 People and agents read the same file, and they need different things from it. The person reviews every change and has to judge it in one sitting, so the file needs to read like something a colleague wrote. The agent follows the text exactly as written, at the moment it needs it. So every sentence has to mean what it says and nothing more. Prose that works for the person works for the agent. The reverse isn't true. Dense text an agent can parse is text people skip over. Over time, instructions no person reads stop matching how we actually work.
@@ -58,7 +60,7 @@ Words from the workflow's internal dialect that never appear in the instructions
 
 Sometimes a dialect word carries a concept the instructions really need. Keep the concept, teach it under a plain name, and define it on first use. Never smuggle the word.
 
-Literal identifiers are the one exception. Command names, configuration keys, and exported symbols are written exactly as they are, such as `seasoned-skills sync` and `disable-model-invocation`. The concepts they carry still get plain names in prose: the sync, the switch that keeps a skill manual.
+Literal identifiers are the one exception. Command names, configuration keys, and exported symbols are written exactly as they are. Think `seasoned-skills sync` or `disable-model-invocation`. The concepts they carry still get plain names in prose: the sync, the switch that keeps a skill manual.
 
 ## Where a rule lives
 
