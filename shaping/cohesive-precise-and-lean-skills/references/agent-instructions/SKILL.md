@@ -85,9 +85,12 @@ Every line an agent loads costs tokens on every use. A file a person can't read 
 - a name that matches its folder and uses only lowercase letters, digits, and hyphens;
 - a generated description within 1,024 characters, project trigger words included;
 - em dashes: none in the front matter, at most two in any file;
-- a reading grade of six or lower for the whole file, and for the description on its own, which in practice means short sentences.
+- a reading grade of six or lower for the whole file, and for the description on its own, which in practice means short sentences;
+- a prose linter. Some of its rules fail the file, such as a dialect word or a heading in Title Case. Others only warn, such as passive voice or a claim about "every".
 
 Run `seasoned-skills check` before you commit. It runs the same checks the sync runs, over the generated files, and names what broke. Give it file paths to check a draft the sync doesn't know yet.
+
+A warning from the linter is a question, never a verdict. Answer each one in the pull request, and "the sentence is right as written" is a real answer. Never change a sentence only to make a flag go away. A sentence that reads well and still trips a rule is a finding against the rule.
 
 When a change breaks a budget, make room honestly: cut what fails the change bar, move enforcement to tooling, or move detail only some uses need to a reference file. Never squeeze prose into dialect to fit — the budget counts words, but the point is what each word teaches.
 
@@ -96,7 +99,7 @@ When a change breaks a budget, make room honestly: cut what fails the change bar
 Once you know how these files work, here is what it takes to change one. Every change argues its case in the pull request that carries it, never in the instruction text. The text keeps a rule's scope and its reason, so a reader can apply it. The pull request keeps the case for changing it, so a reviewer can judge it. The bar is the same whichever way the change points.
 
 - An addition names the upside it creates or the live failure it prevents. It shows the rule is not already on the books in other words. It shows tooling would not do the job better.
-- A deletion names why the text is dead: it made up for a weakness that is gone, it repeats a rule stated elsewhere, tooling now does its job, or it teaches nothing that creates upside or prevents a live failure.
+- A deletion names why the text is dead. Four reasons count: it made up for a weakness that is gone, it repeats a rule stated elsewhere, tooling now does its job, or it teaches nothing that creates upside or prevents a live failure.
 
 A change that cannot argue its case is not made. The same bar covers every edit: a lesson from a finished task, a slimming pass, a brand-new skill.
 
