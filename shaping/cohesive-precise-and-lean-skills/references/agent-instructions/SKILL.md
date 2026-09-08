@@ -100,7 +100,7 @@ The checks catch what a rule can state exactly. These slip past them, so watch f
 
 - Passive voice where an agent acts: "The ledger should be updated" → "Update the ledger"
 - Teaching a direction as if it were settled practice
-- The case for a change written into the text instead of the pull request
+- The case for a change written into the text instead of the pull request. The common form is a trace of what was removed, like "the list lives elsewhere, never here". Nobody reading the finished file saw the old version.
 - Restating what the reader already loaded: the rest of CLAUDE.md and the other skills are already in front of them
 
 ## Detailed guidance
