@@ -24,9 +24,9 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 ## Core principles
 
-1. **Write headings in sentence case.** In Title Case, a reader can't tell a name from a word.
+1. **Write headings in sentence case.** Write "Running a session", never "Running A Session".
 
-2. **Write plain speech, never AI dialect.** Keep the words agents use with each other out of instructions people review. The `seasoned-skills check` command flags each one and prints the plain word beside it. Write the name of a command, setting, or file as it is, in backticks, which the check skips. Write `seasoned-skills corpus` for the command and the reference library for what it builds.
+2. **Write plain speech, never AI dialect.** Keep the words agents use with each other out of instructions people review. The `seasoned-skills check` command flags each one and prints the plain word beside it. Write the name of a command, setting, or file as it is, in backticks, which the check skips. For example, write `seasoned-skills corpus` for the command and "the reference library" for what it builds.
 
 3. **Put the situation before the rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
