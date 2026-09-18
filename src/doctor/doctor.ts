@@ -69,6 +69,12 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       hint: 'brew install jq',
     },
     {
+      binary: 'itsvertical',
+      reason:
+        "a goal's state lives on a Vertical board the orchestrator writes and the person watches",
+      hint: 'npm install -g itsvertical',
+    },
+    {
       binary: 'python3',
       reason: 'the subagent watchdog and meeting-request verification run on Python 3',
       hint: 'https://www.python.org/downloads',

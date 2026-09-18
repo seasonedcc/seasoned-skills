@@ -314,6 +314,29 @@ uncommitted code or data, so their dev servers, test runs, and browser
 sessions run at the same time without colliding, and a finished lane is
 swept away by `seasoned-skills teardown` with everything it owned.
 
+### The build board
+
+While a goal runs, the state of the work lives on a board you can look at.
+The board is a [Vertical](https://github.com/seasonedcc/vertical) file,
+`build.vertical`, kept beside the shaping document. The orchestrator creates
+it from the document when the goal starts: one box per scope (a slice of the
+project that ships on its own), and inside each box the stages Build, Verify,
+and Review, with the work items under them. The last box is the closing
+audit, with one item for everything the document promised.
+
+The orchestrator is the only one that writes to the board. It marks an item
+as being worked on when it delegates it, as failed when a gate or a review
+round fails, as blocked when one lane waits on another, and as done only
+after it has verified the merge, with a link to the pull request. Agents
+doing the building never touch the board, so done on it always means
+checked, never claimed.
+
+The board took over part of the ledger's job. The ledger still holds what a
+board cannot: decisions, standing rules, lessons. Where each lane stands is
+on the board, and after a compaction the orchestrator reads the board's
+summary first. This part of the practice is new, and we expect it to move as
+we use it.
+
 ### What done means
 
 Every project's Definition of Done is generated into its standing

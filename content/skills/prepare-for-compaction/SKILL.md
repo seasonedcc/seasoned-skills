@@ -7,6 +7,6 @@ description: Make this session's ledger current so its context can be compacted 
 
 The person is about to compact this session's context and is waiting on one answer: is the ledger current?
 
-Make it current before answering — write in what the work has added since its last entry, on the spot. A ledger that is behind is something to fix here, never something to report. Then answer plainly that compacting is safe.
+Make it current before answering — write in what the work has added since its last entry, on the spot, and bring the build board to the same moment where the effort has one. A ledger that is behind is something to fix here, never something to report. Then answer plainly that compacting is safe.
 
 This is one step of the ritual the person drives: spot the moment, prepare, compact, reground.

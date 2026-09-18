@@ -16,7 +16,7 @@ rig's own setup fetches, and your per-user meeting settings.
 | Your content directory | You. One markdown file per generated skill, plus one for the standing instructions. All optional. |
 | The calibration file | You. How this project's subagents are calibrated against the Definition of Done: the checklist every task is held to before it counts as finished. |
 | The registers your options need | You. The coverage register, excused pages, seed manifest, parity standard, exception register. |
-| `shaping/` | You. Your shaping documents. Its `assets/` folder is generated. |
+| `shaping/` | You. Your shaping documents, each with the `build.vertical` board its build kept. Its `assets/` folder is generated. |
 | `requests-from-meetings/` | You. The records parsed from meetings. Its `assets/style.css` is generated. |
 | `.claude/settings.json` | You, with a few keys the package keeps true. |
 | `.gitignore` | You, with one managed block. |

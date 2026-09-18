@@ -114,6 +114,34 @@ A well-shaped project asks few questions either way. If a build is
 peppering you with questionnaires, the lesson is usually about the
 shaping, not the build.
 
+## Watching the build, and adding to it
+
+You do not have to ask the orchestrator how things are going. The state of
+the build is on a board, a file called `build.vertical` beside the shaping
+document, and the orchestrator tells you how to open it when the goal
+starts:
+
+```sh
+itsvertical open shaping/<project-title>/build.vertical --read-only
+```
+
+The browser shows every scope of the project with its stages, what is being
+worked on and by which model, what failed and why, and what is waiting on
+what. It updates as the orchestrator writes. The Activity button lists every
+change with its time. Read-only means exactly that: you can look, and
+nothing you click changes the board.
+
+Sometimes you notice something while you watch: a small thing the build
+should also do. Typing it into the session is the wrong move mid-goal,
+because the goal checker runs over plain conversation, as the third watch
+explained. Open the board with `--inbox` in place of `--read-only` and add
+the task there. The orchestrator checks the inbox between rounds of work,
+decides whether the request fits the work in flight or gets set aside for
+later, and writes its decision on the task.
+
+Keep the inbox for things you would otherwise lose. It is a note passed to
+someone busy, and the discipline below still holds.
+
 ## One discipline, held as firmly as the watches
 
 Never run or test the product mid-effort, and never micromanage the

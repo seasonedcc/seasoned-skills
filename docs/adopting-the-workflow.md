@@ -83,8 +83,8 @@ must meet per enabled option:
 
 ## What the machine needs
 
-The binaries the enabled workflow depends on: `git`, `gh`, `jq`, and
-`python3`, plus the toolchains the always-shipping practices run on:
+The binaries the enabled workflow depends on: `git`, `gh`, `jq`,
+`python3`, and `itsvertical` (the board a build's state lives on), plus the toolchains the always-shipping practices run on:
 `whisper-cli` with the pinned `ggml-large-v3` and `ggml-silero-v5.1.2`
 models for meeting transcription, and `uv` and `ffmpeg` for demo-video
 narration, which needs an Apple Silicon Mac. Doctor also looks for the

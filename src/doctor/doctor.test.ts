@@ -29,6 +29,7 @@ describe('doctor', () => {
       'git',
       'gh',
       'jq',
+      'itsvertical',
       'python3',
       'whisper-cli',
       join(homedir(), '.cache', 'whisper-cpp', 'ggml-large-v3.bin'),
