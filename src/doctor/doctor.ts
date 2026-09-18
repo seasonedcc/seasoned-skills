@@ -18,6 +18,8 @@ export interface BinaryCheck {
   hint: string
   /** The flag that prints the version, for a tool that does not answer `--version`. */
   versionFlag?: string
+  /** A command the tool's `--help` must list, for a tool whose older releases lack it. */
+  helpMentions?: string
 }
 
 /** A prerequisite that is a file on this machine rather than a binary on the PATH. */
@@ -33,6 +35,8 @@ export interface DoctorFinding {
   check: DoctorCheck
   ok: boolean
   version?: string
+  /** The tool is installed, but its help does not list the command the workflow uses. */
+  outdated?: boolean
 }
 
 /** What a check is about, for the report and for anything listing the checklist. */
@@ -72,7 +76,8 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
       binary: 'itsvertical',
       reason:
         "a goal's state lives on a Vertical board the orchestrator writes and the person watches",
-      hint: 'npm install -g itsvertical',
+      hint: 'pnpm add -D "github:seasonedcc/vertical#feature/build-board" — the build commands are not in a published release yet, and pnpm prints the onlyBuiltDependencies entry to add to pnpm-workspace.yaml first',
+      helpMentions: 'apply',
     },
     {
       binary: 'python3',
@@ -155,16 +160,28 @@ export function runChecks(checks: DoctorCheck[]): DoctorFinding[] {
     })
     if (result.error || result.status !== 0) return { check, ok: false }
     const version = `${result.stdout}${result.stderr}`.split('\n')[0]?.trim()
+    if (check.helpMentions) {
+      const help = spawnSync(check.binary, ['--help'], { encoding: 'utf8' })
+      const listed = new RegExp(`^\\s+${check.helpMentions}\\b`, 'm')
+      if (!listed.test(`${help.stdout}${help.stderr}`)) {
+        return version
+          ? { check, ok: false, version, outdated: true }
+          : { check, ok: false, outdated: true }
+      }
+    }
     return version ? { check, ok: true, version } : { check, ok: true }
   })
 }
 
 export function renderReport(findings: DoctorFinding[]): string {
-  const lines = findings.map((finding) =>
-    finding.ok
-      ? `✓ ${checkTarget(finding.check)} — ${finding.version ?? 'present'}`
-      : `✗ ${checkTarget(finding.check)} — missing. Needed because ${finding.check.reason}. Install: ${finding.check.hint}`,
-  )
+  const lines = findings.map((finding) => {
+    if (finding.ok)
+      return `✓ ${checkTarget(finding.check)} — ${finding.version ?? 'present'}`
+    const state = finding.outdated
+      ? `${finding.version ?? 'installed'} is too old`
+      : 'missing'
+    return `✗ ${checkTarget(finding.check)} — ${state}. Needed because ${finding.check.reason}. Install: ${finding.check.hint}`
+  })
   const missing = findings.filter((finding) => !finding.ok).length
   lines.push(
     missing === 0

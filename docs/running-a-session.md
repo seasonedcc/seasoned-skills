@@ -122,7 +122,7 @@ document, and the orchestrator tells you how to open it when the goal
 starts:
 
 ```sh
-itsvertical open shaping/<project-title>/build.vertical --read-only
+pnpm exec itsvertical open shaping/<project-title>/build.vertical --no-track --read-only
 ```
 
 The browser shows every scope of the project with its stages, what is being

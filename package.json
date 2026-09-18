@@ -61,6 +61,7 @@
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "itsvertical": "github:seasonedcc/vertical#feature/build-board",
     "seasoned-skills": "link:.",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"

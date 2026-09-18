@@ -26,6 +26,14 @@ place first, or leave the matching option off until it exists.
   pinned at an exact version (the `-E` in the install command below, and
   the premise pre-1.0 upgrades rely on), and sync keeps one managed
   script entry, `prepare`, that re-runs `seasoned-skills sync`.
+- **The build board**: `itsvertical`, the tool that keeps the board a
+  build's state lives on, installed as a dev dependency of your project.
+  The commands a build uses are not in a published release yet, so for now
+  it installs from its branch: `pnpm add -D
+  "github:seasonedcc/vertical#feature/build-board"`. pnpm builds a package
+  that comes from git only when you allow it, and it prints the exact
+  `onlyBuiltDependencies` entry to add to `pnpm-workspace.yaml` the first
+  time you try. Doctor tells you when the installed one is too old.
 - **Gates a continuous-integration run can execute.** Gates are the lint,
   typecheck, and test commands you declare in the configuration; they
   must actually run and actually block a failing change. A test suite
@@ -84,7 +92,7 @@ must meet per enabled option:
 ## What the machine needs
 
 The binaries the enabled workflow depends on: `git`, `gh`, `jq`,
-`python3`, and `itsvertical` (the board a build's state lives on), plus the toolchains the always-shipping practices run on:
+and `python3`, plus the toolchains the always-shipping practices run on:
 `whisper-cli` with the pinned `ggml-large-v3` and `ggml-silero-v5.1.2`
 models for meeting transcription, and `uv` and `ffmpeg` for demo-video
 narration, which needs an Apple Silicon Mac. Doctor also looks for the

@@ -44,7 +44,7 @@ export function buildProgram(): Command {
         const missing = runChecks(deriveChecks(result.config)).filter((f) => !f.ok)
         for (const finding of missing) {
           console.warn(
-            `warning: ${checkTarget(finding.check)} is missing — ${finding.check.reason}. Install: ${finding.check.hint}`,
+            `warning: ${checkTarget(finding.check)} is ${finding.outdated ? 'too old' : 'missing'} — ${finding.check.reason}. Install: ${finding.check.hint}`,
           )
         }
       } catch (error) {

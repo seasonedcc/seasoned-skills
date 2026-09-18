@@ -3,7 +3,13 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { SeasonedSkillsConfig } from '../config/types.js'
-import { checkTarget, deriveChecks, renderReport, runChecks } from './doctor.js'
+import {
+  checkTarget,
+  type DoctorFinding,
+  deriveChecks,
+  renderReport,
+  runChecks,
+} from './doctor.js'
 
 const base = {
   projectName: 'consumer',
@@ -134,6 +140,15 @@ describe('doctor', () => {
       { binary: 'git', reason: 'r', hint: 'h', versionFlag: '--bogus-flag' },
     ])
     expect(findings[0]?.ok).toBe(false)
+  })
+
+  it('reports a tool whose help lacks a command the workflow uses as too old', () => {
+    const current = { binary: 'git', reason: 'r', hint: 'h', helpMentions: 'clone' }
+    const outdated = { binary: 'git', reason: 'r', hint: 'h', helpMentions: 'teleport' }
+    expect(runChecks([current])[0]?.ok).toBe(true)
+    const finding = runChecks([outdated])[0]
+    expect(finding).toMatchObject({ ok: false, outdated: true })
+    expect(renderReport([finding as DoctorFinding])).toContain('is too old')
   })
 
   it('reports a missing binary with its reason and install pointer', () => {
