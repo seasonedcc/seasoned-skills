@@ -68,9 +68,11 @@ Generated files never enter your history. Sync keeps one block in `.gitignore`:
 
 The block carries the generated paths, collapsed: a whole folder for each
 generated skill, one for the shaping assets, and single files otherwise.
-Anything your own ignore rules already cover stays out of it. Two entries are
+Anything your own ignore rules already cover stays out of it. Four entries are
 there for files nothing generates, but which the workflow promises stay out of
-your history: the finished demo videos, and your per-user meeting settings.
+your history: the finished demo videos, your per-user meeting settings, and the
+lock and temporary files a build board's writes leave behind when one is
+interrupted.
 
 | Entry | What it covers |
 | --- | --- |
@@ -85,6 +87,8 @@ your history: the finished demo videos, and your per-user meeting settings.
 | `requests-from-meetings/assets/style.css` | The stylesheet meeting records load. |
 | `/demo-videos/*/*.mp4` | The finished demo video every assembly copies beside its screenplay. |
 | `requests-from-meetings/config.local.json` | Per-user meeting settings. |
+| `*.vertical.lock` | The lock a write to a build board holds for a moment. |
+| `*.vertical.*.tmp` | The temporary file a write to a build board renames into place. |
 
 Being listed is not the promise. Being actually ignored is, and a later negation
 or a nested ignore file can un-ignore a listed path. So sync asks git itself,
