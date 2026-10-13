@@ -6,13 +6,13 @@ This package carries one complete way of working, run inside Claude
 Code, Anthropic's coding agent: how an idea becomes a shaped project
 (one written down and thought through before any build starts), how AI
 agents build it end to end, with everything that needs taste running on
-Opus, the strongest Claude model for the price, and how the lessons
-learned along the way are kept. A project adopts it by installing the package and
-answering an interview once. From then on, everything the workflow needs
-inside the project is generated from the installed version: the standing
-instructions, the skills, the small supporting tools. The project commits
-only its configuration and its own content, and staying current means
-upgrading a version.
+Opus, which matches Fable's quality at a much lower cost, and how the
+lessons learned along the way are kept. A project adopts it by
+installing the package and answering an interview once. From then on,
+everything the workflow needs inside the project is generated from the
+installed version: the standing instructions, the skills, the small
+supporting tools. The project commits only its configuration and its own
+content, and staying current means upgrading a version.
 
 We built it because we were maintaining the same way of working in three
 repositories, by hand. Every lesson was learned once but taught to only one

@@ -66,8 +66,9 @@ EFFORT_SUFFIX=""
 [ -n "$EFFORT" ] && EFFORT_SUFFIX=" ${DIM}${EFFORT}${RESET}"
 
 # Demotion alarm: the workflow runs the main session on Opus at high effort.
-# If the classifier demotes the model (or drops the effort), wrap the
-# model + effort segment in sirens and paint it red so it's impossible to miss.
+# If the session runs on any other model family or at any other effort,
+# wrap the model + effort segment in sirens and paint it red so it's
+# impossible to miss.
 ALERT_PRE="" ALERT_POST=""
 case "$MODEL" in
   *[Oo]pus*)  MODEL_OK=1 ;;
