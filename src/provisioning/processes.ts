@@ -52,7 +52,10 @@ function laneWorktreesRoots(
 /**
  * This user's processes running from inside a lane under the given worktrees
  * roots, with their ownership — restricted to the given command names when
- * there are any. This process and its ancestors are never listed.
+ * there are any. This process and its ancestors are never listed. A listing
+ * lsof could not make throws rather than reading as an empty lane: lsof exits
+ * 1 both when nothing matches and on errors, which only the latter explain on
+ * stderr.
  */
 function lanesProcesses(roots: string[], commands: string[]) {
   const result = spawnSync(
@@ -69,6 +72,18 @@ function lanesProcesses(roots: string[], commands: string[]) {
     ],
     { encoding: 'utf8' },
   )
+  const listed =
+    result.error === undefined &&
+    (result.status === 0 || (result.status === 1 && result.stderr === ''))
+  if (!listed) {
+    const reason =
+      result.error?.message ??
+      (result.stderr.trim() ||
+        (result.signal ? `killed by ${result.signal}` : `exit status ${result.status}`))
+    throw new Error(
+      `lsof could not list the processes running from inside lanes: ${reason}`,
+    )
+  }
   const own = ownProcessIds()
   return withOwnership(
     laneProcessesFromLsofOutput(result.stdout ?? '', roots)

@@ -162,6 +162,19 @@ type LiveSessionProcess = LaneProcessCandidate & {
   ownership: Extract<Ownership, { kind: 'live-session' }>
 }
 
+function laneProcessesOrRefusal(lane: string, worktrees: LaneWorktree[]) {
+  try {
+    return lanesProcesses(
+      worktrees.map((worktree) => worktreesRoot(worktree.repositoryPath)),
+      [],
+    )
+  } catch (error) {
+    throw new Error(
+      `cannot list the processes of lane ${lane}, so nothing was changed — ${(error as Error).message}`,
+    )
+  }
+}
+
 function inUseRefusal(lane: string, holders: LiveSessionProcess[]) {
   const sessions = [
     ...new Map(
@@ -308,10 +321,7 @@ async function teardownLane(
   // half torn down.
   const laneWorktreePaths = worktrees.map((worktree) => worktree.worktreePath)
   if (!options.force) {
-    const holders = lanesProcesses(
-      worktrees.map((worktree) => worktreesRoot(worktree.repositoryPath)),
-      [],
-    ).filter(
+    const holders = laneProcessesOrRefusal(lane, worktrees).filter(
       (candidate): candidate is LiveSessionProcess =>
         candidate.ownership.kind === 'live-session' &&
         isInsideAny(candidate.workingDirectory, laneWorktreePaths),

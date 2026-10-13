@@ -34,6 +34,7 @@ import {
   spawnSessionWithChild,
   stopDummies,
 } from './dummy-processes.js'
+import { fakeCommands } from './fake-commands.js'
 
 function initRepo(path: string) {
   mkdirSync(path, { recursive: true })
@@ -206,6 +207,35 @@ describe('lane setup and teardown without databases', () => {
       expect(() => listLaneProcesses(repo, undefined, { lane: './held-lane' })).toThrow(
         'lane "./held-lane" is not a single directory name',
       )
+    })
+
+    it('refuses to tear down a lane whose processes it cannot list, changing nothing', async () => {
+      await provisionLane(repo, undefined, 'unlisted-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/unlisted-lane')
+      const realPath = process.env.PATH
+
+      for (const failure of [
+        { lsof: "echo 'lsof: unknown option' >&2; exit 1" },
+        { lsof: 'kill -9 $$' },
+        { lsof: 'exit 2' },
+      ]) {
+        vi.stubEnv('PATH', realPath)
+        fakeCommands(root, failure)
+        await expect(teardownLane(repo, undefined, 'unlisted-lane')).rejects.toThrow(
+          'cannot list the processes of lane unlisted-lane, so nothing was changed',
+        )
+      }
+      vi.stubEnv('PATH', realPath)
+      fakeCommands(root, { git: null }, { only: true })
+      await expect(teardownLane(repo, undefined, 'unlisted-lane')).rejects.toThrow(
+        'cannot list the processes of lane unlisted-lane, so nothing was changed',
+      )
+      expect(existsSync(worktree)).toBe(true)
+
+      vi.stubEnv('PATH', realPath)
+      fakeCommands(root, { lsof: 'exit 1' })
+      const result = await teardownLane(repo, undefined, 'unlisted-lane')
+      expect(result.removedWorktrees).toEqual([worktree])
     })
 
     it('tears down a lane whose processes are its own or left by ended sessions', {
