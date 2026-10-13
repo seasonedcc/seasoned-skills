@@ -225,7 +225,7 @@ export function buildProgram(): Command {
   program
     .command('session-folder')
     .description(
-      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording the path of the session's transcript in it. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
+      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording in it the path of the session's transcript and the identity of the projects directory holding it. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
     )
     .action(() => {
       try {

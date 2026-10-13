@@ -128,13 +128,13 @@ describe('session folders', () => {
     return path
   }
 
-  /** How a record names a projects directory: its device and inode, or none for a missing one. */
+  /** How a record names a projects directory: its inode, or none for a missing one. */
   function identityOf(projectsDirectory: string) {
     try {
-      const { dev, ino } = realStatSync(projectsDirectory, { bigint: true })
-      return `device ${dev} inode ${ino}`
+      const { ino } = realStatSync(projectsDirectory, { bigint: true })
+      return `inode ${ino}`
     } catch {
-      return 'device 0 inode 0'
+      return 'inode 0'
     }
   }
 
@@ -240,6 +240,13 @@ describe('session folders', () => {
       expect(elsewhere.transcript).toBeUndefined()
       expect(existsSync(created.path)).toBe(true)
       expect(existsSync(join(created.path, '.transcript'))).toBe(false)
+    })
+
+    it('treats an empty record as no record, so the session hears that nothing is recorded', () => {
+      const created = folderOf(FIRST)
+      writeFileSync(join(created, '.transcript'), '')
+
+      expect(sessionFolder(main, FIRST, projects).transcript).toBeUndefined()
     })
 
     it('refuses a missing session id', () => {
@@ -396,7 +403,7 @@ describe('session folders', () => {
       const withGarbledIdentity = folderOf(SECOND)
       writeFileSync(
         join(withGarbledIdentity, '.transcript'),
-        `${transcript('-project', SECOND)}\ndevice twelve inode 7\n`,
+        `${transcript('-project', SECOND)}\ninode seven\n`,
       )
       const withTrailingLines = folderOf(EXPIRED)
       writeFileSync(

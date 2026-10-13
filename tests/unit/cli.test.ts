@@ -328,10 +328,10 @@ describe('the CLI program', () => {
 
     function identityOf(projectsDirectory: string) {
       try {
-        const { dev, ino } = statSync(projectsDirectory, { bigint: true })
-        return `device ${dev} inode ${ino}`
+        const { ino } = statSync(projectsDirectory, { bigint: true })
+        return `inode ${ino}`
       } catch {
-        return 'device 0 inode 0'
+        return 'inode 0'
       }
     }
 
@@ -382,6 +382,18 @@ describe('the CLI program', () => {
         'records no transcript',
       )
       expect(existsSync(join(folder, '.transcript'))).toBe(false)
+    })
+
+    it('session-folder says nothing is recorded when the folder holds an empty record', async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      writeFileSync(join(folderOf(KEPT), '.transcript'), '')
+
+      await run('session-folder')
+
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'records no transcript',
+      )
     })
 
     it('keeps a folder when another configuration asks for it or sweeps it', async () => {

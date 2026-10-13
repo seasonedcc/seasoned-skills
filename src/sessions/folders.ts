@@ -84,15 +84,17 @@ function claudeProjectsDirectory(environment: NodeJS.ProcessEnv) {
 }
 
 /**
- * Which directory a path names right now: its device and inode, which a
- * directory moved away keeps and one created in its place does not share.
+ * Which directory a path names right now: its inode, which a directory moved
+ * away keeps and one created in its place cannot share while the moved one
+ * lives. The device number is left out because some file systems hand out a
+ * new one on every boot.
  */
 function identityOf(directory: string) {
-  const { dev, ino } = statSync(directory, { bigint: true })
-  return `device ${dev} inode ${ino}`
+  const { ino } = statSync(directory, { bigint: true })
+  return `inode ${ino}`
 }
 
-const IDENTITY = /^device \d+ inode \d+$/
+const IDENTITY = /^inode \d+$/
 
 /**
  * The session's transcript in any project directory, reached through links
@@ -152,7 +154,9 @@ function sessionFolder(
   const record = join(path, TRANSCRIPT_RECORD)
   const recorded = readOrNothing(record)
   const found = findTranscript(projectsDirectory, sessionId)
-  if (found === undefined) return { path, transcript: recorded?.split('\n')[0] }
+  if (found === undefined)
+    return { path, transcript: recorded?.split('\n')[0] || undefined }
+
   const content = `${found.transcript}\n${found.identity}\n`
   if (content !== recorded) writeFileSync(record, content)
   return { path, transcript: found.transcript }
