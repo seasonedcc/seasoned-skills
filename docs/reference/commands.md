@@ -190,41 +190,20 @@ that is not a session id, the command prints why and exits 1 without creating
 anything.
 
 `.sessions/` is in the managed ignore block, so nothing in it ever enters your
-history. A folder stays for as long as Claude Code keeps the session's
-transcript, the file a session is resumed from, because a session can be
-picked up again weeks later. So the command looks for that transcript in every
-project under `projects/` inside `$CLAUDE_CONFIG_DIR`, or `~/.claude` without
-it, and writes two lines into the folder, in a `.transcript` file: the
-transcript's absolute path, and the identity of the projects directory holding
-it. That identity is the directory's inode number, which the file system uses
-to tell one directory from another, and its birth time, when the file system
-created it. Both stay with a directory when it moves, and a directory created
-in its place differs in at least the birth time, even when it gets the inode
-number a deleted directory freed. The device number is left out, since some
-file systems hand out a new one on every boot. The file only ever changes to
-name another transcript that exists, so asking for the folder under a
-different configuration never points it at nothing.
-
-Together the two lines pin the projects directory to look in, not the file
-itself: Claude Code moves a live session's transcript from one project
-directory to another, as when the session enters or leaves a worktree. The
-identity is there because a path can come to name a different directory. Move
-your configuration somewhere else, and the next Claude Code started without
-`$CLAUDE_CONFIG_DIR` creates a fresh one at the old path, which holds none of
-the old transcripts.
-
-One case gets past the identity. A file system that records no birth time
-reports zero for every directory, so there a configuration moved by copying
-it elsewhere and deleting the original can be mistaken for the directory
-recreated at its old path, when that new directory gets the inode number the
-deleted one freed. Sweep then removes the folders of sessions whose
-transcripts now live in the copy.
+history. A folder lives as long as Claude Code keeps the session's transcript,
+the file a session is resumed from, because a session can be picked up again
+weeks later. Claude Code keeps transcripts in its projects directory,
+`projects/` inside `$CLAUDE_CONFIG_DIR` or `~/.claude` without it, which holds
+one project directory per working directory. When the command finds this
+session's transcript in one of them, it writes the projects directory's path
+into the folder, in a `.projects` file, so `sweep --sessions` knows where to
+look.
 
 When no transcript turns up, because the session keeps none or the
 configuration is not the one Claude Code is using, the command still creates
 the folder and prints its path, and says on stderr that the folder records no
-transcript. A folder like that is never removed by `sweep --sessions`: delete
-it yourself once you no longer need it.
+projects directory. Sweep keeps a folder like that, so delete it yourself once
+you no longer need it.
 
 ## seasoned-skills sweep
 
@@ -279,33 +258,21 @@ what ended sessions left behind is killed.
 
 The third is session folders, the ones `session-folder` creates. Claude Code
 deletes old transcripts on its own schedule, and once a session's transcript is
-gone, the session can no longer be resumed. A folder expires once its session's
-transcript is gone from the projects directory its `.transcript` file points
-into: that directory can be read, and none of the project directories in it
-holds the transcript, whichever one Claude Code last moved it to. That includes
-a whole project directory Claude Code removed. Sweep reads each projects
-directory once, and looks again before calling any folder expired, so a
-transcript caught in the middle of a move keeps its folder. `--sessions` lists
-the expired folders, and `--remove` removes exactly those. Sweep looks at
-nothing in `.sessions/` but folders named like a session id, so anything else
-you keep there stays.
+gone, the session can no longer be resumed. Sweep lists a folder as expired
+once none of the project directories in the projects directory its `.projects`
+file names holds the transcript, wherever in there Claude Code moved it, as it
+does when a session enters or leaves a worktree. Sweep reads that projects
+directory twice, so a transcript caught in the middle of a move keeps its
+folder, and `--remove` removes exactly the expired folders. Whenever sweep
+cannot tell, because a folder records no projects directory or a place the
+transcript could be cannot be read, it keeps the folder and lists it with the
+reason, leaving it to you. Sweep looks at nothing in `.sessions/` but folders
+named like a session id, so anything else you keep there stays.
 
-Every other folder is kept. A folder with no `.transcript` file is unrecorded:
-sweep lists it and never removes it, so delete it yourself when you are done
-with it. A folder whose transcript cannot be looked for everywhere it could be
-is undecided, which happens when:
-
-- its `.transcript` file cannot be read, names no absolute path, names
-  another session's transcript, or holds anything but that path and the
-  projects directory's identity, one per line;
-- a project directory, or a file named like the transcript, cannot be checked
-  for any reason other than its being gone;
-- the projects directory is missing or cannot be read, as with a moved or
-  unmounted configuration;
-- the directory now at that path is not the one the folder recorded, as when
-  the configuration moved and Claude Code started a fresh one where it was.
-
-Sweep lists an undecided folder, prints why, keeps it, and exits 1.
+One limit comes from trusting the recorded path. If you move Claude Code's
+configuration directory and a fresh one later appears at the old path, sweep
+removes the folders of sessions that have not asked for their folder since the
+move. A session that asks again records the new location.
 
 Each flag belongs to one kind of leftover, and sweep refuses a combination it
 cannot honor instead of ignoring part of it: two kinds at once, `--kill` or
@@ -315,7 +282,7 @@ cannot honor instead of ignoring part of it: two kinds at once, `--kill` or
 | --- | --- |
 | `--browsers` | List the automated-browser processes your user account runs, with their ages and kinds. Exits 1 while any of your session's or an ended session's are alive, or when they cannot be listed. |
 | `--lane-processes` | List every process your user account runs from inside a lane's worktree, whatever its name. Exits 1 when they cannot be listed. |
-| `--sessions` | List the session folders whose transcript is gone from their projects directory, and the unrecorded and undecided ones it keeps. Exits 1 when a folder is undecided, when an expired folder cannot be removed, when `.sessions/` cannot be read, or when the checkout has no main checkout to hold session folders. |
+| `--sessions` | List the session folders whose transcript Claude Code no longer keeps, and the ones sweep keeps because it cannot tell, each with the reason. Exits 1 when an expired folder cannot be removed, when `.sessions/` cannot be read, or when the checkout has no main checkout to hold session folders. |
 | `--kill` | Kill your session's own processes and those of ended sessions, each by its exact process id. Browsers are listed again afterwards. |
 | `--remove` | With `--sessions`: remove the expired session folders, then list again. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes, named by its directory name. |
