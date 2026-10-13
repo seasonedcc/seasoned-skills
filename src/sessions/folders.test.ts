@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import {
+  type BigIntStats,
   chmodSync,
   existsSync,
   mkdirSync,
@@ -128,13 +129,13 @@ describe('session folders', () => {
     return path
   }
 
-  /** How a record names a projects directory: its inode, or none for a missing one. */
+  /** How a record names a projects directory: its inode and birth time, or none for a missing one. */
   function identityOf(projectsDirectory: string) {
     try {
-      const { ino } = realStatSync(projectsDirectory, { bigint: true })
-      return `inode ${ino}`
+      const { ino, birthtimeNs } = realStatSync(projectsDirectory, { bigint: true })
+      return `inode ${ino} born ${birthtimeNs}`
     } catch {
-      return 'inode 0'
+      return 'inode 0 born 0'
     }
   }
 
@@ -394,6 +395,28 @@ describe('session folders', () => {
       expect(existsSync(join(main, '.sessions', FIRST))).toBe(true)
     })
 
+    it('keeps, undecided, a folder whose projects directory was recreated with the inode the old one freed', () => {
+      const gone = transcript('-project', FIRST)
+      folderOf(FIRST, gone)
+      unlinkSync(gone)
+      vi.mocked(statSync).mockImplementation(((path, options) => {
+        const stats = realStatSync(path, options)
+        if (path !== projects || !options?.bigint) return stats
+        const bigintStats = stats as unknown as BigIntStats
+        return { ...bigintStats, birthtimeNs: bigintStats.birthtimeNs + 1n }
+      }) as typeof statSync)
+
+      const listing = listSessionFolders(main)
+
+      expect(listing.expired).toEqual([])
+      expect(listing.undecided).toEqual([
+        {
+          ...folder(FIRST),
+          reason: expect.stringContaining('is not the one this folder recorded'),
+        },
+      ])
+    })
+
     it('keeps, undecided, a folder whose record holds no readable identity of its projects directory', () => {
       const withoutIdentity = folderOf(FIRST)
       writeFileSync(
@@ -410,11 +433,17 @@ describe('session folders', () => {
         join(withTrailingLines, '.transcript'),
         `${transcript('-project', EXPIRED)}\n${identityOf(projects)}\nmore\n`,
       )
+      const withInodeAlone = folderOf(LATE)
+      writeFileSync(
+        join(withInodeAlone, '.transcript'),
+        `${transcript('-project', LATE)}\n${identityOf(projects).replace(/ born \d+$/, '')}\n`,
+      )
 
       const listing = listSessionFolders(main)
 
       expect(listing.kept).toEqual([])
-      expect(ids(listing.undecided)).toEqual([FIRST, SECOND, EXPIRED])
+      expect(ids(listing.undecided)).toEqual([FIRST, SECOND, EXPIRED, LATE])
+
       for (const undecided of listing.undecided) {
         expect(undecided.reason).toContain("its projects directory's identity")
       }

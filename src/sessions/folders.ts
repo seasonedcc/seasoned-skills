@@ -84,17 +84,19 @@ function claudeProjectsDirectory(environment: NodeJS.ProcessEnv) {
 }
 
 /**
- * Which directory a path names right now: its inode, which a directory moved
- * away keeps and one created in its place cannot share while the moved one
- * lives. The device number is left out because some file systems hand out a
- * new one on every boot.
+ * Which directory a path names right now: its inode and birth time, which a
+ * directory keeps when it moves, while one created in its place, even on the
+ * inode a deleted one freed, is born later. The device number is left out
+ * because some file systems hand out a new one on every boot. A file system
+ * without birth times reports 0, which stays put; a kernel too old to report
+ * them gives the change time instead, which only leaves folders undecided.
  */
 function identityOf(directory: string) {
-  const { ino } = statSync(directory, { bigint: true })
-  return `inode ${ino}`
+  const { ino, birthtimeNs } = statSync(directory, { bigint: true })
+  return `inode ${ino} born ${birthtimeNs}`
 }
 
-const IDENTITY = /^inode \d+$/
+const IDENTITY = /^inode \d+ born \d+$/
 
 /**
  * The session's transcript in any project directory, reached through links

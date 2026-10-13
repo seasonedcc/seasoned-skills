@@ -328,10 +328,10 @@ describe('the CLI program', () => {
 
     function identityOf(projectsDirectory: string) {
       try {
-        const { ino } = statSync(projectsDirectory, { bigint: true })
-        return `inode ${ino}`
+        const { ino, birthtimeNs } = statSync(projectsDirectory, { bigint: true })
+        return `inode ${ino} born ${birthtimeNs}`
       } catch {
-        return 'inode 0'
+        return 'inode 0 born 0'
       }
     }
 
