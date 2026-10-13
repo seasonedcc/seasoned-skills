@@ -130,16 +130,22 @@ The session wears two hats at once. As an interviewer it asks one
 question at a time, each carrying its own recommended answer, and it
 keeps going until the two of you have walked every branch of the decision
 tree: not a form to fill in, a conversation that refuses to leave a
-question vague. As the senior engineer in the room it grounds every
-technical claim in the project's actual code, runs real queries against
-real data when one settles a question, and researches external facts on
-the web instead of asking you. When something is genuinely uncertain, it
-runs a spike: a quick, throwaway attempt whose only output is the finding
-that goes into the document. The code from a spike is never kept.
+question vague. It draws while it asks. Rough sketches of screens and
+flows go into the document while a question is still open, because
+sketching is how the parts of the solution get found, and a sketch on the
+page raises the next question better than a paragraph does. As the senior
+engineer in the room it grounds every technical claim in the project's
+actual code, runs real queries against real data when one settles a
+question, and researches external facts on the web instead of asking you.
+When something is genuinely uncertain, it runs a spike: a quick,
+throwaway attempt whose only output is the finding that goes into the
+document. The code from a spike is never kept.
 
 The session lives in a git worktree of its own behind a draft pull
-request, and the shaping document is the session's only memory: it grows
-at every point where something is settled, so you watch it take shape as
+request, and the shaping document is the session's only memory. As soon
+as the document exists, the session gives you its path and offers to
+open it in your browser. From then on it grows at every point where
+something is settled, sketches included, so you watch it take shape as
 you talk, and a session months later resumes from the document alone.
 
 ### Entry point two: meeting recordings
@@ -244,25 +250,42 @@ The anatomy, in reading order:
    sketches, kept deliberately low fidelity so readers see where their
    own corrections go. It contains a walkthrough that replays the
    framing's story through the new solution in slow motion, step by step,
-   so the reader can check that the story actually ends better. It names
-   every trap found during shaping, and here the workflow is strict: a
-   trap the document names without solving is not a warning, it is the
-   trap handed to the build with a label on it, so each one carries its
-   solution. And it names the no-gos: the things this project is
-   deliberately not doing, written down so nobody quietly does them.
+   so the reader can check that the story actually ends better. Every
+   trap found during shaping, meaning a question that would stall the
+   build if nobody answered it first, is solved before the build starts
+   and written down beside the part of the solution it concerns. The
+   workflow is strict here: there is no list of traps, because a trap
+   left open is not a warning, it is the trap handed to the build. And
+   the shape names the no-gos: the things this project is deliberately
+   not doing, written down so nobody quietly does them.
 5. **The goal**: the text that starts the build, covered next.
+
+The document speaks as the team that will build it, in the future tense:
+"We'll add a card to the dashboard", never "The screen shows a card".
+Each change opens with what gets built, where it sits, and who sees it,
+and what stays the same is said outright. A reader nods along to a
+description but objects to a plan, and those objections are what the
+document is for.
 
 The goal is a thin ignition key, never a second spec. It fits in Claude
 Code's `/goal` limit of 4,000 characters, and the document renders it
 with a live character count and a copy button. It carries the mission
-sentence, an instruction to read the shaping document in full as the
-single source of truth, the acceptance criteria (the framing's outcome
-test, the walkthrough replayed in the shipped product, and a closing
-audit of the complete implementation against the document, section by
-section, with every shortfall fixed before the goal is called met), and
-the few constraints only the goal can carry, such as the base branch.
-Everything else belongs in the document, where the readers who can
-correct it will see it.
+sentence, an instruction that the build's coordinator and every agent
+building from it read the shaping document whole, straight from the file
+and with its drawings, as the single source of truth, the acceptance
+criteria (the framing's outcome test, the walkthrough replayed in the
+shipped product, and a closing audit of the complete implementation
+against the document, section by section, with every shortfall fixed
+before the goal is called met), and the few constraints only the goal can
+carry, such as the base branch. Everything else belongs in the document,
+where the readers who can correct it will see it.
+
+A document is shaped when it is rough, solved, and bounded. Rough: it
+leaves visible room for the people who build it, so a polished mockup
+means it went too far. Solved: every part of the solution is there and
+connects to the rest, with no trap left open. Bounded: it says where to
+stop. Shape Up draws that line with an appetite; here the no-gos draw it
+alone.
 
 A shape that feels done is not yet done. Before a document is ready,
 independent readers audit it: every claim it makes about the existing
