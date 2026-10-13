@@ -225,11 +225,17 @@ export function buildProgram(): Command {
   program
     .command('session-folder')
     .description(
-      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and every other file it writes — creating it when missing. Fails outside a Claude Code session.",
+      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording the projects directory that keeps the session's transcript. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
     )
     .action(() => {
       try {
-        console.log(sessionFolder(process.cwd(), process.env.CLAUDE_CODE_SESSION_ID))
+        console.log(
+          sessionFolder(
+            process.cwd(),
+            process.env.CLAUDE_CODE_SESSION_ID,
+            claudeProjectsDirectory(process.env),
+          ),
+        )
       } catch (error) {
         console.error((error as Error).message)
         process.exitCode = 1
@@ -248,7 +254,7 @@ export function buildProgram(): Command {
     .option('--lane-processes', 'list the processes running from inside worktree lanes')
     .option(
       '--sessions',
-      "list the session folders whose session's transcript is gone; exits 1 when the transcripts cannot be read",
+      "list the session folders whose session's transcript is gone from the projects directory each recorded; exits 1 when a folder cannot be judged",
     )
     .option(
       '--kill',
@@ -261,7 +267,7 @@ export function buildProgram(): Command {
     .option('--lane <lane>', "with --lane-processes: only that lane's processes")
     .option(
       '--hook',
-      'with --lane-processes or --sessions: run quietly as the session-end hook, the lane-process sweep acting only when the session is truly over; without --kill or --remove it does nothing, and the generated hook passes them',
+      'with --lane-processes or --sessions: run quietly as the session-end hook, never blocking session end, the lane-process sweep acting only when the session is truly over; without --kill (lane processes) or --remove (session folders) it does nothing, and the generated hook passes them',
     )
     .action(
       async (options: {
@@ -273,6 +279,12 @@ export function buildProgram(): Command {
         lane?: string
         hook?: boolean
       }) => {
+        const refusal = sweepFlagRefusal(options)
+        if (refusal !== undefined) {
+          console.error(refusal)
+          process.exitCode = 1
+          return
+        }
         if (options.browsers) {
           try {
             await sweepBrowsers(options.kill === true)
@@ -394,6 +406,31 @@ function reportLaneSweep(
   )
 }
 
+/** Why a combination of sweep flags cannot run, or nothing when it can. */
+function sweepFlagRefusal(options: {
+  browsers?: boolean
+  laneProcesses?: boolean
+  sessions?: boolean
+  kill?: boolean
+  remove?: boolean
+  lane?: string
+}) {
+  const targets = [options.browsers, options.laneProcesses, options.sessions]
+  if (targets.filter(Boolean).length > 1) {
+    return 'Sweep one of --browsers, --lane-processes, or --sessions at a time.'
+  }
+  if (options.sessions && options.kill) {
+    return '--kill kills processes; session folders are removed with --remove.'
+  }
+  if (options.sessions && options.lane !== undefined) {
+    return '--lane applies to --lane-processes, not to --sessions.'
+  }
+  if (!options.sessions && options.remove) {
+    return '--remove applies to --sessions; processes are killed with --kill.'
+  }
+  return undefined
+}
+
 function folderCount(count: number) {
   return `${count} session ${count === 1 ? 'folder' : 'folders'}`
 }
@@ -402,21 +439,29 @@ function reportSessionFolders({
   sessionsDirectory,
   expired,
   kept,
+  undecided,
 }: SessionFolderListing) {
-  for (const folder of expired) console.log(`  expired  ${folder.path}`)
+  for (const reason of new Set(undecided.map((folder) => folder.reason))) {
+    console.error(reason)
+  }
+  for (const folder of expired) console.log(`  expired    ${folder.path}`)
+  for (const folder of undecided) console.log(`  undecided  ${folder.path}`)
+  const total = expired.length + kept.length + undecided.length
+  const undecidedNote =
+    undecided.length === 0
+      ? ''
+      : ` ${undecided.length} undecided, kept because their transcripts cannot be read.`
   console.log(
-    `Expired: ${expired.length} of ${folderCount(expired.length + kept.length)} in ${sessionsDirectory}. A folder expires once Claude Code no longer keeps its session's transcript, and --remove removes only expired folders.`,
+    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${undecidedNote} A folder expires once Claude Code no longer keeps its session's transcript in the projects directory the folder recorded, and --remove removes only expired folders.`,
   )
+  if (undecided.length > 0) process.exitCode = 1
 }
 
 function sweepSessionFolders(options: { remove?: boolean; hook?: boolean }) {
-  const transcripts = {
-    projectsDirectory: claudeProjectsDirectory(process.env),
-    currentSessionId: process.env.CLAUDE_CODE_SESSION_ID,
-  }
+  const projectsDirectory = claudeProjectsDirectory(process.env)
   if (options.hook) {
     try {
-      if (options.remove) removeExpiredSessionFolders(process.cwd(), transcripts)
+      if (options.remove) removeExpiredSessionFolders(process.cwd(), projectsDirectory)
     } catch {
       // Silent by contract.
     }
@@ -424,14 +469,17 @@ function sweepSessionFolders(options: { remove?: boolean; hook?: boolean }) {
   }
   try {
     if (options.remove) {
-      const { removed, failed } = removeExpiredSessionFolders(process.cwd(), transcripts)
+      const { removed, failed } = removeExpiredSessionFolders(
+        process.cwd(),
+        projectsDirectory,
+      )
       for (const folder of removed) console.log(`removed ${folder.path}`)
       for (const { folder, reason } of failed) {
         console.error(`could not remove ${folder.path}: ${reason}`)
         process.exitCode = 1
       }
     }
-    reportSessionFolders(listSessionFolders(process.cwd(), transcripts))
+    reportSessionFolders(listSessionFolders(process.cwd(), projectsDirectory))
   } catch (error) {
     console.error((error as Error).message)
     process.exitCode = 1

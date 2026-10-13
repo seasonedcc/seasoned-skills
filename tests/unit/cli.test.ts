@@ -286,9 +286,36 @@ describe('the CLI program', () => {
       if (existsSync(projects)) chmodSync(projects, 0o755)
     })
 
-    function transcript(sessionId: string) {
-      mkdirSync(join(projects, '-project'), { recursive: true })
-      writeFileSync(join(projects, '-project', `${sessionId}.jsonl`), '{}\n')
+    function transcript(sessionId: string, inProjects = projects) {
+      mkdirSync(join(inProjects, '-project'), { recursive: true })
+      writeFileSync(join(inProjects, '-project', `${sessionId}.jsonl`), '{}\n')
+    }
+
+    /** A worktree of a bare repository: a checkout with no main checkout behind it. */
+    function bareRepositoryWorktree() {
+      const origin = join(root, 'origin')
+      mkdirSync(origin)
+      execFileSync('git', ['init', '--quiet'], { cwd: origin })
+      execFileSync(
+        'git',
+        [
+          '-c',
+          'user.email=t@example.com',
+          '-c',
+          'user.name=T',
+          'commit',
+          '--allow-empty',
+          '--quiet',
+          '-m',
+          'root',
+        ],
+        { cwd: origin },
+      )
+      const bare = join(root, 'bare.git')
+      execFileSync('git', ['clone', '--quiet', '--bare', origin, bare])
+      const worktree = join(root, 'bare-worktree')
+      execFileSync('git', ['worktree', 'add', '--quiet', worktree], { cwd: bare })
+      return worktree
     }
 
     function folderOf(sessionId: string) {
@@ -305,7 +332,74 @@ describe('the CLI program', () => {
       const folder = join(realpathSync(root), '.sessions', KEPT)
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls).toEqual([[folder]])
+      expect(readFileSync(join(folder, '.projects-directory'), 'utf8')).toBe(
+        `${projects}\n`,
+      )
+    })
+
+    it("keeps a folder whose transcript lives under another session's configuration", async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      transcript(KEPT)
+      await run('session-folder')
+      const folder = join(realpathSync(root), '.sessions', KEPT)
+
+      const otherProjects = join(root, 'other-config', 'projects')
+      mkdirSync(otherProjects, { recursive: true })
+      vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'other-config'))
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', '')
+      await run('sweep', '--sessions', '--remove')
+
+      expect(process.exitCode).toBeUndefined()
       expect(existsSync(folder)).toBe(true)
+    })
+
+    it('session-folder exits 1 in a checkout with no main checkout behind it', async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      const worktree = bareRepositoryWorktree()
+      process.chdir(worktree)
+
+      await run('session-folder')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'has no main checkout to keep session folders in',
+      )
+      expect(existsSync(join(root, '.sessions'))).toBe(false)
+    })
+
+    it('the session-end hook stays silent in a checkout with no main checkout behind it', async () => {
+      process.chdir(bareRepositoryWorktree())
+
+      await run('sweep', '--sessions', '--remove', '--hook')
+
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
+      expect(vi.mocked(console.error)).not.toHaveBeenCalled()
+    })
+
+    it('sweep refuses flags that do not apply to what it sweeps', async () => {
+      const expired = folderOf(EXPIRED)
+      mkdirSync(projects, { recursive: true })
+      const refusals: [string[], string][] = [
+        [['--sessions', '--kill'], '--kill'],
+        [['--sessions', '--lane', 'lane-a'], '--lane'],
+        [['--sessions', '--remove', '--lane-processes'], 'one of'],
+        [['--lane-processes', '--remove'], '--remove'],
+        [['--browsers', '--remove'], '--remove'],
+        [['--browsers', '--sessions'], 'one of'],
+      ]
+      for (const [flags, named] of refusals) {
+        process.exitCode = undefined
+        vi.mocked(console.error).mockClear()
+
+        await run('sweep', ...flags)
+
+        expect(process.exitCode, flags.join(' ')).toBe(1)
+        expect(vi.mocked(console.error).mock.calls.join('\n'), flags.join(' ')).toContain(
+          named,
+        )
+      }
+      expect(existsSync(expired)).toBe(true)
     })
 
     it('session-folder exits 1 outside a Claude Code session', async () => {
@@ -335,7 +429,7 @@ describe('the CLI program', () => {
       await run('sweep', '--sessions')
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls.join('\n')).toContain(
-        `expired  ${expired}`,
+        `expired    ${expired}`,
       )
       expect(vi.mocked(console.log).mock.calls.join('\n')).not.toContain(kept)
       expect(existsSync(expired)).toBe(true)
