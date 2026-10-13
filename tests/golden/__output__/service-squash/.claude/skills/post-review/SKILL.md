@@ -34,8 +34,9 @@ gh api repos/<owner>/<repo>/pulls/<number>/reviews --input review.json
 ## Structuring the findings
 
 - Mark each blocking comment **Blocking** and state what unblocks it. When the finding is an undocumented behavior change, the unblock path includes "if intentional, document it in the PR description" — the author decides intent, the review only demands the decision be visible.
-- Label everything else explicitly as non-blocking so the author can triage at a glance.
-- Each inline comment carries the finding's severity next to its Blocking or non-blocking marker (**Blocking, high.**, **Non-blocking, medium.**), so the author triages on the same scale the review used — non-blocking is the label only for a real finding banked outside the PR's governing contracts — and names what the fix can break next to the harm of shipping without it.
+- Mark each finding banked outside the PR's governing contracts **Non-blocking** — the label is for banked findings alone — so the author can triage at a glance.
+- Put the finding's severity next to its marker (**Blocking, high.**, **Non-blocking, medium.**), so the author triages on the same scale the review used.
+- Each finding names what its fix can break next to the harm of shipping without it.
 - A known-and-accepted item — one the project's decision record already rules on — is labeled **Known and accepted.**, quotes the ruling, and never blocks.
 - A finding about a file the diff never touched anchors on the diff line that caused it — the author sees the code change and the record it invalidated in one place — and falls back to the body only when no such line exists.
 - The summary opens with what is good and what was verified before listing why the review blocks. Credit claims you checked and found true — a review that only lists faults reads as unverified suspicion.
@@ -46,7 +47,7 @@ gh api repos/<owner>/<repo>/pulls/<number>/reviews --input review.json
 
 ## Implementing the suggestions
 
-Unless the review was an `APPROVE`, submitting it is not the end of the job: follow up immediately with PRs that implement every blocking finding, targeted at the reviewed PR. Findings banked outside the PR's governing contracts never become a PR onto the reviewed branch: they take the out-of-scope disposition the `orchestration` skill sets, in a dedicated pass of their own.
+Unless the review was an `APPROVE`, submitting it is not the end of the job: follow up immediately with PRs that implement every blocking finding that requests a fix, targeted at the reviewed PR. A high or critical finding with no safe fix gets no PR: it waits on the user's ruling. Findings banked outside the PR's governing contracts never become a PR onto the reviewed branch: they take the out-of-scope disposition the `orchestration` skill sets, in a dedicated pass of their own.
 
 - Base each follow-up PR on the reviewed PR's head branch (`gh pr create --base <head-branch>`), so accepting one merges into the author's branch — never into the repo's default branch.
 - Split by independent context: one PR per suggestion (or cluster of suggestions) the author can accept or reject on its own. Changes that only make sense together stay in one PR — the split exists so the author can take only what they agree with, not to scatter a coherent change.
