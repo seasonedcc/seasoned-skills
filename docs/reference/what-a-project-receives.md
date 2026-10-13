@@ -62,7 +62,7 @@ them on, and disappear again when the option goes away.
 | `review-fixes` | Turning a review's findings into a decided fix scope and landing them on the reviewed branch. |
 | `main-sync` | Bringing the default branch's new commits into a long-lived feature branch. |
 | `release` | Cutting a release: scoping the span, studying every merged pull request in it, writing notes that trace to real changes. |
-| `self-improvement` | Turning a finished task's lessons into a pull request on your project and an issue on this package. |
+| `self-improvement` | Turning a finished task's lessons into issues, each filed where it belongs: your project, this package, or the application repository. |
 | `shaping` | Running framing and shaping sessions that end in a shaping document, taught from the reference library. |
 | `requests-from-meetings` | Turning meeting recordings into precise feature-request documents. |
 | `demo-videos` | Filming two narrated demos of a scope of work: a highlights cut and a full walkthrough. |
