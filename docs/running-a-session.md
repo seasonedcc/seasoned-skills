@@ -10,10 +10,10 @@ discipline, and what happens after the goal.
 ## Starting the build
 
 Open a fresh Claude Code session on the project and run `/model` to pick
-Fable: the session you are about to start is the orchestrator, the one
-session that coordinates the whole build, and its entire job is judgment,
-which is Fable's strength. Then type `/goal` followed by the goal text
-pasted from the shaping document, the written project described in
+Opus: the session you are about to start is the orchestrator, the one
+session that coordinates the whole build, and its entire job is judgment.
+Then type `/goal` followed by the goal text pasted from the shaping
+document, the written project described in
 [The way of working](the-way-of-working.md). `/goal` is a feature of
 Claude Code, not of this package: it keeps the session working until the
 goal is met, checking after every stop whether the goal holds and telling
