@@ -409,7 +409,8 @@ repository. Before filing, the pass searches the existing issues, open and
 closed. When an open issue already has the lesson, the pass adds the new
 case as a comment instead of a near copy, so a lesson that keeps coming
 back gathers its weight in one place. A matching closed issue gets
-referenced in the new one, and if its change already shipped the lesson, nothing is filed.
+referenced in the new one, and if its change already shipped the lesson,
+nothing is filed.
 
 The pass proposes upside, too: a new skill, an abstraction in the
 product, a refactor. Each one arrives as an issue waiting for a shaping
