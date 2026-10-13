@@ -27,7 +27,6 @@ import {
 } from './common.js'
 import { type LaneProcessCandidate, processesInsideLanes } from './processes.js'
 import {
-  commandLine,
   flushCacheStore,
   git,
   gitSucceeds,
@@ -126,7 +125,7 @@ function isDirty(worktreePath: string) {
  * pattern.
  */
 function killLanePortListeners(ports: number[], laneWorktreePaths: string[]) {
-  const listeners: { port: number; processId: number; command: string }[] = []
+  const listeners: { port: number; processId: number }[] = []
   for (const port of ports) {
     if (!Number.isFinite(port) || port <= 0) continue
     for (const processId of portListenerProcessIds(port)) {
@@ -136,7 +135,7 @@ function killLanePortListeners(ports: number[], laneWorktreePaths: string[]) {
         )
         continue
       }
-      listeners.push({ port, processId, command: commandLine(processId) })
+      listeners.push({ port, processId })
     }
   }
   const killed: number[] = []

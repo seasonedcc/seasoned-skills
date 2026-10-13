@@ -350,15 +350,7 @@ function processWorkingDirectories() {
     : processWorkingDirectoriesFromLsof()
 }
 
-function commandLine(processId: number) {
-  const result = spawnSync('ps', ['-o', 'command=', '-p', String(processId)], {
-    encoding: 'utf8',
-  })
-  return result.stdout?.trim() ?? ''
-}
-
 export {
-  commandLine,
   flushCacheStore,
   git,
   gitSucceeds,

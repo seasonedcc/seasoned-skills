@@ -9,11 +9,7 @@ import {
   resolveProvisioning,
   sessionEndCleansUpProcesses,
 } from './common.js'
-import {
-  commandLine,
-  processWorkingDirectories,
-  resolveMainRepository,
-} from './runtime.js'
+import { processWorkingDirectories, resolveMainRepository } from './runtime.js'
 import { laneWorktrees, worktreesRoot } from './setup.js'
 
 /**
@@ -46,17 +42,12 @@ function laneWorktreesRoots(
 
 /**
  * Every process of this user running from inside a lane under the given
- * worktrees roots, with its ownership. This process and its ancestors are
+ * worktrees roots, with its command line and its ownership. This process and its ancestors are
  * never listed. A listing that could not be made throws rather than reading
  * as an empty lane.
  */
 function processesInsideLanes(roots: string[]) {
-  return withOwnership(
-    laneProcessesAmong(processWorkingDirectories(), roots).map((candidate) => ({
-      ...candidate,
-      command: commandLine(candidate.processId),
-    })),
-  )
+  return withOwnership(laneProcessesAmong(processWorkingDirectories(), roots))
 }
 
 /**

@@ -17,7 +17,6 @@ import {
   sweepLaneProcesses,
 } from '../../src/provisioning/processes.js'
 import {
-  commandLine,
   git,
   gitSucceeds,
   isPortFree,
@@ -128,8 +127,7 @@ describe('provisioning runtime helpers', () => {
     expect(() => runStep('exit 3', { cwd: root })).toThrow(/exit code 3/)
   })
 
-  it('reads its own command line and working directory', () => {
-    expect(commandLine(process.pid)).toContain('node')
+  it('reads its own working directory', () => {
     expect(processWorkingDirectory(process.pid)).toBe(process.cwd())
   })
 
@@ -490,6 +488,9 @@ describe('lane-process sweep ownership', () => {
       [lane.unmarked.pid]: { kind: 'unmarked' },
     })
     expect(listed.every((entry) => entry.lane === 'lane-a')).toBe(true)
+    expect(listed.find((entry) => entry.processId === lane.mine.pid)?.command).toContain(
+      lane.mine.token,
+    )
     expect(
       [lane.mine, lane.ended, lane.recycled, lane.live, lane.unmarked].every(isRunning),
     ).toBe(true)

@@ -311,8 +311,8 @@ function processExists(processId: number) {
 }
 
 /**
- * Each process with its ownership, judged from one snapshot of the process
- * table. The sweeper's own marker counts only when it names a Claude Code
+ * Each process with its command line and its ownership, judged from one
+ * snapshot of the process table. The sweeper's own marker counts only when it names a Claude Code
  * instance the sweeper runs under — a shell that merely inherited another
  * session's marker owns nothing. This process and its ancestors are never
  * candidates.
@@ -334,6 +334,7 @@ function withOwnership<Candidate extends { processId: number }>(candidates: Cand
   }
   return kept.map((candidate) => ({
     ...candidate,
+    command: processes.get(candidate.processId)?.command ?? '',
     ownership: classifyOwnership(candidate.processId, snapshot, sweeper),
   }))
 }
