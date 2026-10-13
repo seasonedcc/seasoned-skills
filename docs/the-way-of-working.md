@@ -74,12 +74,12 @@ Everyday building runs on Opus too, and only wide review sweeps run on
 Sonnet; the judgment always stays with Opus, and nothing merges on
 Sonnet's word alone.
 
-The second half of this conviction matters as much as the first: the
-taste is codified in skills. When a session learns what good looks like
-for some recurring piece of work, that learning is written down as a
-skill the package ships, so good judgment is not one person's habit or
-one lucky session's output. It is a file every project generates, read by
-every session that does that kind of work.
+The second half of this conviction matters as much as the first: the taste
+is codified in skills. When a session learns what good looks like for some
+recurring piece of work, that learning is filed as an issue, and a shaping
+session turns it into a skill the package ships, so good judgment is not
+one person's habit or one lucky session's output. It is a file every
+project generates, read by every session that does that kind of work.
 
 ### The context window is cared for
 
@@ -133,16 +133,22 @@ The session wears two hats at once. As an interviewer it asks one
 question at a time, each carrying its own recommended answer, and it
 keeps going until the two of you have walked every branch of the decision
 tree: not a form to fill in, a conversation that refuses to leave a
-question vague. As the senior engineer in the room it grounds every
-technical claim in the project's actual code, runs real queries against
-real data when one settles a question, and researches external facts on
-the web instead of asking you. When something is genuinely uncertain, it
-runs a spike: a quick, throwaway attempt whose only output is the finding
-that goes into the document. The code from a spike is never kept.
+question vague. It draws while it asks. Rough sketches of screens and
+flows go into the document while a question is still open, because
+sketching is how the parts of the solution get found, and a sketch on the
+page raises the next question better than a paragraph does. As the senior
+engineer in the room it grounds every technical claim in the project's
+actual code, runs real queries against real data when one settles a
+question, and researches external facts on the web instead of asking you.
+When something is genuinely uncertain, it runs a spike: a quick,
+throwaway attempt whose only output is the finding that goes into the
+document. The code from a spike is never kept.
 
 The session lives in a git worktree of its own behind a draft pull
-request, and the shaping document is the session's only memory: it grows
-at every point where something is settled, so you watch it take shape as
+request, and the shaping document is the session's only memory. As soon
+as the document exists, the session gives you its path and offers to
+open it in your browser. From then on it grows at every point where
+something is settled, sketches included, so you watch it take shape as
 you talk, and a session months later resumes from the document alone.
 
 ### Entry point two: meeting recordings
@@ -247,25 +253,43 @@ The anatomy, in reading order:
    sketches, kept deliberately low fidelity so readers see where their
    own corrections go. It contains a walkthrough that replays the
    framing's story through the new solution in slow motion, step by step,
-   so the reader can check that the story actually ends better. It names
-   every trap found during shaping, and here the workflow is strict: a
-   trap the document names without solving is not a warning, it is the
-   trap handed to the build with a label on it, so each one carries its
-   solution. And it names the no-gos: the things this project is
-   deliberately not doing, written down so nobody quietly does them.
+   so the reader can check that the story actually ends better. Every
+   trap found during shaping, meaning a question that would stall the
+   build if nobody answered it first, is solved before the build starts
+   and written down beside the part of the solution it concerns. The
+   workflow is strict here: a trap left open is not a warning, it is the
+   trap handed to the build. And there is no separate list of traps,
+   since each one already sits beside its part. The shape also names the
+   no-gos: the things this project is deliberately
+   not doing, written down so nobody quietly does them.
 5. **The goal**: the text that starts the build, covered next.
+
+The document speaks as the team that will build it, in the future tense:
+"We'll add a card to the dashboard", never "The screen shows a card".
+Each change opens with what gets built, where it sits, and who sees it,
+and what stays the same is said outright. A reader nods along to a
+description but objects to a plan, and those objections are what the
+document is for.
 
 The goal is a thin ignition key, never a second spec. It fits in Claude
 Code's `/goal` limit of 4,000 characters, and the document renders it
 with a live character count and a copy button. It carries the mission
-sentence, an instruction to read the shaping document in full as the
-single source of truth, the acceptance criteria (the framing's outcome
-test, the walkthrough replayed in the shipped product, and a closing
-audit of the complete implementation against the document, section by
-section, with every shortfall fixed before the goal is called met), and
-the few constraints only the goal can carry, such as the base branch.
-Everything else belongs in the document, where the readers who can
-correct it will see it.
+sentence, an instruction that the build's coordinator and every agent
+building from it read the shaping document whole, straight from the file
+and with its drawings, as the single source of truth, the acceptance
+criteria (the framing's outcome test, the walkthrough replayed in the
+shipped product, and a closing audit of the complete implementation
+against the document, section by section, with every shortfall fixed
+before the goal is called met), and the few constraints only the goal can
+carry, such as the base branch. Everything else belongs in the document,
+where the readers who can correct it will see it.
+
+A document is shaped when it is rough, solved, and bounded. Rough: it
+leaves visible room for the people who build it, so a polished mockup
+means it went too far. Solved: every part of the solution is there and
+connects to the rest, with no trap left open. Bounded: it says where to
+stop. Shape Up draws that line with an appetite; here the no-gos draw it
+alone.
 
 A shape that feels done is not yet done. Before a document is ready,
 independent readers audit it: every claim it makes about the existing
@@ -359,7 +383,22 @@ defects, from independent angles (a line-by-line read, a check of every
 behavior the diff removed, a trace of every caller of every changed
 function, the project's own conventions), and every candidate defect is
 verified before it counts: a finding must name the concrete input or
-state that triggers it, or it is dropped. The orchestrator loops the
+state that triggers it, or it is dropped.
+
+A verified finding still has to be worth fixing. Every fix is a change,
+and a change to a branch that is nearly ready can break something the
+finding never touched, so the review reports a finding only when leaving
+it unfixed is riskier than fixing it. Each finding is rated critical,
+high, medium, or low by who it harms, how often, and how badly, and
+nothing below medium is reported. The review says once that it applied
+that bar, without listing what fell under it, which is why a careful
+review can come back short.
+
+The review ends in one of two verdicts: approve, or request changes. If
+anything has to change before the merge, however small, the verdict is
+request changes, along with exactly what would turn it into an approval.
+"Approve once these are fixed" is a request for changes, and a review
+that only comments has not decided at all. The orchestrator loops the
 review until it is satisfied with the quality, not until the list of
 findings happens to be empty.
 
@@ -393,21 +432,47 @@ conversation, the pull request threads. The person's own corrections rank
 above every other source, because anything the person had to say twice is
 something the system failed to absorb the first time. After that come
 failures traced to their root cause, then wins that would not be
-rediscovered cheaply. A lesson is codified only when it clears a real
+rediscovered cheaply. A lesson is kept only when it clears a real
 bar: it will matter beyond the task that taught it, a future session
 reading it would act differently, and it is worth the attention it will
 cost every session that reads it from now on. Finding nothing worth
-codifying is a valid outcome, stated plainly.
+keeping is a valid outcome, stated plainly.
 
-What clears the bar travels on two channels at once. A pull request lands
-the lesson in the project's own content, where the next sync weaves it
-into the generated skills. And a detailed issue goes to this package's
-repository, because a lesson that holds everywhere should be written once
-for everyone; those issues are the package's record of demand, and the
-package changes only through its own shaping, never by applying a
-consumer's request verbatim. Both arrive as drafts, and only the person
-merges them: a change to the way of working is a change to how a team
-works, and it reaches no teammate before a person has read it.
+Every lesson that clears the bar becomes exactly one issue, and the pass
+itself changes no instructions. It isn't a third way around shaping
+alongside the two exceptions above: what it learned reaches the rules only
+through a shaping session.
+
+Each issue goes where the lesson belongs. A lesson that depends on
+something only your project has, like its tooling, its infrastructure, or
+the machine it runs on, goes to your project's repository. One that would
+hold in any project goes to this package's repository, with your project's
+case as evidence, because a lesson that holds everywhere should be written
+once for everyone. One about an application repository's own code
+conventions goes to that repository.
+
+Before filing, the pass searches the existing issues, open and closed.
+When an open issue already has the lesson, the pass adds the new case as a
+comment instead of a near copy, so a lesson that keeps coming back gathers
+its weight in one place. When a closed issue has it, the pass references
+that issue in the new one, or files nothing if the closed issue's change
+already shipped the lesson.
+
+The pass proposes upside, too: a new skill, an abstraction in the product,
+a refactor. Each one arrives as an issue waiting for a shaping session,
+never as a ready-made change. A person's good idea comes back on its own;
+an agent's can't, because its memory ends with the session, so the issue
+is its only way back.
+
+Issues serve exactly two purposes here: an urgent signal, the cord that
+stops the line, or raw material for framing and shaping. An issue is never
+a task list anyone has to work through, and nobody owes an issue a build.
+
+Two things the pass never files, because they get fixed instead. A defect
+doing harm right now isn't a lesson: the session says so in conversation
+and fixes it immediately. And a skill the work itself made untrue gets
+corrected by the work, in its own pull request, or in a new one when the
+rest have already merged.
 
 ## Verification and shipping
 

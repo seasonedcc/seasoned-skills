@@ -114,7 +114,8 @@
       <!-- Part four: the shape. Still plain language, now about the solution. Drawings
            stay lo-fi on purpose: enough to argue with, not enough to mistake for a
            design. Technical detail belongs in a <details class="technical" open> note beside
-           the thing it defines — never gathered into a technical section. -->
+           the thing it defines — never gathered into a technical section. A solved time
+           bomb goes in the note of the element it concerns, never in a list of its own. -->
       <section class="part" id="shape">
         <header class="part-header">
           <p class="part-kicker">What we will build</p>
@@ -127,8 +128,10 @@
 
         <h3>In plain language</h3>
         <p>
-          Describe the solution the way you would to the person in the story. What
-          appears, where, and what it lets them do that they could not do before.
+          Say what we will build, as the team that will build it: &ldquo;We'll add a card
+          to the dashboard&rdquo;, never &ldquo;The screen shows a card&rdquo;. Open with
+          what gets built, where it sits, and who sees it; the mechanism comes after. Say
+          outright what stays the same.
         </p>
 
         <figure class="drawing">
@@ -180,24 +183,6 @@
           </li>
         </ol>
 
-        <h3>Time bombs</h3>
-        <p>
-          The places where this could blow up mid-build. Each one is defused here, in
-          this document, before the build starts.
-        </p>
-        <dl class="time-bombs">
-          <dt>The danger, stated as the thing that could blow up mid-build.</dt>
-          <dd>
-            <span class="solution-label">How we defuse it</span>
-            The decision that takes it off the table.
-          </dd>
-          <dt>The second danger.</dt>
-          <dd>
-            <span class="solution-label">How we defuse it</span>
-            Its solution.
-          </dd>
-        </dl>
-
         <h3>No-gos</h3>
         <p>Things this project deliberately does not do, so nobody has to wonder.</p>
         <ul class="no-gos">
@@ -221,7 +206,7 @@
         <div class="goal" data-goal>
 <pre class="goal-text" data-goal-text>Write the goal here, in the second person, addressed to whoever picks up the build.
 
-Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, and name the boundaries the build must not cross.</pre>
+Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, to be read raw and whole with its drawings, and name the boundaries the build must not cross.</pre>
           <div class="goal-footer">
             <div class="goal-meter" aria-hidden="true">
               <div class="goal-meter-fill" data-goal-meter-fill></div>
