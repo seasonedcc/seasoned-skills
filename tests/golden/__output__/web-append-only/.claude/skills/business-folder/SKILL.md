@@ -122,4 +122,4 @@ If the answer to any question is wrong, the file needs changes.
 
 ## Where lessons go
 
-A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill lives in `workflow-content/business-folder.md`, and on the workflow package when it would hold in every project.
+A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill belongs in `workflow-content/business-folder.md`, and on the workflow package when it would hold in every project.

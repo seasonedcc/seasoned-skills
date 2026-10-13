@@ -74,12 +74,12 @@ Everyday building runs on Opus too, and only wide review sweeps run on
 Sonnet; the judgment always stays with Opus, and nothing merges on
 Sonnet's word alone.
 
-The second half of this conviction matters as much as the first: the
-taste is codified in skills. When a session learns what good looks like
-for some recurring piece of work, that learning is written down as a
-skill the package ships, so good judgment is not one person's habit or
-one lucky session's output. It is a file every project generates, read by
-every session that does that kind of work.
+The second half of this conviction matters as much as the first: the taste
+is codified in skills. When a session learns what good looks like for some
+recurring piece of work, that learning is filed as an issue, and a shaping
+session turns it into a skill the package ships, so good judgment is not
+one person's habit or one lucky session's output. It is a file every
+project generates, read by every session that does that kind of work.
 
 ### The context window is cared for
 
@@ -419,10 +419,11 @@ the issue is its only way back.
 That is all issues are for here. An issue is either an urgent signal, the
 cord that stops the line, or raw material for framing and shaping. It's
 never a task list anyone has to work through, and nobody owes an issue a
-build. Two things never become issues at all. A defect doing harm right
-now isn't a lesson: the session says so in conversation and fixes it
-immediately. And a skill the work itself made untrue gets corrected in
-the work's own pull request before the pass runs.
+build. Two things the pass never files. A defect doing harm right now
+isn't a lesson: the session says so in conversation and fixes it
+immediately. And a skill the work itself made untrue gets corrected by the
+work, in its own pull request, or in a new one when the rest have already
+merged.
 
 ## Verification and shipping
 

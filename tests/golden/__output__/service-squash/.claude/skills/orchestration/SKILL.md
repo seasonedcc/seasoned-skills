@@ -111,7 +111,7 @@ A charter is the task prompt a subagent receives. Requirements:
 - Structure the ledger as a **STANDING DIRECTIVES head** (settled policy, kept current) plus a chronological log. Reground after compaction from the head AND the tail — a tail-only reground lets settled directives fade. Reground with bounded reads — the head block, then targeted slices — never by reading the whole file: a mature ledger runs hundreds of kilobytes, and one full read consumed enough context to force an immediate re-compaction.
 - The ledger keeps exactly **one live head**. When a new head goes in, move the superseded one to an archive file beside the ledger instead of stacking it below — stacked dead heads push the file past what a single read returns and tax every reground with prose no longer true. One goal's ledger reached ~390KB carrying eleven stacked superseded heads, and by the end every update to it needed byte-offset reads and count-asserted scripted edits.
 - Record launches with their task/run ids, lanes with their base commits, and verdicts with their evidence.
-- When a long effort concludes, externalize the durable record (decisions, divergences, audit results) to a permanent artifact — a GitHub issue or PR body — before the scratchpad is cleaned up.
+- When a long effort concludes, externalize the durable record (decisions, divergences, audit results) to a permanent artifact — a PR body — before the scratchpad is cleaned up.
 
 ## Recovery after an interruption
 
@@ -167,4 +167,4 @@ Step 0 is always to **positively enumerate what is alive** (task list, workflow 
 
 ## Where lessons go
 
-A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill lives in `workflow-content/orchestration.md`, and on the workflow package when it would hold in every project.
+A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill belongs in `workflow-content/orchestration.md`, and on the workflow package when it would hold in every project.

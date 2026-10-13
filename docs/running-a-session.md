@@ -119,6 +119,7 @@ but the lean is videos first.
 
 One more thing a goal leaves behind: the self-improvement pass has filed
 what it learned as issues, on your project and on this package. None of
-them is a task waiting for you. They're raw material for your next
-shaping session, and the workflow's rules change only when a shaping
+them is a task waiting for you. They're raw material for your next shaping
+session. Apart from an urgent fix, or a correction to a rule the work
+itself made untrue, the workflow's rules change only when a shaping
 session decides they should.

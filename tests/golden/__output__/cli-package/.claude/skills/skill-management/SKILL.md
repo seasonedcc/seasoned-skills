@@ -79,4 +79,4 @@ If a skill activates but fails: list required packages in the description (Claud
 
 ## Where lessons go
 
-A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill lives in `workflow-content/skill-management.md`, and on the workflow package when it would hold in every project.
+A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill belongs in `workflow-content/skill-management.md`, and on the workflow package when it would hold in every project.
