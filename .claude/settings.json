@@ -3,7 +3,8 @@
   "model": "opus[1m]",
   "effortLevel": "high",
   "alwaysThinkingEnabled": true,
-  "autoCompactEnabled": false,
+  "autoCompactEnabled": true,
+  "autoCompactWindow": 330000,
   "autoMemoryEnabled": false,
   "skillListingBudgetFraction": 0.02,
   "permissions": {

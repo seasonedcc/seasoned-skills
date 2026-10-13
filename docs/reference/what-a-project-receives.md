@@ -36,7 +36,7 @@ The last three are the whole managed footprint, and
 | `.claude/skills/requests-from-meetings/scripts/verify.py` | Verifies a parsed meeting record against its transcript. |
 | `.claude/skills/demo-videos/scripts/` | The rig that films and narrates demo videos. |
 | `.claude/hooks/` | Three hooks: one blocks `git stash`, one guards worktree isolation, one sweeps a lane's leftover processes when a session ends. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files. |
-| `.claude/statusline.sh` | The status line, including the context bar you watch during a session. |
+| `.claude/statusline.sh` | The status line, including the context bar that shows how full the session is. |
 | `.claude/seasoned-skills-manifest.json` | The list of every generated path, which is how the next sync knows what to delete. |
 | `shaping/assets/` | The stylesheet, script, drawing tools, and page template that shaping documents load. |
 | `requests-from-meetings/assets/style.css` | The stylesheet the committed meeting records load. |
@@ -57,8 +57,6 @@ them on, and disappear again when the option goes away.
 | `orchestration` | Delegating work: writing a subagent's instructions, checking its claims, recovering after an interruption, shipping a lane's pull request. |
 | `subagents` | Sizing each subagent's task to the context window, and picking the right model for it. |
 | `worktrees` | Running parallel work in isolated lanes, provisioned through this package's binary. |
-| `prepare-for-compaction` | Making the session's ledger current so its context can be compacted safely. You type this one, never the agent. |
-| `reground` | Coming back after a compaction through the ledger and the real sources, never the summary alone. |
 | `testing` | Writing, running, and debugging both suites, including mutation proofs and flaky-test diagnosis. |
 | `quick` | The reduced Definition of Done for a small polish. Only your own `/quick` turns it on. |
 | `pr-review` | Reviewing a pull request with its full history, then finding and verifying issues adversarially. |

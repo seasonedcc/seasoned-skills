@@ -131,11 +131,11 @@ describe('sync', () => {
 
   it('fails loud on a top-level file that looks like markdown but is not .md', async () => {
     plant('cli-package')
-    writeFileSync(join(root, 'workflow-content/reground.MD'), 'Wrong case.\n')
+    writeFileSync(join(root, 'workflow-content/seasoned-skills.MD'), 'Wrong case.\n')
     writeFileSync(join(root, 'workflow-content/kysely.mdx'), 'Wrong extension.\n')
     writeFileSync(join(root, 'workflow-content/nested-routes.markdown'), 'Also wrong.\n')
     const error = await failedSync()
-    expect(error.message).toContain('workflow-content/reground.MD')
+    expect(error.message).toContain('workflow-content/seasoned-skills.MD')
     expect(error.message).toContain('workflow-content/kysely.mdx')
     expect(error.message).toContain('workflow-content/nested-routes.markdown')
     expect(error.message).toContain('only .md')

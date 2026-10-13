@@ -54,7 +54,7 @@ Literal identifiers are the one exception: command names, configuration keys, an
 |---------|---------|---------|
 | Headlines | Sentence case, plain topic or problem | "Running a session", "When the context fills up" |
 | Rhythm | Short declarative + longer explanation | "It is one command. The package generates everything your agents read, and none of it enters your history." |
-| Em dashes | Spaces around them, one or two per page | "The person — not the agent — decides when to compact." |
+| Em dashes | Spaces around them, one or two per page | "The person — not the agent — decides when to merge." |
 | Technical terms | Concept first, brief plain definition beside it | "compaction (summarizing the session so far to free space)" |
 | Unsettled practice | Described honestly, marked as evolving | "Today we ship through GitHub releases; the staging story is still settling." |
 

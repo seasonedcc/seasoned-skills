@@ -89,20 +89,20 @@ quietly, starting somewhere around a quarter to a third full, long before
 anything visibly fails: the agent starts leaning on its own compressed
 memory of things instead of the sources, and it will happily keep working
 past that point. We are frankly paranoid about this, and the paranoia is
-written into the workflow rather than left to habit, in three places:
+written into the workflow rather than left to habit, in two places:
 
-- **Work is sliced so no single agent carries too much.** Every delegated
-  task is sized to land near a third of the window by the time it
-  finishes, reading and test runs included. A task that would honestly
-  cost more gets split before it starts.
+- **Compaction fires early and on its own.** Compaction means
+  summarizing the session so far to free space, and the workflow sets
+  Claude Code to compact every session and every subagent once its
+  context reaches around 300,000 tokens, a little under a third of the
+  window.
 - **Every long effort keeps a ledger**: a running file of the durable
   facts and lessons the effort must not lose, kept current at every
-  moment rather than reconstructed when it is needed.
-- **A person, not the agent, decides when to compact.** Compaction means
-  summarizing the session so far to free space, and the workflow switches
-  Claude Code's automatic compaction off. The numbers, the rhythm, and
-  the exact ritual of that watch are the heart of
-  [Running a session](running-a-session.md).
+  moment rather than reconstructed when it is needed. After every
+  compaction the orchestrator goes back to the ledger and the real
+  sources before its next step, never trusting its summary alone.
+  [Running a session](running-a-session.md) shows what that looks like
+  from your chair.
 
 ## How work enters the system
 

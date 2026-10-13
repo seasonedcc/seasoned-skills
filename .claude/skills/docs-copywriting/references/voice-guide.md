@@ -51,8 +51,8 @@ Use em dashes to insert a conversational break or a contrast.
 
 **Always put spaces around em dashes.**
 
-- Correct: "The person — not the agent — decides when to compact."
-- Wrong: "The person—not the agent—decides when to compact."
+- Correct: "The person — not the agent — decides when to merge."
+- Wrong: "The person—not the agent—decides when to merge."
 
 **Ration them.** One or two per page, at the moments that deserve emphasis. More than that and the voice reads affected instead of natural.
 
@@ -182,7 +182,7 @@ The same rule shapes structure, not just sentences: no case-study pages, no benc
 |---------|------|---------|
 | README front door | Plain, confident, inviting | "Seasoned's skills to orchestrate the full product cycle with AI agents" |
 | Teaching pages | Narrative, reflective, honest | "We were tired of teaching every lesson twice." |
-| The session manual | Direct, procedural, calm | "Before the context bar turns yellow, start looking for a moment to compact." |
+| The session manual | Direct, procedural, calm | "Check in from time to time, answer whatever questionnaire is waiting, and step away again." |
 | Reference pages | Precise, unadorned, fast | "`--force` re-downloads sources already in the reference library." |
 | Release notes (human-facing prose) | Factual, brief | "The sweep command now kills only by exact process id." |
 

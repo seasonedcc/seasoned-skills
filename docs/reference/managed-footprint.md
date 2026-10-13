@@ -13,24 +13,25 @@ including your own hook registrations and the rest of your permissions block.
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| `model` | `opus[1m]` | The family alias resolves to the newest Opus, so a new model reaches your agents without a package release. The `[1m]` suffix is the million-token context window every subagent's task is sized against. |
+| `model` | `opus[1m]` | The family alias resolves to the newest Opus, so a new model reaches your agents without a package release. The `[1m]` suffix selects the million-token context window. |
 | `effortLevel` | `high` | How hard the model thinks before it acts. The rules are written for this setting. |
 | `alwaysThinkingEnabled` | `true` | Thinking is never skipped, however small the step looks. |
-| `autoCompactEnabled` | `false` | You decide when to compact the session's context. Automatic compaction would take that moment away, and the moment is the whole craft. |
+| `autoCompactEnabled` | `true` | Claude Code compacts the context on its own, summarizing the session so far to free space, so nobody has to watch for the moment. |
+| `autoCompactWindow` | `330000` | The window automatic compaction works against: a third of the million-token window, for the session and every subagent alike. In practice compaction lands around 300,000 tokens — a little under a third of the window. |
 | `autoMemoryEnabled` | `false` | Everything the agents read is generated from your configuration and content, so nothing should accumulate outside them. |
 | `skillListingBudgetFraction` | `0.02` | Caps how much of the context window the list of available skills may take. |
 | `permissions.defaultMode` | `auto` | Agents work in long delegated stretches with nobody at the keyboard, and a prompt before every step would stall them. It is the one permissions key sync writes, and it replaces the mode you chose; the rest of the block stays yours. |
-| `statusLine` | A command running `.claude/statusline.sh` | The context bar is what tells you when to compact, so the workflow ships the status line that draws it rather than assuming one. |
+| `statusLine` | A command running `.claude/statusline.sh` | The context bar shows how full the session is and turns red past a third of the window, where automatic compaction should already have fired, so the workflow ships the status line that draws it rather than assuming one. |
 | `hooks` | Three registrations | The shipped guards and the session-end sweep only run if something registers them. |
 
 `model`, `effortLevel`, `alwaysThinkingEnabled`, `autoCompactEnabled`,
-`autoMemoryEnabled`, and `skillListingBudgetFraction` are assumptions the whole
-workflow is written against, and they travel with the package version: sync
-rewrites each one on every run, and changing one is a release, not a project
-decision. The `model` value names a family alias, so the model it resolves to
-follows Claude Code's own releases even though the value itself still changes
-only with ours. The `$schema` line is different: sync adds it so your editor
-knows the file, and a value you already have is left alone.
+`autoCompactWindow`, `autoMemoryEnabled`, and `skillListingBudgetFraction` are
+assumptions the whole workflow is written against, and they travel with the
+package version: sync rewrites each one on every run, and changing one is a
+release, not a project decision. The `model` value names a family alias, so the
+model it resolves to follows Claude Code's own releases even though the value
+itself still changes only with ours. The `$schema` line is different: sync adds
+it so your editor knows the file, and a value you already have is left alone.
 
 ### The hooks it registers
 
