@@ -65,7 +65,7 @@ Execution follows the workspace's `/goal` shape — the orchestration, subagents
 
 Report the outcome as a findings-to-resolutions map: each finding, its ruling (fixed, documented as deliberate, explicitly declined by the user, or withdrawn because the fix's risk outweighed the harm), and where the resolution landed.
 
-The re-review is not this session's pending item. Run the `self-improvement` skill first, then close by reminding the user that a fresh `pr-review` round of the PR as it now stands — a full-rigor re-review, per that skill's re-review rules, since a clean round is this skill's definition of done — belongs to a future session with a cold context: phrased as a reminder for them, never as work the orchestrator is about to do.
+The re-review is not this session's pending item. Run the `self-improvement` skill first (inside a `/goal` goal, the goal's single pass covers it), then close by reminding the user that a fresh `pr-review` round of the PR as it now stands — a full-rigor re-review, per that skill's re-review rules, since a clean round is this skill's definition of done — belongs to a future session with a cold context: phrased as a reminder for them, never as work the orchestrator is about to do.
 
 ## Where lessons go
 
