@@ -46,7 +46,7 @@ Reverify every staleness claim against the system of record at its current tip b
 
 Incident mining looks backward at what failed; it cannot see the gaps an effort's own success created. After ruling on the incident lessons, ask a second question: did this effort change the shape of future tasks — a new Definition of Done criterion, a new platform, a new product surface, or a workflow agents will now repeat? If it did, check that the skill surface matches the new shape. Facts documented in a README are findable when read but not discoverable at the moment of need, and a workflow future agents will repeat on every task deserves a trigger-discoverable skill, not just documentation.
 
-Then ask a third: did the effort change a mechanism, command, or file that a skill in `.claude/skills` describes? Nothing type-checks a skill and no test reads one, so a skill's description becomes false the moment its mechanism changes, and a stale skill misleads future agents more confidently than no skill at all. Grep the skills for whatever the effort touched, and confirm no statement the work made false remains. One that does is fixed by the effort, as "One channel per lesson" describes, before the pass closes.
+Then ask a third: did the effort change a mechanism, command, or file that a skill in `.claude/skills` describes? Nothing type-checks a skill and no test reads one, so a skill's description becomes false the moment its mechanism changes, and a stale skill misleads future agents more confidently than no skill at all. Grep the skills for whatever the effort touched, and confirm no statement the work made false remains. One that does is fixed by the effort, as "What the pass never files" describes, before the pass closes.
 
 ## Leanness and removal
 
@@ -58,7 +58,7 @@ Subagents may mine a long effort's record and return candidates, but every filin
 
 ## One channel per lesson
 
-The pass changes no instructions and opens no pull request. A pull request that fixes instructions the effort itself made false belongs to the effort, not to the pass. Every lesson that clears the filing bar travels as exactly one issue:
+The pass changes no instructions and opens no pull request. Every lesson that clears the filing bar travels as exactly one issue:
 
 - On the project's own repository when the lesson depends on something specific to the project: its repositories, its tooling, its way of working, its infrastructure, this machine.
 - On `seasonedcc/seasoned-skills` when the lesson would hold in any project that uses the workflow package.
@@ -66,7 +66,13 @@ The pass changes no instructions and opens no pull request. A pull request that 
 
 A lesson with a generic core and a project instance is one issue on the package, with the instance as evidence.
 
-A skill statement the effort itself made false is fixed by the effort as part of its own work: in its open pull request, or, when every one of its pull requests has already merged, in a new pull request it opens for that fix. The fix lands at the statement's source, the content file the generated skill's closing section names or the package's own source, never in the generated copy under `.claude/skills/`, which the next sync rebuilds. It is never an issue.
+## What the pass never files
+
+Two things are fixed instead of filed, and neither fix belongs to the pass.
+
+A skill statement the effort itself made false is the effort's to fix, as part of its own work: in its open pull request, or, when every one of its pull requests has already merged, in a new pull request it opens for that fix. The fix lands in the file the statement is actually written in: for a generated skill, the content file its closing section names, or the package's own source — never the generated copy, which the next sync rebuilds.
+
+Something actively harmful right now, such as a hook that blocks legitimate work, is not a lesson. Say it in conversation and fix it immediately, with full rigor, as work of its own outside the pass.
 
 ## Deduplicate before filing
 
@@ -74,15 +80,18 @@ Search the target repository's issues first, open and closed, by the lesson's ke
 
 ## What an issue carries
 
-An issue carries the lesson as a standalone statement of policy, the evidence with links to the pull request, run, or thread, why it clears the bar, and suggested wording marked as a suggestion, with no customer personal data. An issue on the workflow package is public: it describes the evidence anonymized, on its own terms, naming and linking nothing private of the project it came from. It is written so a shaping session can start from it without asking anyone.
+An issue carries:
+
+- the lesson, as a standalone statement of policy;
+- the evidence, with links to the pull request, run, or thread;
+- why it clears the bar;
+- suggested wording, marked as a suggestion.
+
+It carries no customer personal data. An issue on the workflow package is public, so it describes the evidence anonymized and on its own terms, naming and linking nothing private of the project it came from. It is written so a shaping session can start from it without asking anyone.
 
 ## Propose upside too
 
 The pass invents as well as corrects. Ask what this effort revealed that could make the system better: a new skill, an abstraction in the product, a refactor, a whole new system. Each proposal is an issue on the right repository. It waits for a shaping session and never arrives as a ready-made change. An agent's idea cannot come back on its own, because its memory ends with the session. The issue is the only door it can return through.
-
-## Urgent defects are not lessons
-
-Something actively harmful right now, such as a hook that blocks legitimate work, is not the pass's to file. Say it in conversation and fix it immediately, with full rigor, as work of its own outside the pass.
 
 ## Writing rules
 
@@ -93,4 +102,4 @@ The suggested wording an issue carries follows these rules:
 - Write every instruction as a standalone statement of current policy. Never write a delta against history ("previously X, now Y") — the future reader has no such history.
 - When a fact is an instance of a growing set, name the mechanism that produces it and how to enumerate it, not the instances — a hardcoded list is stale by the next addition, while a mechanism plus its grep stays true.
 - Match the target file's voice and structure, and place a lesson in the one file where a future agent will look for it — never in two.
-- A lesson about an application repository's code shape — organization, query boundaries, model/service responsibilities, test structure, naming — belongs in that repository's own conventions document, and its suggested wording targets that document, never an equivalent rule in a workflow skill.
+- Suggested wording for a lesson filed on an application repository targets that repository's own conventions document, never an equivalent rule in a workflow skill.

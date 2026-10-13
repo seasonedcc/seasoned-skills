@@ -15,8 +15,8 @@ A few rulings hold on every stack and bind here too:
 - Never mask a flake with a wait, a retry, or a weakened assertion: a spec that fails intermittently is a likely product bug until investigated. A contention-shaped failure — connection exhaustion, timeouts under load — is re-run alone before anyone treats it as a defect; the machine's real capacity limits are project facts, not doctrine.
 - A green suite proves nothing about a specific test until that test has been seen red for the right reason. When red-first isn't natural, substitute a mutation proof: back the file up, neuter exactly the behavior the test pins, confirm the specific test fails with the expected message — not just "a" failure — then restore, verify the restore landed, and confirm green.
 
-Testing doctrine lessons belong in the playbook, never accreted here — this skill stays a pointer — so the improvement pass files them as issues on the project, with suggested wording aimed at the playbook, or on the workflow package when the lesson would hold in every project. Only workspace facts the playbook cannot carry belong in the project specifics below.
+Testing doctrine lessons belong in the playbook, never accreted here — this skill stays a pointer — so a testing lesson's suggested wording aims at the playbook. Only workspace facts the playbook cannot carry belong in the project specifics below.
 
 ## Where lessons go
 
-A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade: on the project when it is specific to this project, whose part of this skill belongs in `workflow-content/testing.md`, and on the workflow package when it would hold in every project.
+A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade. File it on the workflow package when it would hold in every project, and on the project when it is specific to this project; this project's part of the skill belongs in `workflow-content/testing.md`.

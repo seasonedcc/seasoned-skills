@@ -396,36 +396,42 @@ reading it would act differently, and it is worth the attention it will
 cost every session that reads it from now on. Finding nothing worth
 keeping is a valid outcome, stated plainly.
 
-What clears the bar becomes exactly one issue, and the pass itself changes
-no instructions. So it is no third way around shaping, next to urgent
-fixes and quick mode: what it learned reaches the rules only through a
-shaping session. A lesson that depends on something only your project has,
-like its tooling, its infrastructure, or the machine it runs on, goes to
-your project's repository. One that would hold in any project goes to this
-package's repository, with your project's case as evidence, because a
-lesson that holds everywhere should be written once for everyone. One
-about an application repository's own code conventions goes to that
-repository. Before filing, the pass searches the existing issues, open and
-closed. When an open issue already has the lesson, the pass adds the new
-case as a comment instead of a near copy, so a lesson that keeps coming
-back gathers its weight in one place. A matching closed issue gets
-referenced in the new one, and if its change already shipped the lesson,
-nothing is filed.
+Every lesson that clears the bar becomes exactly one issue, and the pass
+itself changes no instructions. It isn't a third way around shaping
+alongside the two exceptions above: what it learned reaches the rules only
+through a shaping session.
 
-The pass proposes upside, too: a new skill, an abstraction in the
-product, a refactor. Each one arrives as an issue waiting for a shaping
-session, never as a ready-made change. A person's good idea comes back on
-its own; an agent's can't, because its memory ends with the session, so
-the issue is its only way back.
+Each issue goes where the lesson belongs. A lesson that depends on
+something only your project has, like its tooling, its infrastructure, or
+the machine it runs on, goes to your project's repository. One that would
+hold in any project goes to this package's repository, with your project's
+case as evidence, because a lesson that holds everywhere should be written
+once for everyone. One about an application repository's own code
+conventions goes to that repository.
+
+Before filing, the pass searches the existing issues, open and closed.
+When an open issue already has the lesson, the pass adds the new case as a
+comment instead of a near copy, so a lesson that keeps coming back gathers
+its weight in one place. When a closed issue has it, the pass references
+that issue in the new one, or files nothing if the closed issue's change
+already shipped the lesson.
+
+The pass proposes upside, too: a new skill, an abstraction in the product,
+a refactor. Each one arrives as an issue waiting for a shaping session,
+never as a ready-made change. A person's good idea comes back on its own;
+an agent's can't, because its memory ends with the session, so the issue
+is its only way back.
 
 That is all issues are for here. An issue is either an urgent signal, the
 cord that stops the line, or raw material for framing and shaping. It's
 never a task list anyone has to work through, and nobody owes an issue a
-build. Two things the pass never files. A defect doing harm right now
-isn't a lesson: the session says so in conversation and fixes it
-immediately. And a skill the work itself made untrue gets corrected by the
-work, in its own pull request, or in a new one when the rest have already
-merged.
+build.
+
+Two things the pass never files, because they get fixed instead. A defect
+doing harm right now isn't a lesson: the session says so in conversation
+and fixes it immediately. And a skill the work itself made untrue gets
+corrected by the work, in its own pull request, or in a new one when the
+rest have already merged.
 
 ## Verification and shipping
 
