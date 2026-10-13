@@ -98,9 +98,11 @@ written into the workflow rather than left to habit, in two places:
   a little under a third of the window.
 - **Every long effort keeps a ledger**: a running file of the durable
   facts and lessons the effort must not lose, kept current at every
-  moment rather than reconstructed when it is needed. After every
-  compaction the session goes back to the ledger and the real
-  sources before its next step, never trusting its summary alone.
+  moment rather than reconstructed when it is needed. It lives in the
+  session's own folder inside your main checkout, never in a temporary
+  directory a reboot can empty. After every compaction the session goes
+  back to the ledger and the real sources before its next step, never
+  trusting its summary alone.
   [Running a session](running-a-session.md) shows what that looks like
   from your chair.
 

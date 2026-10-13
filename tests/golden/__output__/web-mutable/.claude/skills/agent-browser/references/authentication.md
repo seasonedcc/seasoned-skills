@@ -164,7 +164,7 @@ fi
 
 ## Security Best Practices
 
-1. **State files never touch the repository** — they contain session tokens. Keep them at absolute paths in the scratchpad directory, never at relative paths that could resolve into a checkout.
+1. **State files never touch the repository** — they contain session tokens. Keep them at absolute paths in the scratchpad directory, never at relative paths that could resolve into a checkout. They are the one exception to keeping a session's files in its session folder, which lives inside the main checkout.
 
 2. **Use environment variables for credentials**
    ```bash

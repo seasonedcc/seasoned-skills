@@ -25,9 +25,9 @@ Mine the real record, not memory: the session ledger, the conversation (the user
 
 Where each source lives:
 
-- **The session ledger** — in the scratchpad directory listed in the system prompt.
+- **The session ledger** — in the session folder, `.sessions/<session id>/` in the project's main checkout; `seasoned-skills session-folder` prints its absolute path.
 - **The full conversation** — a JSONL transcript under the Claude config directory at `projects/<cwd with slashes replaced by dashes>/<session-id>.jsonl`; the current session is the most recently modified file there, and compaction summaries cite the exact path. Long sessions grow to hundreds of megabytes — never read one wholesale. Extract layers with a script filtering by role: user messages and hook feedback first (highest signal, smallest volume), assistant narration only if needed, then slice for miners.
-- **Per-lane artifacts** — subagent transcripts live beside the session transcript; lane ledgers live in the scratchpad.
+- **Per-lane artifacts** — subagent transcripts live beside the session transcript; lane ledgers live in the session folder beside the session ledger.
 - **PR review threads** — `gh pr view <number> --comments` and `gh api repos/<owner>/<repo>/pulls/<number>/comments`.
 
 ## The codification bar
