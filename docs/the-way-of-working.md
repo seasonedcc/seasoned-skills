@@ -254,9 +254,10 @@ The anatomy, in reading order:
    trap found during shaping, meaning a question that would stall the
    build if nobody answered it first, is solved before the build starts
    and written down beside the part of the solution it concerns. The
-   workflow is strict here: there is no list of traps, because a trap
-   left open is not a warning, it is the trap handed to the build. And
-   the shape names the no-gos: the things this project is deliberately
+   workflow is strict here: a trap left open is not a warning, it is the
+   trap handed to the build. And there is no separate list of traps,
+   since each one already sits beside its part. The shape also names the
+   no-gos: the things this project is deliberately
    not doing, written down so nobody quietly does them.
 5. **The goal**: the text that starts the build, covered next.
 
