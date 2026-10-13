@@ -47,11 +47,9 @@ summary and the sources disagree, the sources win.
 The status line at the bottom of the session shows a context bar:
 green while the context is under a quarter full, yellow up to a third,
 red beyond. Automatic compaction should already have fired at around 30
-percent, so a red bar means it did not. Compact by hand with `/compact`,
-then run `seasoned-skills sync`, which puts the package's compaction
-settings back if something changed them. Don't let it wait: a
-questionnaire sits patiently until you answer it, but a red context bar
-degrades the work while it sits.
+percent, so a red bar means it did not: compact by hand with `/compact`.
+Don't let it wait. A questionnaire sits patiently until you answer it,
+but a red context bar degrades the work while it sits.
 
 ## The first watch: usage limits
 
