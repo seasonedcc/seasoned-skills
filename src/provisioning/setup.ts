@@ -5,6 +5,7 @@ import { CONFIG_FILE_NAME } from '../config/load.js'
 import type { ProvisioningConfig } from '../config/types.js'
 import {
   allocateCacheStoreIndex,
+  assertLaneName,
   cacheStoreIndexFromUrl,
   defaultDatabasePrefix,
   ENV_MARKER,
@@ -837,6 +838,7 @@ async function provisionLane(
   lane: string,
   options: ProvisionOptions = {},
 ): Promise<ProvisionResult> {
+  assertLaneName(lane)
   const mainRepository = resolveMainRepository(projectRoot)
   const resolved = resolveProvisioning(config, {
     databasePrefix: defaultDatabasePrefix(basename(mainRepository)),

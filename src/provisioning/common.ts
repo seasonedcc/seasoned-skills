@@ -105,6 +105,20 @@ type ResolvedProvisioning = {
 const RESOURCE_NAME_PATTERN = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/
 const PORT_NAME_PATTERN = /^[a-z][a-zA-Z0-9]*$/
 
+/**
+ * Refuses a lane named any other way than by its single directory name: the
+ * name becomes a path segment under each worktrees root, and a path that
+ * merely resolves to a lane's directory would slip past every check that
+ * compares lanes by name.
+ */
+function assertLaneName(lane: string) {
+  if (lane === '' || lane === '.' || lane === '..' || lane.includes('/')) {
+    throw new Error(
+      `lane "${lane}" is not a single directory name — pass the lane's name alone, with no slashes, and not "." or ".."`,
+    )
+  }
+}
+
 function laneSlug(lane: string) {
   return lane
     .toLowerCase()
@@ -1173,6 +1187,7 @@ export type {
 }
 export {
   allocateCacheStoreIndex,
+  assertLaneName,
   assignPortPlan,
   basePortPlan,
   buildingTemplateDatabaseName,

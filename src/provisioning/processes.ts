@@ -9,6 +9,7 @@ import {
   withOwnership,
 } from '../processes/ownership.js'
 import {
+  assertLaneName,
   defaultDatabasePrefix,
   type LaneProcess,
   laneProcessesFromLsofOutput,
@@ -53,7 +54,7 @@ function laneWorktreesRoots(
  * roots, with their ownership — restricted to the given command names when
  * there are any. This process and its ancestors are never listed.
  */
-function lanesProcesses(roots: string[], commands: string[], lane?: string) {
+function lanesProcesses(roots: string[], commands: string[]) {
   const result = spawnSync(
     'lsof',
     [
@@ -71,10 +72,7 @@ function lanesProcesses(roots: string[], commands: string[], lane?: string) {
   const own = ownProcessIds()
   return withOwnership(
     laneProcessesFromLsofOutput(result.stdout ?? '', roots)
-      .filter(
-        (candidate) =>
-          !own.has(candidate.processId) && (!lane || candidate.lane === lane),
-      )
+      .filter((candidate) => !own.has(candidate.processId))
       .map((candidate) => ({ ...candidate, command: commandLine(candidate.processId) })),
   )
 }
@@ -88,11 +86,14 @@ function listLaneProcesses(
   config: ProvisioningConfig | undefined,
   options: LaneProcessOptions = {},
 ): LaneProcessCandidate[] {
+  if (options.lane !== undefined) assertLaneName(options.lane)
   const { resolved, roots } = laneWorktreesRoots(
     resolveMainRepository(projectRoot),
     config,
   )
-  return lanesProcesses(roots, resolved.laneProcessCommands, options.lane)
+  return lanesProcesses(roots, resolved.laneProcessCommands).filter(
+    (candidate) => options.lane === undefined || candidate.lane === options.lane,
+  )
 }
 
 /**

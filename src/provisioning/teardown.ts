@@ -9,6 +9,7 @@ import {
   withOwnership,
 } from '../processes/ownership.js'
 import {
+  assertLaneName,
   databaseNameFromUrl,
   defaultDatabasePrefix,
   isFlushableCacheStoreUrl,
@@ -103,6 +104,12 @@ function isRegisteredWorktree(repositoryPath: string, worktreePath: string) {
     .some((line) => line === `worktree ${worktreePath}`)
 }
 
+function isInsideAny(path: string, directories: string[]) {
+  return directories.some(
+    (directory) => path === directory || path.startsWith(`${directory}/`),
+  )
+}
+
 function isDirty(worktreePath: string) {
   return (
     existsSync(worktreePath) &&
@@ -123,11 +130,7 @@ function killLanePortListeners(ports: number[], laneWorktreePaths: string[]) {
   for (const port of ports) {
     if (!Number.isFinite(port) || port <= 0) continue
     for (const processId of portListenerProcessIds(port)) {
-      const workingDirectory = processWorkingDirectory(processId)
-      const insideLane = laneWorktreePaths.some(
-        (path) => workingDirectory === path || workingDirectory.startsWith(`${path}/`),
-      )
-      if (!insideLane) {
+      if (!isInsideAny(processWorkingDirectory(processId), laneWorktreePaths)) {
         log(
           `leaving process ${processId} on port ${port} alone — it does not run from this lane's worktrees`,
         )
@@ -285,6 +288,7 @@ async function teardownLane(
   lane: string,
   options: TeardownOptions = {},
 ): Promise<TeardownResult> {
+  assertLaneName(lane)
   const mainRepository = resolveMainRepository(projectRoot)
   const resolved = resolveProvisioning(config, {
     databasePrefix: defaultDatabasePrefix(basename(mainRepository)),
@@ -302,14 +306,15 @@ async function teardownLane(
   // Both refusals come before anything destructive: a lane another live
   // session is using, or one holding uncommitted work, is refused whole, not
   // half torn down.
+  const laneWorktreePaths = worktrees.map((worktree) => worktree.worktreePath)
   if (!options.force) {
     const holders = lanesProcesses(
       worktrees.map((worktree) => worktreesRoot(worktree.repositoryPath)),
       [],
-      lane,
     ).filter(
       (candidate): candidate is LiveSessionProcess =>
-        candidate.ownership.kind === 'live-session',
+        candidate.ownership.kind === 'live-session' &&
+        isInsideAny(candidate.workingDirectory, laneWorktreePaths),
     )
     if (holders.length > 0) throw new Error(inUseRefusal(lane, holders))
   }
@@ -324,7 +329,6 @@ async function teardownLane(
   // Ports and recorded URLs come from every declared env file of every
   // declared repository, each read with its own key→port mapping — the same
   // key name in two files claims both values.
-  const laneWorktreePaths = worktrees.map((worktree) => worktree.worktreePath)
   const killedProcessIds: number[] = []
   const droppedDatabases: string[] = []
   for (const worktree of worktrees) {

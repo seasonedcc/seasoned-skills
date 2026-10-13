@@ -16,7 +16,11 @@ import {
   type ResolvedRepository,
   resolveProvisioning,
 } from '../../src/provisioning/common.js'
-import { provisionLane, teardownLane } from '../../src/provisioning/index.js'
+import {
+  listLaneProcesses,
+  provisionLane,
+  teardownLane,
+} from '../../src/provisioning/index.js'
 import * as runtime from '../../src/provisioning/runtime.js'
 import { provisionLaneDatabases } from '../../src/provisioning/setup.js'
 import {
@@ -25,6 +29,7 @@ import {
 } from '../../src/provisioning/template.js'
 import {
   exits,
+  isRunning,
   spawnDummy,
   spawnSessionWithChild,
   stopDummies,
@@ -172,6 +177,35 @@ describe('lane setup and teardown without databases', () => {
       const result = await teardownLane(repo, undefined, 'held-lane', { force: true })
       expect(result.removedWorktrees).toEqual([worktree])
       expect(await exits(held, 1000)).toBe(false)
+    })
+
+    it('refuses a lane named any other way than by its single directory name', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'held-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/held-lane')
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const { child: held } = await spawnSessionWithChild(worktree, 'other-session')
+
+      for (const lane of [
+        './held-lane',
+        'held-lane/',
+        '../project-worktrees/held-lane',
+      ]) {
+        await expect(teardownLane(repo, undefined, lane)).rejects.toThrow(
+          `lane "${lane}" is not a single directory name`,
+        )
+      }
+      expect(existsSync(worktree)).toBe(true)
+      expect(isRunning(held)).toBe(true)
+      for (const lane of ['nested/lane', '..', '.', '']) {
+        await expect(
+          provisionLane(repo, undefined, lane, { skipProvision: true }),
+        ).rejects.toThrow(`lane "${lane}" is not a single directory name`)
+      }
+      expect(() => listLaneProcesses(repo, undefined, { lane: './held-lane' })).toThrow(
+        'lane "./held-lane" is not a single directory name',
+      )
     })
 
     it('tears down a lane whose processes are its own or left by ended sessions', {
