@@ -1,4 +1,4 @@
-import { type ChildProcess, execFileSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import {
   cpSync,
   existsSync,
@@ -25,7 +25,6 @@ function run(...args: string[]) {
 describe('the CLI program', () => {
   let root: string
   const startDirectory = process.cwd()
-  const dummies: ChildProcess[] = []
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'seasoned-skills-cli-'))
@@ -39,7 +38,7 @@ describe('the CLI program', () => {
   })
 
   afterEach(() => {
-    stopDummies(dummies)
+    stopDummies()
     rmSync(`${root}-worktrees`, { recursive: true, force: true })
     process.chdir(startDirectory)
     process.exitCode = undefined
@@ -151,8 +150,7 @@ describe('the CLI program', () => {
     const lane = join(`${realpathSync(root)}-worktrees`, 'lane-a')
     mkdirSync(lane, { recursive: true })
     vi.stubEnv('CLAUDE_PID', String(process.pid))
-    const mine = await spawnDummy(lane, { claudeProcessId: process.pid })
-    dummies.push(mine)
+    const mine = await spawnDummy(lane, { marker: { claudeProcessId: process.pid } })
 
     await run('sweep', '--lane-processes')
     const listing = vi.mocked(console.log).mock.calls.join('\n')

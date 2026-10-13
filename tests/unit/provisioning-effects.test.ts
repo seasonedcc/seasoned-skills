@@ -1,4 +1,4 @@
-import { type ChildProcess, execFileSync, spawn } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -33,8 +33,11 @@ import {
   endedProcessId,
   exits,
   isRunning,
+  LISTEN,
   spawnDummy,
-  spawnDummyMarkedByLaterProcess,
+  spawnOrphan,
+  spawnOrphanMarkedByLaterProcess,
+  spawnSessionWithChild,
   stopDummies,
 } from './dummy-processes.js'
 
@@ -55,26 +58,6 @@ function listen(server: Server): Promise<number> {
       const address = server.address()
       resolvePort(typeof address === 'object' && address ? address.port : 0)
     })
-  })
-}
-
-/** Spawns a node child that listens on a port, resolving when it is bound. */
-function spawnListener(cwd: string): Promise<{ child: ChildProcess; port: number }> {
-  const child = spawn(
-    process.execPath,
-    [
-      '-e',
-      `const s = require('node:net').createServer();
-       s.listen(0, '127.0.0.1', () => console.log(s.address().port));
-       setTimeout(() => {}, 60000);`,
-    ],
-    { cwd, stdio: ['ignore', 'pipe', 'ignore'] },
-  )
-  return new Promise((resolveChild, rejectChild) => {
-    child.once('error', rejectChild)
-    child.stdout?.once('data', (data: Buffer) =>
-      resolveChild({ child, port: Number(data.toString().trim()) }),
-    )
   })
 }
 
@@ -244,31 +227,36 @@ describe('killLanePortListeners', () => {
   })
 
   afterEach(() => {
+    stopDummies()
+    vi.unstubAllEnvs()
     vi.restoreAllMocks()
     rmSync(root, { recursive: true, force: true })
   })
 
-  // A node child can take seconds to reach its first output while the rest of
-  // the suite churns through processes, so the two start side by side.
-  it('kills only listeners running from inside the lane worktrees', {
+  it('kills only its own listeners running from inside the lane worktrees', {
     timeout: 30_000,
   }, async () => {
     const lane = join(root, 'repo-worktrees', 'lane')
     const elsewhere = join(root, 'elsewhere')
     mkdirSync(lane, { recursive: true })
     mkdirSync(elsewhere, { recursive: true })
-    const [inside, stranger] = await Promise.all([
-      spawnListener(lane),
-      spawnListener(elsewhere),
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const mine = { claudeProcessId: process.pid }
+    const [inside, stranger, unmarked, live] = await Promise.all([
+      spawnDummy(lane, { marker: mine, script: LISTEN }),
+      spawnDummy(elsewhere, { marker: mine, script: LISTEN }),
+      spawnOrphan(lane, { script: LISTEN }),
+      spawnSessionWithChild(lane, 'other-session', { script: LISTEN }),
     ])
-    try {
-      const killed = killLanePortListeners([inside.port, stranger.port], [lane])
-      expect(killed).toEqual([inside.child.pid])
-      expect(stranger.child.killed).toBe(false)
-    } finally {
-      inside.child.kill('SIGKILL')
-      stranger.child.kill('SIGKILL')
-    }
+
+    const killed = killLanePortListeners(
+      [inside, stranger, unmarked, live.child].map((listener) => Number(listener.line)),
+      [lane],
+    )
+
+    expect(killed).toEqual([inside.pid])
+    expect(await exits(inside)).toBe(true)
+    expect([stranger, unmarked, live.child].every(isRunning)).toBe(true)
   })
 })
 
@@ -276,7 +264,6 @@ describe('lane-process sweep ownership', () => {
   let root: string
   let repo: string
   let lane: string
-  const dummies: ChildProcess[] = []
 
   beforeEach(() => {
     root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-sweep-')))
@@ -288,30 +275,31 @@ describe('lane-process sweep ownership', () => {
   })
 
   afterEach(() => {
-    stopDummies(dummies)
+    stopDummies()
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
     rmSync(root, { recursive: true, force: true })
   })
 
   async function laneOfEveryOwnership() {
-    const sweeper = await spawnDummy(root)
-    const otherSession = await spawnDummy(root)
-    dummies.push(sweeper, otherSession)
-    vi.stubEnv('CLAUDE_PID', String(sweeper.pid))
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
     const endedSession = await endedProcessId()
     const [mine, ended, live, unmarked] = await Promise.all([
-      spawnDummy(lane, { claudeProcessId: sweeper.pid as number }),
-      spawnDummy(lane, { claudeProcessId: endedSession }),
-      spawnDummy(lane, {
-        claudeProcessId: otherSession.pid as number,
-        sessionId: 'other-session',
-      }),
-      spawnDummy(lane),
+      spawnDummy(lane, { marker: { claudeProcessId: process.pid } }),
+      spawnOrphan(lane, { marker: { claudeProcessId: endedSession } }),
+      spawnSessionWithChild(lane, 'other-session'),
+      spawnOrphan(lane),
     ])
-    const { dummy: recycled, later } = await spawnDummyMarkedByLaterProcess(lane, root)
-    dummies.push(mine, ended, live, unmarked, recycled, later)
-    return { mine, ended, recycled, live, unmarked, otherSession, endedSession }
+    const { dummy: recycled } = await spawnOrphanMarkedByLaterProcess(lane, root)
+    return {
+      mine,
+      ended,
+      recycled,
+      live: live.child,
+      unmarked,
+      otherSession: live.session,
+      endedSession,
+    }
   }
 
   it('classifies every process in a lane by the Claude Code instance that started it', {
@@ -324,18 +312,15 @@ describe('lane-process sweep ownership', () => {
     expect(
       Object.fromEntries(listed.map((entry) => [entry.processId, entry.ownership])),
     ).toEqual({
-      [lane.mine.pid as number]: { kind: 'mine' },
-      [lane.ended.pid as number]: {
-        kind: 'ended-session',
-        claudeProcessId: lane.endedSession,
-      },
-      [lane.recycled.pid as number]: expect.objectContaining({ kind: 'ended-session' }),
-      [lane.live.pid as number]: {
+      [lane.mine.pid]: { kind: 'mine' },
+      [lane.ended.pid]: { kind: 'ended-session', claudeProcessId: lane.endedSession },
+      [lane.recycled.pid]: expect.objectContaining({ kind: 'ended-session' }),
+      [lane.live.pid]: {
         kind: 'live-session',
         claudeProcessId: lane.otherSession.pid,
         sessionId: 'other-session',
       },
-      [lane.unmarked.pid as number]: { kind: 'unmarked' },
+      [lane.unmarked.pid]: { kind: 'unmarked' },
     })
     expect(listed.every((entry) => entry.lane === 'lane-a')).toBe(true)
     expect(
