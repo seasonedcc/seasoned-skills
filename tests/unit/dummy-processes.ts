@@ -11,12 +11,13 @@ import { createInterface } from 'node:readline'
  * Code marker, and sits at a chosen place in the process tree — a child of the
  * test, an orphan whose starter is gone, or the child of a stand-in for
  * another Claude Code instance. Each carries a unique token on its command
- * line, and cleanup kills a pid only while that token is still there, so it
- * never reaches a process that merely inherited a recycled pid. Every process
- * a helper starts is recorded the moment its pid is known, before anything
- * waits on it, and every wait inside a dummy is bounded, so a test that fails
- * halfway still leaves nothing running. The recorded processes are the only
- * ones a test may signal.
+ * line, which a renamed dummy keeps in its new name, and cleanup kills a pid
+ * only while that token is still there, so it never reaches a process that
+ * merely inherited a recycled pid. Every process a helper starts is recorded
+ * the moment its pid is known, before anything waits on it, and every wait
+ * inside a dummy is bounded, so a test that fails halfway still leaves
+ * nothing running. The recorded processes still carrying their token are the
+ * only ones a test may signal.
  */
 
 type Tracked = { pid: number; token: string }
@@ -31,8 +32,9 @@ function track(pid: number, token: string): Tracked {
   return entry
 }
 
-function isTracked(processId: number) {
-  return tracked.some((entry) => entry.pid === processId)
+/** Whether a pid belongs to a process this test file started and that still runs. */
+function isTrackedAndRunning(processId: number) {
+  return tracked.some((entry) => entry.pid === processId && isRunning(entry))
 }
 
 type Marker = { claudeProcessId?: number; sessionId?: string }
@@ -51,12 +53,13 @@ const LISTEN = `const server = require('node:net').createServer()
 server.listen(0, '127.0.0.1', () => process.stdout.write(server.address().port + '\\n'))
 setInterval(() => {}, 1000)`
 
-const NEXT_SERVER_TITLE = 'next-server (v15.0.0)'
+const RENAME_LIKE_NEXT_SERVER =
+  "process.title = 'next-server (v15.0.0) ' + process.argv[1]"
 
-const RENAMED_LISTENER = `process.title = '${NEXT_SERVER_TITLE}'
+const RENAMED_LISTENER = `${RENAME_LIKE_NEXT_SERVER}
 ${LISTEN}`
 
-const RENAMED = `process.title = '${NEXT_SERVER_TITLE}'
+const RENAMED = `${RENAME_LIKE_NEXT_SERVER}
 ${HOLD_OPEN}`
 
 const LAUNCHER = `const { spawn } = require('node:child_process')
@@ -297,7 +300,7 @@ export {
   endedProcessId,
   exits,
   isRunning,
-  isTracked,
+  isTrackedAndRunning,
   LISTEN,
   RENAMED_LISTENER,
   spawnDummy,
