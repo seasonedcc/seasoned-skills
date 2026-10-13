@@ -10,6 +10,7 @@ pnpm build            # Compile to dist/
 pnpm check            # Biome check
 pnpm tsc              # Type-check
 pnpm test:unit        # Unit tests
+pnpm test:unit:linux  # Unit tests in a Linux container (needs Docker)
 pnpm test:golden      # Golden-output tests
 ```
 

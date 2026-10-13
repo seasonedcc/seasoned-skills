@@ -50,6 +50,7 @@
     "check:fix": "biome check --write .",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
+    "test:unit:linux": "scripts/test-unit-linux.sh",
     "test:golden": "vitest run --project golden",
     "tsc": "tsc --noEmit",
     "prepare": "pnpm build && seasoned-skills sync"
