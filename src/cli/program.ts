@@ -259,7 +259,7 @@ export function buildProgram(): Command {
     .option('--lane-processes', 'list the processes running from inside worktree lanes')
     .option(
       '--sessions',
-      'list the session folders whose recorded transcript is gone; exits 1 when a folder cannot be judged or removed',
+      'list the session folders whose transcript is gone from their projects directory; exits 1 when a folder cannot be judged or removed',
     )
     .option(
       '--kill',
@@ -461,7 +461,7 @@ function reportSessionFolders({
       : ` ${undecided.length} undecided, kept because their transcript cannot be checked.`,
   ].join('')
   console.log(
-    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${notes} A folder expires once the transcript it recorded is gone from a projects directory that can still be read, and --remove removes only expired folders.`,
+    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${notes} A folder expires once its session's transcript is gone from the projects directory its record points into, and --remove removes only expired folders.`,
   )
   if (undecided.length > 0) process.exitCode = 1
 }

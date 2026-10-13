@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -533,6 +534,17 @@ describe('the CLI program', () => {
       expect(existsSync(kept)).toBe(true)
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log)).not.toHaveBeenCalled()
+    })
+
+    it('the session-end hook keeps the folder of a session whose transcript moved to another project directory', async () => {
+      const recorded = transcript(KEPT)
+      const folder = folderOf(KEPT, recorded)
+      mkdirSync(join(projects, '-project-worktrees-lane-a'))
+      renameSync(recorded, join(projects, '-project-worktrees-lane-a', `${KEPT}.jsonl`))
+
+      await run('sweep', '--sessions', '--remove', '--hook')
+
+      expect(existsSync(folder)).toBe(true)
     })
 
     it('the session-end hook stays silent when it can remove or check nothing', async () => {
