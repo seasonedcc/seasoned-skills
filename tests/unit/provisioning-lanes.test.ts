@@ -28,9 +28,11 @@ import {
   writeTemplateFingerprint,
 } from '../../src/provisioning/template.js'
 import {
+  endedProcessId,
   exits,
   isRunning,
   spawnDummy,
+  spawnOrphan,
   spawnSessionWithChild,
   stopDummies,
 } from './dummy-processes.js'
@@ -244,7 +246,11 @@ describe('lane setup and teardown without databases', () => {
       await provisionLane(repo, undefined, 'own-lane', { skipProvision: true })
       const worktree = join(root, 'project-worktrees/own-lane')
       vi.stubEnv('CLAUDE_PID', String(process.pid))
-      await spawnDummy(worktree, { marker: { claudeProcessId: process.pid } })
+      const endedSession = await endedProcessId()
+      await Promise.all([
+        spawnDummy(worktree, { marker: { claudeProcessId: process.pid } }),
+        spawnOrphan(worktree, { marker: { claudeProcessId: endedSession } }),
+      ])
 
       const result = await teardownLane(repo, undefined, 'own-lane')
       expect(result.removedWorktrees).toEqual([worktree])
