@@ -47,7 +47,7 @@ gh api repos/<owner>/<repo>/pulls/<number>/reviews --input review.json
 
 ## Implementing the suggestions
 
-Unless the review was an `APPROVE`, submitting it is not the end of the job: follow up immediately with PRs that implement every blocking finding that requests a fix, targeted at the reviewed PR. A high or critical finding with no safe fix gets no PR: it waits on the user's ruling. Findings banked outside the PR's governing contracts never become a PR onto the reviewed branch: they take the out-of-scope disposition the `orchestration` skill sets, in a dedicated pass of their own.
+Unless the review was an `APPROVE`, submitting it is not the end of the job: follow up immediately with PRs that implement every blocking finding that requests a fix, targeted at the reviewed PR. A high or critical finding, or a gap in the integrity of the checks themselves, with no safe fix gets no PR: it waits on the user's ruling. Findings banked outside the PR's governing contracts never become a PR onto the reviewed branch: they take the out-of-scope disposition the `orchestration` skill sets, in a dedicated pass of their own.
 
 - Base each follow-up PR on the reviewed PR's head branch (`gh pr create --base <head-branch>`), so accepting one merges into the author's branch — never into the repo's default branch.
 - Split by independent context: one PR per suggestion (or cluster of suggestions) the author can accept or reject on its own. Changes that only make sense together stay in one PR — the split exists so the author can take only what they agree with, not to scatter a coherent change.
