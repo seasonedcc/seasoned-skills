@@ -11,7 +11,6 @@ const minimal: SeasonedSkillsConfig = {
     packages: [{ name: 'example', publishCommand: 'pnpm publish' }],
   },
   gates: {},
-  calibrationFile: 'workflow-content/calibrations.md',
 }
 
 describe('validateConfig', () => {
@@ -30,7 +29,6 @@ describe('validateConfig', () => {
     expect(issues).toContain("mergeStrategy must be 'merge-commit' or 'squash'")
     expect(issues).toContain('release must be declared')
     expect(issues).toContain('gates must be declared')
-    expect(issues).toContain('calibrationFile must be a non-empty string')
   })
 
   it('rejects a published-package release with no packages', () => {

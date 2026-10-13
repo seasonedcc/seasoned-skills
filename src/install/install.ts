@@ -8,9 +8,9 @@ import { writeGeneratedFiles } from '../generation/write.js'
  * Install: the one-time interactive scaffolder. It creates the committed
  * artifacts the workflow reads — the configuration (stating every option
  * explicitly), the content directory and the content files the install already
- * has answers for, the calibration file, the registers, the shaping folder, the
- * meeting-requests data folder — and never overwrites what already exists: everything
- * committed accretes through the project's own pull requests afterwards.
+ * has answers for, the registers, the shaping folder, the meeting-requests data
+ * folder — and never overwrites what already exists: everything committed
+ * accretes through the project's own pull requests afterwards.
  * Regeneration is sync's job, run right after.
  */
 export interface InstallAnswers {
@@ -31,7 +31,6 @@ export interface InstallAnswers {
     relatedSpecs?: string
     full: string[]
   }
-  calibrationFile: string
   webSurface?: { coverageRegister: string; excusedSurfaces: string }
   demoSeed?: { seedManifest: string }
   machineSurface?: { parityStandard: string; exceptionRegister: string }
@@ -62,11 +61,6 @@ export function planInstall(projectRoot: string, answers: InstallAnswers): Insta
   const candidates: GeneratedFile[] = [
     { path: CONFIG_FILE_NAME, contents: renderConfig(answers) },
     ...contentFiles(answers),
-    {
-      path: answers.calibrationFile,
-      contents:
-        '# Subagent calibrations\n\nCalibrations are stated relative to the Definition of Done and accrete\nthrough pull requests as sessions learn what this project needs.\n',
-    },
     { path: `${answers.contentDir}/.gitkeep`, contents: '' },
     { path: 'shaping/.gitkeep', contents: '' },
     { path: 'requests-from-meetings/assets/manifest.json', contents: '[]\n' },
@@ -205,7 +199,6 @@ export function renderConfig(answers: InstallAnswers): string {
     lines.push(`    relatedSpecs: ${quote(answers.gates.relatedSpecs)},`)
   lines.push(`    full: [${answers.gates.full.map(quote).join(', ')}],`)
   lines.push('  },')
-  lines.push(`  calibrationFile: ${quote(answers.calibrationFile)},`)
   if (answers.webSurface) {
     lines.push('  webSurface: {')
     lines.push(`    coverageRegister: ${quote(answers.webSurface.coverageRegister)},`)

@@ -14,7 +14,6 @@ export default defineConfig({
     relatedSpecs: 'pnpm run build && pnpm run test:e2e',
     full: ['pnpm run test'],
   },
-  calibrationFile: 'workflow-content/calibrations.md',
   webSurface: {
     coverageRegister: 'tests/coverage/pending.ts',
     excusedSurfaces: 'tests/coverage/excused.ts',

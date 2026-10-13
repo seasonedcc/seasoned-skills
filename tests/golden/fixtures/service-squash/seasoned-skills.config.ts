@@ -11,7 +11,6 @@ export default defineConfig({
     unit: 'pnpm run test:unit',
     full: ['pnpm run test'],
   },
-  calibrationFile: 'workflow-content/calibrations.md',
   quickDisqualifiers: [
     'a change to the posting rules or the chart of accounts',
     'a change to a published endpoint contract',

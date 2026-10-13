@@ -276,7 +276,6 @@ const DOCUMENTED_FILES = [
   'CLAUDE.md',
   MANIFEST_PATH,
   '.claude/statusline.sh',
-  '.claude/skills/subagents/scripts/watchdog.py',
   '.claude/skills/requests-from-meetings/scripts/verify.py',
   'requests-from-meetings/assets/style.css',
 ]

@@ -44,7 +44,6 @@ const minimalAnswers = [
   '-',
   'pnpm test',
   'no',
-  'workflow-content/calibrations.md',
   'no',
   'no',
   'no',
@@ -65,7 +64,6 @@ describe('collectAnswers', () => {
       '-', // related specs: none
       'pnpm test:all', // full gate
       'no', // another full gate?
-      '', // calibration file → default
       'no', // web surface?
       'no', // demo seed?
       'no', // machine surface?
@@ -78,7 +76,6 @@ describe('collectAnswers', () => {
       outOfScopeFindings: 'autofix',
       release: { target: 'deployed-product' },
       gates: { lint: 'pnpm lint', unit: 'pnpm test', full: ['pnpm test:all'] },
-      calibrationFile: 'workflow-content/calibrations.md',
     })
   })
 
@@ -101,7 +98,6 @@ describe('collectAnswers', () => {
       '-', // related specs
       'pnpm e2e', // full gate
       'no',
-      'calibration.md',
       'yes', // web surface
       '', // coverage register → default under content/
       '', // excused surfaces → default
@@ -155,9 +151,6 @@ describe('collectAnswers', () => {
       expect(readFileSync(join(root, 'seasoned-skills.config.ts'), 'utf8')).toContain(
         "projectName: 'consumer'",
       )
-      expect(
-        readFileSync(join(root, 'workflow-content/calibrations.md'), 'utf8'),
-      ).toContain('Subagent calibrations')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

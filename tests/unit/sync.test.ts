@@ -39,6 +39,15 @@ describe('sync', () => {
     })
   }
 
+  const declareSeedManifest = (path: string) => {
+    const configPath = join(root, 'seasoned-skills.config.ts')
+    const config = readFileSync(configPath, 'utf8')
+    writeFileSync(
+      configPath,
+      config.replace(/\n\}\)\n$/, `\n  demoSeed: { seedManifest: '${path}' },\n})\n`),
+    )
+  }
+
   const runSync = () => sync(root, { corpusCache: join(root, 'no-corpus-cache') })
 
   const failedSync = async (): Promise<SyncInputError> => {
@@ -131,11 +140,11 @@ describe('sync', () => {
 
   it('fails loud on a top-level file that looks like markdown but is not .md', async () => {
     plant('cli-package')
-    writeFileSync(join(root, 'workflow-content/reground.MD'), 'Wrong case.\n')
+    writeFileSync(join(root, 'workflow-content/seasoned-skills.MD'), 'Wrong case.\n')
     writeFileSync(join(root, 'workflow-content/kysely.mdx'), 'Wrong extension.\n')
     writeFileSync(join(root, 'workflow-content/nested-routes.markdown'), 'Also wrong.\n')
     const error = await failedSync()
-    expect(error.message).toContain('workflow-content/reground.MD')
+    expect(error.message).toContain('workflow-content/seasoned-skills.MD')
     expect(error.message).toContain('workflow-content/kysely.mdx')
     expect(error.message).toContain('workflow-content/nested-routes.markdown')
     expect(error.message).toContain('only .md')
@@ -155,10 +164,11 @@ describe('sync', () => {
 
   it('recognizes disabled skills, configured files, and ignores subdirectories', async () => {
     plant('cli-package')
+    declareSeedManifest('workflow-content/seeds.md')
     // kysely generates only for a project that declares a stack; this fixture
     // does not, and the file it would leave behind must not fail the sync.
     writeFileSync(join(root, 'workflow-content/kysely.md'), 'Stack notes.\n')
-    writeFileSync(join(root, 'workflow-content/calibrations.md'), 'Calibrations.\n')
+    writeFileSync(join(root, 'workflow-content/seeds.md'), 'Seeds.\n')
     mkdirSync(join(root, 'workflow-content/notes'))
     writeFileSync(join(root, 'workflow-content/notes/anything.md'), 'An aside.\n')
     const result = await runSync()
@@ -167,15 +177,8 @@ describe('sync', () => {
 
   it('recognizes a configured file whose path is written with a leading ./', async () => {
     plant('cli-package')
-    const config = readFileSync(join(root, 'seasoned-skills.config.ts'), 'utf8')
-    writeFileSync(
-      join(root, 'seasoned-skills.config.ts'),
-      config.replace(
-        "calibrationFile: 'workflow-content/calibrations.md'",
-        "calibrationFile: './workflow-content/calibrations.md'",
-      ),
-    )
-    writeFileSync(join(root, 'workflow-content/calibrations.md'), 'Calibrations.\n')
+    declareSeedManifest('./workflow-content/seeds.md')
+    writeFileSync(join(root, 'workflow-content/seeds.md'), 'Seeds.\n')
     const result = await runSync()
     expect(result.generated).toContain('CLAUDE.md')
   })

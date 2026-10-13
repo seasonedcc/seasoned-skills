@@ -25,9 +25,7 @@ import { composeOptimisticUi } from './optimistic-ui.js'
 import { composeOrchestration } from './orchestration.js'
 import { composePostReview } from './post-review.js'
 import { composePrReview } from './pr-review.js'
-import { composePrepareForCompaction } from './prepare-for-compaction.js'
 import { composeQuick } from './quick.js'
-import { composeReground } from './reground.js'
 import { composeRelease } from './release.js'
 import { composeRequestsFromMeetings } from './requests-from-meetings.js'
 import { composeReviewFixes } from './review-fixes.js'
@@ -68,12 +66,6 @@ const ROSTER: RosterEntry[] = [
   { name: 'orchestration', enabled: always, compose: composeOrchestration },
   { name: 'subagents', enabled: always, compose: composeSubagents },
   { name: 'worktrees', enabled: always, compose: composeWorktrees },
-  {
-    name: 'prepare-for-compaction',
-    enabled: always,
-    compose: composePrepareForCompaction,
-  },
-  { name: 'reground', enabled: always, compose: composeReground },
   { name: 'testing', enabled: always, compose: composeTesting },
   { name: 'self-improvement', enabled: always, compose: composeSelfImprovement },
   { name: 'quick', enabled: always, compose: composeQuick },

@@ -44,9 +44,6 @@ export function validateConfig(value: unknown): string[] {
   if (typeof config.gates !== 'object' || config.gates === null) {
     issues.push('gates must be declared')
   }
-  if (!isNonEmptyString(config.calibrationFile)) {
-    issues.push('calibrationFile must be a non-empty string')
-  }
   if (config.webSurface !== undefined) {
     if (!isNonEmptyString(config.webSurface?.coverageRegister)) {
       issues.push('webSurface.coverageRegister must be a non-empty string')

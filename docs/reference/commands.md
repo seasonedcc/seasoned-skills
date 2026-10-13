@@ -31,10 +31,10 @@ Adopt the workflow. This is a one-time interactive scaffold: it asks about
 every option the workflow gives no default, then writes the files your project
 commits. `seasoned-skills.config.ts` states what the interview settled, with
 the optional layers you declined absent and `provisioning` left as a commented
-block to fill in. Beside it come the content directory, the calibration file,
-the shaping folder, and the meeting-requests data folder. With them come the
-registers your options need, the content files the stack questions already
-answered, and a minimal `package.json` where the repository has none.
+block to fill in. Beside it come the content directory, the shaping folder,
+and the meeting-requests data folder. With them come the registers your options
+need, the content files the stack questions already answered, and a minimal
+`package.json` where the repository has none.
 
 Nothing that already exists is ever overwritten. Each new file is printed as
 `created <path>`, and each one already there as `kept existing <path>`.

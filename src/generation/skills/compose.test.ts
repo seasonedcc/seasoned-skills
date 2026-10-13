@@ -10,7 +10,6 @@ function makeContext(content: ContentFile | undefined): GenerationContext {
     mergeStrategy: 'merge-commit',
     release: { target: 'deployed-product' },
     gates: {},
-    calibrationFile: 'workflow-content/calibrations.md',
   }
   const files = new Map<string, ContentFile>()
   if (content) files.set('skill-management', content)

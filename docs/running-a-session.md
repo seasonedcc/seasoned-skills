@@ -4,7 +4,7 @@ You shape the work; agents build it. This page is the manual for what you
 actually do while they build. It is a short list, and that is the point:
 you are away from the keyboard for most of the effort, working on
 something else or not there at all, and the craft is knowing which
-moments not to miss. Those moments come down to three watches, one
+moments not to miss. Those moments come down to two watches, one
 discipline, and what happens after the goal.
 
 ## Starting the build
@@ -18,14 +18,9 @@ document, the written project described in
 Claude Code, not of this package: it keeps the session working until the
 goal is met, checking after every stop whether the goal holds and telling
 the session to continue if not. That checking process matters to you
-personally, and the third watch below explains why.
+personally, and the second watch below explains why.
 
-One more thing the package has already set up for you: the status line at
-the bottom of the session shows a context bar, and Claude Code's
-automatic compaction is switched off in every project the package
-manages. Both exist for the first watch.
-
-## The first watch: the context window
+## When the context fills up
 
 The context window is everything the agent is working from at a given
 moment, and it is finite. Left alone, it fills quietly, and the work
@@ -33,50 +28,30 @@ degrades before anything visibly fails: the orchestrator starts leaning
 on its own compressed memory of things instead of the sources, and it
 will happily keep going past the point where its output suffers. The fix
 is compaction, which means summarizing the session so far to free space.
-Deciding when to compact is yours, for a concrete reason: the package
-switches automatic compaction off, so the compaction you run is the only
-compaction there is.
 
-The rhythm:
+You don't run it. The package sets Claude Code to compact on its own, for
+the orchestrator and for every subagent (the helper agents it delegates
+the building to), once the context reaches around 300,000 tokens — a
+little under a third of the window.
 
-- Once the orchestrator's context passes roughly 22 percent full, a
-  little before the context bar in the status line turns yellow, start
-  looking for a moment to compact without interrupting much. The best
-  moment is usually while the orchestrator waits on its subagents, the
-  helper agents it delegates the building to: nothing of its own train of
-  thought is lost while it is waiting anyway.
-- Once it passes roughly a third full (33 to 36 percent, the bar red),
-  stop waiting for a good moment. Interrupt and compact anyway.
+What happens next needs nobody in the room either. A compacted session's
+memory of the effort is a summary, and summaries drift, so the
+orchestrator's standing instructions send it straight back to its ledger
+before it takes another step. The ledger is the file where the effort's
+durable facts and lessons live, kept current at every moment precisely
+because compaction can land at any point. From there the orchestrator
+checks what it remembers against the real sources of truth (the
+codebase, the pull requests, the shaping document), and where the
+summary and the sources disagree, the sources win.
 
-The numbers are ballpark; the gesture is what matters. Start hunting for
-the moment before the bar turns yellow, and never let it sit red.
+The status line at the bottom of the session shows a context bar:
+green while the context is under a quarter full, yellow up to a third,
+red beyond. Automatic compaction should already have fired at around 30
+percent, so a red bar means it did not: compact by hand with `/compact`.
+Don't let it wait. A questionnaire sits patiently until you answer it,
+but a red context bar degrades the work while it sits.
 
-The ritual, step by step:
-
-1. Type `/prepare-for-compaction`. Asking in plain words works exactly as
-   well ("Is your ledger up to date? I want to compact your context
-   now"), because the orchestrator knows this ritual; the command is just
-   the shortest way to say it. The ledger is the file where the effort's
-   durable facts and lessons live, and the orchestrator now brings it
-   current if it is behind, then answers plainly that compacting is safe.
-2. When that answer comes, type `/compact`.
-3. Immediately queue the next message, before the compaction finishes:
-   `/reground`, or in plain words, "Please reground yourself after
-   compaction". Claude Code holds a queued message and sends it the
-   moment the running step completes, so regrounding fires the instant
-   compaction ends, even with nobody in the room. Queue it and walk away.
-
-Regrounding matters because a compacted session's memory of the effort is
-a summary, and summaries drift. `/reground` sends the orchestrator back
-to the ledger and the real sources of truth (the codebase, the pull
-requests, the shaping document) before it takes another step, and where
-the summary and the sources disagree, the sources win.
-
-Of everything on this page, this watch is the one that cannot wait for
-you. A questionnaire sits patiently until you answer it; a red context
-bar degrades the work while it sits.
-
-## The second watch: usage limits
+## The first watch: usage limits
 
 This way of working is token-intensive: a goal effort runs for hours,
 with the orchestrator and many building agents working the whole time.
@@ -91,7 +66,7 @@ another tab and run `/login` there to switch to another subscription. The
 effort continues where it was; nothing about the build is lost in the
 switch.
 
-## The third watch: the questions
+## The second watch: the questions
 
 While a goal runs, Claude Code's goal checker keeps the effort moving:
 whenever the orchestrator stops, the checker looks at whether the goal is

@@ -69,7 +69,7 @@ Act as the orchestrator on every task, not just during `/goal` loops. Delegate e
 
 Merging into the default branch is the user's act: open the PR and stop. Merge only when the user explicitly asks — a green CI run or an approved review never implies that authorization.
 
-Load the `subagents` skill before spawning subagents or dynamic workflows — it covers which model tier and reasoning effort to use for each kind of work and how to split tasks. Load the `orchestration` skill alongside it — it covers charters, verifying subagent claims, recovery after interruptions, and shipping lane PRs. Size every subagent task so its context lands at roughly one-third of the 1M-token window by completion, since these models start degrading past ~25–33% fill.
+Load the `subagents` skill before spawning subagents or dynamic workflows — it covers which model tier and reasoning effort to use for each kind of work. Load the `orchestration` skill alongside it — it covers charters, verifying subagent claims, recovery after interruptions, and shipping lane PRs.
 
 Break the work down however you think is best, as long as you respect dependencies: work that depends on other work only starts when the dependency has fully landed. Independent work runs in parallel, each piece in its own worktree. Use well-designed dynamic workflows whenever the work allows for parallelism.
 
@@ -79,7 +79,7 @@ Every process a lane needs beyond a single turn — a development server, a work
 
 Our baseline is all checks passing: every touched repository's gates, green. Establish it empirically before the first lane launches — run the full gates on a clean checkout of the base and record the numbers; a baseline assumed instead of measured hides pre-existing breakage inside every lane's results. Whenever that baseline gets lost for any reason, stop everything and restore the baseline with the highest quality level. The baseline also includes the integrity of the checks themselves: a guard that cannot see what it claims to protect, a coverage hole a suite cannot notice, or seeded state scheduled to diverge from the product is a baseline loss even while CI is green. Fix such gaps immediately upon discovery — never bank them as findings or file them as issues.
 
-Long tasks get compacted several times, so keep a scratchpad ledger file with all the durable lessons and state you'll need after compaction. Keep it current at every moment, never deferring updates until the window fills: the user monitors your context from outside and initiates compaction, which can land at any point without warning, so never ask for one. NEVER trust your compacted context. Always reground yourself on the ledger and the real sources of truth: our codebase, PRs, prototypes, etc.
+Long tasks get compacted several times, so keep a scratchpad ledger file with all the durable lessons and state you'll need after compaction. Keep it current at every moment, never deferring updates until the window fills: compaction fires automatically as your context nears a third of the window, at any point and without warning. NEVER trust your compacted context. After every compaction, reground yourself on the ledger and the real sources of truth before your next step: our codebase, PRs, prototypes, etc.
 
 ## Talking with the user
 

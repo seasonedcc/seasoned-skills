@@ -14,5 +14,4 @@ export default defineConfig({
     unit: 'pnpm run test:unit',
     full: ['pnpm run test'],
   },
-  calibrationFile: 'workflow-content/calibrations.md',
 })

@@ -13,7 +13,6 @@ describe('defineConfig', () => {
         packages: [{ name: 'example', publishCommand: 'pnpm publish' }],
       },
       gates: {},
-      calibrationFile: 'workflow-content/calibrations.md',
     }
     expect(defineConfig(config)).toBe(config)
   })

@@ -5,9 +5,9 @@ import type { GeneratedFile } from './types.js'
 
 /**
  * The verbatim-materialized runtime assets: deterministic code the package
- * ships whole — the hooks, the status line, the watchdog — copied byte for
- * byte to each project's generated (and gitignored) paths. Prose is woven;
- * runtime code is materialized.
+ * ships whole — the hooks, the status line, the meeting verifier, the demo
+ * rig — copied byte for byte to each project's generated (and gitignored)
+ * paths. Prose is woven; runtime code is materialized.
  */
 const runtimeRoot = fileURLToPath(new URL('../../runtime/', import.meta.url))
 
@@ -36,10 +36,6 @@ export function materializeRuntime(): GeneratedFile[] {
       path: '.claude/hooks/session-end-sweep.sh',
       contents: runtimeFile('hooks/session-end-sweep.sh'),
       executable: true,
-    },
-    {
-      path: '.claude/skills/subagents/scripts/watchdog.py',
-      contents: runtimeFile('watchdog.py'),
     },
     {
       path: '.claude/skills/requests-from-meetings/scripts/verify.py',

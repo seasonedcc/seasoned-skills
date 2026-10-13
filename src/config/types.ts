@@ -48,13 +48,6 @@ export interface SeasonedSkillsConfig {
   gates: GateCommands
 
   /**
-   * Committed, project-owned file of subagent calibrations, stated relative to
-   * the Definition of Done. The install seeds it; updates travel as project
-   * pull requests.
-   */
-  calibrationFile: string
-
-  /**
    * Declared when the project has a user-facing web surface. Browser
    * verification and the responsive bar bind only where this exists, and the
    * coverage register binds where there are routes to cover.

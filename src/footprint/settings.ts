@@ -20,7 +20,8 @@ export const MANAGED_RUNTIME_VALUES = {
   model: 'opus[1m]',
   effortLevel: 'high',
   alwaysThinkingEnabled: true,
-  autoCompactEnabled: false,
+  autoCompactEnabled: true,
+  autoCompactWindow: 330_000,
   autoMemoryEnabled: false,
   skillListingBudgetFraction: 0.02,
 } as const
