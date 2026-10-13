@@ -41,4 +41,4 @@ Never work around a failed sync by hand-writing generated files — fix the inpu
 
 ## Where lessons about the workflow go
 
-A lesson about the workflow itself — a generic rule that would improve every consuming project — travels as a detailed issue on `seasonedcc/seasoned-skills`: the scenario, anonymized specifics, and suggestions marked as suggestions — or as a comment on the open issue that already records the same lesson. Issues are the package's demand records; the package changes only through its own shaping process.
+A lesson about the workflow itself is filed as the `self-improvement` skill directs. The package changes only through its own shaping process.

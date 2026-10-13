@@ -405,10 +405,11 @@ your project's repository. One that would hold in any project goes to this
 package's repository, with your project's case as evidence, because a
 lesson that holds everywhere should be written once for everyone. One
 about an application repository's own code conventions goes to that
-repository. Before filing, the pass searches the existing issues, and when
-the lesson is already there it adds the new case as a comment instead of a
-near copy, so a lesson that keeps coming back gathers its weight in one
-place.
+repository. Before filing, the pass searches the existing issues, open and
+closed. When an open issue already has the lesson, the pass adds the new
+case as a comment instead of a near copy, so a lesson that keeps coming
+back gathers its weight in one place. A matching closed issue gets
+referenced in the new one, and if its change already shipped the lesson, nothing is filed.
 
 The pass proposes upside, too: a new skill, an abstraction in the
 product, a refactor. Each one arrives as an issue waiting for a shaping

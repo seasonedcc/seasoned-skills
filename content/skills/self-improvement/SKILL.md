@@ -50,7 +50,7 @@ Then ask a third: did the effort change a mechanism, command, or file that a ski
 
 ## Leanness and removal
 
-Removing instructions is often more valuable than adding them. Skills bias agents: an instruction written for one context misfires in others, and an agent follows a wrong instruction more confidently than no instruction. On every pass, look for existing content that is stale, redundant across skills, or prescriptive enough to push an agent into wrong behavior — and propose its removal with the same rigor as an addition.
+Removing instructions is often more valuable than adding them. Skills bias agents: an instruction written for one context misfires in others, and an agent follows a wrong instruction more confidently than no instruction. On every pass, look for existing content that is stale, redundant across skills, or prescriptive enough to push an agent into wrong behavior — and propose its removal with the same rigor as an addition. A fragment of the project's own content that would hold in every project is a package lesson like any other: file it on the package, so the content file can thin once the package absorbs it.
 
 ## Judgment is never delegated
 
@@ -66,7 +66,7 @@ The pass changes no instructions and opens no pull request. A pull request that 
 
 A lesson with a generic core and a project instance is one issue on the package, with the instance as evidence.
 
-A skill statement the effort itself made false is fixed by the effort as part of its own work: in its open pull request, or, when every one of its pull requests has already merged, in a new pull request it opens for that fix. It is never an issue.
+A skill statement the effort itself made false is fixed by the effort as part of its own work: in its open pull request, or, when every one of its pull requests has already merged, in a new pull request it opens for that fix. The fix lands at the statement's source, the content file the generated skill's closing section names or the package's own source, never in the generated copy under `.claude/skills/`, which the next sync rebuilds. It is never an issue.
 
 ## Deduplicate before filing
 
