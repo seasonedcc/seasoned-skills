@@ -260,4 +260,8 @@ describe('ignoreEntries', () => {
   it('carries the finished demo video copied beside its screenplay', () => {
     expect(ignoreEntries([])).toContain('/demo-videos/*/*.mp4')
   })
+
+  it('carries the folder every session keeps its working files in', () => {
+    expect(ignoreEntries([])).toContain('.sessions/')
+  })
 })

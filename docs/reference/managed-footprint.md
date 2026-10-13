@@ -69,9 +69,10 @@ Generated files never enter your history. Sync keeps one block in `.gitignore`:
 
 The block carries the generated paths, collapsed: a whole folder for each
 generated skill, one for the shaping assets, and single files otherwise.
-Anything your own ignore rules already cover stays out of it. Two entries are
+Anything your own ignore rules already cover stays out of it. Three entries are
 there for files nothing generates, but which the workflow promises stay out of
-your history: the finished demo videos, and your per-user meeting settings.
+your history: the folder each session keeps its working files in, the finished
+demo videos, and your per-user meeting settings.
 
 | Entry | What it covers |
 | --- | --- |
@@ -84,6 +85,7 @@ your history: the finished demo videos, and your per-user meeting settings.
 | `CLAUDE.md` | The standing instructions. |
 | `shaping/assets/` | The assets shaping documents load. |
 | `requests-from-meetings/assets/style.css` | The stylesheet meeting records load. |
+| `.sessions/` | One folder per Claude Code session, holding its ledger, scratch files, and logs. |
 | `/demo-videos/*/*.mp4` | The finished demo video every assembly copies beside its screenplay. |
 | `requests-from-meetings/config.local.json` | Per-user meeting settings. |
 

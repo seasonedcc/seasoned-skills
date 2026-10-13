@@ -34,6 +34,15 @@ describe('materializeRuntime', () => {
       'seasoned-skills sweep --lane-processes --kill --hook',
     )
   })
+
+  it('has the session-end hook remove the session folders whose transcript is gone', () => {
+    const hook = materializeRuntime().find(
+      (file) => file.path === '.claude/hooks/session-end-sweep.sh',
+    )
+    expect(Buffer.from(hook?.contents ?? '').toString()).toContain(
+      'seasoned-skills sweep --sessions --remove --hook',
+    )
+  })
 })
 
 describe('writeGeneratedFiles', () => {
