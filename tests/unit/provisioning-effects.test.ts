@@ -180,16 +180,14 @@ describe('finding processes from /proc', () => {
     ).toThrow()
   })
 
-  it("refuses to read a listing missing one of the user's processes it could not read", () => {
+  it("passes over one of the user's processes whose working directory the kernel withholds", () => {
     fakeProcess(123, { cwd: '/lanes/lane-a/apps/web' })
     mkdirSync(join(proc, '456'))
     writeFileSync(join(proc, '456', 'cwd'), '')
 
-    const userId = userInfo().uid
-    expect(() => processWorkingDirectoriesFromProc(proc, userId)).toThrow(
-      /working directory of process 456/,
-    )
-    expect(processWorkingDirectoriesFromProc(proc, userId + 1)).toEqual([])
+    expect(processWorkingDirectoriesFromProc(proc, userInfo().uid)).toEqual([
+      { processId: 123, workingDirectory: '/lanes/lane-a/apps/web' },
+    ])
   })
 
   it('finds the processes holding a listening socket on a port, over IPv4 and IPv6', () => {

@@ -289,32 +289,26 @@ function procProcessIds(procRoot: string) {
     .map(Number)
 }
 
-function hasVanished(error: unknown) {
-  const code = (error as NodeJS.ErrnoException).code
-  return code === 'ENOENT' || code === 'ESRCH'
-}
-
 /**
  * Every process of one user with its working directory, read from /proc.
- * Processes that vanish are passed over; one of the user's processes that
- * cannot be read, or a /proc that cannot be read at all, throws rather than
- * leaving the listing short.
+ * A process whose working directory cannot be read — one that vanished, or a
+ * non-dumpable one such as an ssh-agent, whose directory the kernel withholds
+ * even from its owner — is passed over; a /proc that cannot be read at all
+ * throws rather than reading as no processes.
  */
-function processWorkingDirectoriesFromProc(procRoot: string, userId: number) {
-  const entries: ProcessWorkingDirectory[] = []
-  for (const processId of procProcessIds(procRoot)) {
+function processWorkingDirectoriesFromProc(
+  procRoot: string,
+  userId: number,
+): ProcessWorkingDirectory[] {
+  return procProcessIds(procRoot).flatMap((processId) => {
     const directory = join(procRoot, String(processId))
+    if (!isOwnedBy(directory, userId)) return []
     try {
-      if (statSync(directory).uid !== userId) continue
-      entries.push({ processId, workingDirectory: readlinkSync(join(directory, 'cwd')) })
-    } catch (error) {
-      if (hasVanished(error)) continue
-      throw new Error(
-        `could not read the working directory of process ${processId}: ${(error as Error).message}`,
-      )
+      return [{ processId, workingDirectory: readlinkSync(join(directory, 'cwd')) }]
+    } catch {
+      return []
     }
-  }
-  return entries
+  })
 }
 
 /**
