@@ -194,12 +194,21 @@ history. A folder stays for as long as Claude Code keeps the session's
 transcript, the file a session is resumed from, because a session can be
 picked up again weeks later. So the command looks for that transcript in every
 project under `projects/` inside `$CLAUDE_CONFIG_DIR`, or `~/.claude` without
-it, and writes its absolute path into the folder, in a `.transcript` file. The
-file only ever changes to name another transcript that exists, so asking for
-the folder under a different configuration never points it at nothing. What
-the path pins is the projects directory to look in, not the file itself:
-Claude Code moves a live session's transcript from one project directory to
-another, as when the session enters or leaves a worktree.
+it, and writes two lines into the folder, in a `.transcript` file: the
+transcript's absolute path, and the identity of the projects directory holding
+it. That identity is the directory's device and inode numbers, which the file
+system uses to tell one directory from another and which stay with a directory
+when it moves. The file only ever changes to name another transcript that
+exists, so asking for the folder under a different configuration never points
+it at nothing.
+
+Together the two lines pin the projects directory to look in, not the file
+itself: Claude Code moves a live session's transcript from one project
+directory to another, as when the session enters or leaves a worktree. The
+identity is there because a path can come to name a different directory. Move
+your configuration somewhere else, and the next Claude Code started without
+`$CLAUDE_CONFIG_DIR` creates a fresh one at the old path, which holds none of
+the old transcripts.
 
 When no transcript turns up, because the session keeps none or the
 configuration is not the one Claude Code is using, the command still creates
@@ -276,12 +285,15 @@ sweep lists it and never removes it, so delete it yourself when you are done
 with it. A folder whose transcript cannot be looked for everywhere it could be
 is undecided, which happens when:
 
-- its `.transcript` file cannot be read, names no absolute path, or names
-  another session's transcript;
+- its `.transcript` file cannot be read, names no absolute path, names
+  another session's transcript, or holds anything but that path and the
+  projects directory's identity, one per line;
 - a project directory, or a file named like the transcript, cannot be checked
   for any reason other than its being gone;
 - the projects directory is missing or cannot be read, as with a moved or
-  unmounted configuration.
+  unmounted configuration;
+- the directory now at that path is not the one the folder recorded, as when
+  the configuration moved and Claude Code started a fresh one where it was.
 
 Sweep lists an undecided folder, prints why, keeps it, and exits 1.
 
