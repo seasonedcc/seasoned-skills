@@ -128,18 +128,35 @@ describe('session folders', () => {
     return path
   }
 
+  /** How a record names a projects directory: its device and inode, or none for a missing one. */
+  function identityOf(projectsDirectory: string) {
+    try {
+      const { dev, ino } = realStatSync(projectsDirectory, { bigint: true })
+      return `device ${dev} inode ${ino}`
+    } catch {
+      return 'device 0 inode 0'
+    }
+  }
+
   function folderOf(sessionId: string, recordedTranscript?: string) {
     const folder = join(main, '.sessions', sessionId)
     mkdirSync(folder, { recursive: true })
     writeFileSync(join(folder, 'ledger.md'), 'state\n')
     if (recordedTranscript !== undefined) {
-      writeFileSync(join(folder, '.transcript'), `${recordedTranscript}\n`)
+      writeFileSync(
+        join(folder, '.transcript'),
+        `${recordedTranscript}\n${identityOf(dirname(dirname(recordedTranscript)))}\n`,
+      )
     }
     return folder
   }
 
   function folder(sessionId: string) {
     return { sessionId, path: join(main, '.sessions', sessionId) }
+  }
+
+  function ids(folders: { sessionId: string }[]) {
+    return folders.map((each) => each.sessionId)
   }
 
   describe('sessionFolder', () => {
@@ -159,7 +176,24 @@ describe('session folders', () => {
       const created = sessionFolder(main, FIRST, projects)
 
       expect(created.transcript).toBe(own)
-      expect(readFileSync(join(created.path, '.transcript'), 'utf8')).toBe(`${own}\n`)
+      expect(readFileSync(join(created.path, '.transcript'), 'utf8')).toBe(
+        `${own}\n${identityOf(projects)}\n`,
+      )
+    })
+
+    it('records the projects directory anew when another one now sits at its path', () => {
+      const own = transcript('-project', FIRST)
+      const created = sessionFolder(main, FIRST, projects)
+      const before = identityOf(projects)
+      renameSync(projects, join(scratch, 'claude', 'projects-before'))
+      transcript('-project', FIRST)
+
+      sessionFolder(main, FIRST, projects)
+
+      expect(identityOf(projects)).not.toBe(before)
+      expect(readFileSync(join(created.path, '.transcript'), 'utf8')).toBe(
+        `${own}\n${identityOf(projects)}\n`,
+      )
     })
 
     it('finds the transcript through a linked project directory', () => {
@@ -187,12 +221,12 @@ describe('session folders', () => {
       const emptyProjects = join(scratch, 'experimental', 'projects')
       mkdirSync(emptyProjects, { recursive: true })
       expect(sessionFolder(main, FIRST, emptyProjects).transcript).toBe(own)
-      expect(readFileSync(record, 'utf8')).toBe(`${own}\n`)
+      expect(readFileSync(record, 'utf8')).toBe(`${own}\n${identityOf(projects)}\n`)
 
       unlinkSync(own)
       const moved = transcript('-moved', FIRST)
       sessionFolder(main, FIRST, projects)
-      expect(readFileSync(record, 'utf8')).toBe(`${moved}\n`)
+      expect(readFileSync(record, 'utf8')).toBe(`${moved}\n${identityOf(projects)}\n`)
     })
 
     it('records nothing when no transcript can be found', () => {
@@ -328,6 +362,55 @@ describe('session folders', () => {
       vi.mocked(readdirSync).mockClear()
       listSessionFolders(main)
       expect(projectsReads()).toBe(2)
+    })
+
+    it('keeps, undecided, a folder whose projects directory was replaced by another at the same path', () => {
+      const projectsBefore = join(scratch, 'config-a', 'projects')
+      transcript('-project', FIRST, projectsBefore)
+      sessionFolder(main, FIRST, projectsBefore)
+      renameSync(join(scratch, 'config-a'), join(scratch, 'config-b'))
+      transcript('-other', SECOND, projectsBefore)
+
+      const listing = listSessionFolders(main)
+      const { removed } = removeExpiredSessionFolders(main)
+
+      expect(listing.expired).toEqual([])
+      expect(listing.undecided).toEqual([
+        {
+          ...folder(FIRST),
+          reason: expect.stringContaining(
+            `the projects directory at ${projectsBefore} is not the one this folder recorded`,
+          ),
+        },
+      ])
+      expect(removed).toEqual([])
+      expect(existsSync(join(main, '.sessions', FIRST))).toBe(true)
+    })
+
+    it('keeps, undecided, a folder whose record holds no readable identity of its projects directory', () => {
+      const withoutIdentity = folderOf(FIRST)
+      writeFileSync(
+        join(withoutIdentity, '.transcript'),
+        `${transcript('-project', FIRST)}\n`,
+      )
+      const withGarbledIdentity = folderOf(SECOND)
+      writeFileSync(
+        join(withGarbledIdentity, '.transcript'),
+        `${transcript('-project', SECOND)}\ndevice twelve inode 7\n`,
+      )
+      const withTrailingLines = folderOf(EXPIRED)
+      writeFileSync(
+        join(withTrailingLines, '.transcript'),
+        `${transcript('-project', EXPIRED)}\n${identityOf(projects)}\nmore\n`,
+      )
+
+      const listing = listSessionFolders(main)
+
+      expect(listing.kept).toEqual([])
+      expect(ids(listing.undecided)).toEqual([FIRST, SECOND, EXPIRED])
+      for (const undecided of listing.undecided) {
+        expect(undecided.reason).toContain("its projects directory's identity")
+      }
     })
 
     it('keeps a folder with no record, whatever the transcripts say', () => {

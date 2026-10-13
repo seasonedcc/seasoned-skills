@@ -9,10 +9,11 @@ import {
   realpathSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
@@ -325,11 +326,23 @@ describe('the CLI program', () => {
       return worktree
     }
 
+    function identityOf(projectsDirectory: string) {
+      try {
+        const { dev, ino } = statSync(projectsDirectory, { bigint: true })
+        return `device ${dev} inode ${ino}`
+      } catch {
+        return 'device 0 inode 0'
+      }
+    }
+
     function folderOf(sessionId: string, recordedTranscript?: string) {
       const folder = join(sessions, sessionId)
       mkdirSync(folder, { recursive: true })
       if (recordedTranscript !== undefined) {
-        writeFileSync(join(folder, '.transcript'), `${recordedTranscript}\n`)
+        writeFileSync(
+          join(folder, '.transcript'),
+          `${recordedTranscript}\n${identityOf(dirname(dirname(recordedTranscript)))}\n`,
+        )
       }
       return folder
     }
@@ -352,7 +365,9 @@ describe('the CLI program', () => {
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls).toEqual([[folder]])
       expect(vi.mocked(console.error)).not.toHaveBeenCalled()
-      expect(readFileSync(join(folder, '.transcript'), 'utf8')).toBe(`${own}\n`)
+      expect(readFileSync(join(folder, '.transcript'), 'utf8')).toBe(
+        `${own}\n${identityOf(projects)}\n`,
+      )
     })
 
     it('session-folder still prints the folder, and says so, when no transcript is found', async () => {
@@ -382,7 +397,27 @@ describe('the CLI program', () => {
       await run('sweep', '--sessions', '--remove')
 
       expect(process.exitCode).toBeUndefined()
-      expect(readFileSync(join(folder, '.transcript'), 'utf8')).toBe(`${own}\n`)
+      expect(readFileSync(join(folder, '.transcript'), 'utf8')).toBe(
+        `${own}\n${identityOf(projects)}\n`,
+      )
+      expect(existsSync(folder)).toBe(true)
+    })
+
+    it('keeps a folder whose configuration moved away while another took its place', async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      transcript(KEPT)
+      await run('session-folder')
+      const folder = join(sessions, KEPT)
+      renameSync(join(root, 'claude-config'), join(root, 'moved-config'))
+      vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'moved-config'))
+      transcript(EXPIRED)
+
+      await run('sweep', '--sessions', '--remove')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        `the projects directory at ${projects} is not the one this folder recorded`,
+      )
       expect(existsSync(folder)).toBe(true)
     })
 
