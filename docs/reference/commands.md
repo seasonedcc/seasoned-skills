@@ -196,11 +196,12 @@ picked up again weeks later. So the command looks for that transcript in every
 project under `projects/` inside `$CLAUDE_CONFIG_DIR`, or `~/.claude` without
 it, and writes two lines into the folder, in a `.transcript` file: the
 transcript's absolute path, and the identity of the projects directory holding
-it. That identity is the directory's device and inode numbers, which the file
-system uses to tell one directory from another and which stay with a directory
-when it moves. The file only ever changes to name another transcript that
-exists, so asking for the folder under a different configuration never points
-it at nothing.
+it. That identity is the directory's inode number, which the file system uses
+to tell one directory from another: it stays with a directory when it moves,
+and a directory created in its place gets another one. The device number is
+left out, since some file systems hand out a new one on every boot. The file
+only ever changes to name another transcript that exists, so asking for the
+folder under a different configuration never points it at nothing.
 
 Together the two lines pin the projects directory to look in, not the file
 itself: Claude Code moves a live session's transcript from one project
