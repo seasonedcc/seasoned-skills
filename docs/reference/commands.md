@@ -196,7 +196,10 @@ picked up again weeks later. So the command looks for that transcript in every
 project under `projects/` inside `$CLAUDE_CONFIG_DIR`, or `~/.claude` without
 it, and writes its absolute path into the folder, in a `.transcript` file. The
 file only ever changes to name another transcript that exists, so asking for
-the folder under a different configuration never points it at nothing.
+the folder under a different configuration never points it at nothing. What
+the path pins is the projects directory to look in, not the file itself:
+Claude Code moves a live session's transcript from one project directory to
+another, as when the session enters or leaves a worktree.
 
 When no transcript turns up, because the session keeps none or the
 configuration is not the one Claude Code is using, the command still creates
@@ -256,22 +259,31 @@ that merely inherited some session's mark, nothing counts as mine and only
 what ended sessions left behind is killed.
 
 The third is session folders, the ones `session-folder` creates. Claude Code
-deletes old transcripts on its own schedule, and a folder expires once the
-transcript its `.transcript` file names is gone and the projects directory that
-held it can still be read, since no session can be resumed from it any more.
-That includes a whole project directory Claude Code removed. `--sessions` lists
+deletes old transcripts on its own schedule, and once a session's transcript is
+gone, the session can no longer be resumed. A folder expires once its session's
+transcript is gone from the projects directory its `.transcript` file points
+into: that directory can be read, and none of the project directories in it
+holds the transcript, whichever one Claude Code last moved it to. That includes
+a whole project directory Claude Code removed. Sweep reads each projects
+directory once, and looks again before calling any folder expired, so a
+transcript caught in the middle of a move keeps its folder. `--sessions` lists
 the expired folders, and `--remove` removes exactly those. Sweep looks at
 nothing in `.sessions/` but folders named like a session id, so anything else
 you keep there stays.
 
 Every other folder is kept. A folder with no `.transcript` file is unrecorded:
 sweep lists it and never removes it, so delete it yourself when you are done
-with it. A folder whose transcript cannot be checked is undecided: its
-`.transcript` file cannot be read or names no absolute path, checking the
-transcript fails for any reason other than its being gone, or the projects
-directory is missing or cannot be read, as with a moved or unmounted
-configuration. Sweep lists an undecided folder, prints why, keeps it, and exits
-1.
+with it. A folder whose transcript cannot be looked for everywhere it could be
+is undecided, which happens when:
+
+- its `.transcript` file cannot be read, names no absolute path, or names
+  another session's transcript;
+- a project directory, or a file named like the transcript, cannot be checked
+  for any reason other than its being gone;
+- the projects directory is missing or cannot be read, as with a moved or
+  unmounted configuration.
+
+Sweep lists an undecided folder, prints why, keeps it, and exits 1.
 
 Each flag belongs to one kind of leftover, and sweep refuses a combination it
 cannot honor instead of ignoring part of it: two kinds at once, `--kill` or
@@ -281,7 +293,7 @@ cannot honor instead of ignoring part of it: two kinds at once, `--kill` or
 | --- | --- |
 | `--browsers` | List the automated-browser processes your user account runs, with their ages and kinds. Exits 1 while any of your session's or an ended session's are alive, or when they cannot be listed. |
 | `--lane-processes` | List every process your user account runs from inside a lane's worktree, whatever its name. Exits 1 when they cannot be listed. |
-| `--sessions` | List the session folders whose recorded transcript is gone, and the unrecorded and undecided ones it keeps. Exits 1 when a folder is undecided, when an expired folder cannot be removed, when `.sessions/` cannot be read, or when the checkout has no main checkout to hold session folders. |
+| `--sessions` | List the session folders whose transcript is gone from their projects directory, and the unrecorded and undecided ones it keeps. Exits 1 when a folder is undecided, when an expired folder cannot be removed, when `.sessions/` cannot be read, or when the checkout has no main checkout to hold session folders. |
 | `--kill` | Kill your session's own processes and those of ended sessions, each by its exact process id. Browsers are listed again afterwards. |
 | `--remove` | With `--sessions`: remove the expired session folders, then list again. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes, named by its directory name. |
