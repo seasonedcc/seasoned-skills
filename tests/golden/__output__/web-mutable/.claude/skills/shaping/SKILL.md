@@ -23,15 +23,16 @@ The same ritual opens every session, before the first question:
 
 1. Read the `shaping/` registry in the consuming repo: which documents exist, and which are built.
 2. Read this skill's own project section (below): standing principles a repo has settled live there, and they are rulings that bind every session and every document in that repo.
-3. Create the new project's folder, or read the existing document **in full**.
-4. Re-derive interdependencies against the siblings that aren't built yet.
-5. Interview in whatever mode the document's completeness implies. A blank document means framing from zero; a shape with undefused time bombs means going straight at those.
+3. Create the new project's folder, or read the existing document **raw and whole**, drawings included.
+4. Send the user the document's absolute path and offer to open it in their browser. From then on, assume the page is open in front of them and refreshed as you talk.
+5. Re-derive interdependencies against the siblings that aren't built yet.
+6. Interview in whatever mode the document's completeness implies. A blank document means framing from zero; a shape in which a reader still finds open time bombs means going straight at those.
 
 A session lives in a git worktree of its own from the first minute, behind a draft pull request that stays open the whole time, its description kept current as the document grows. The PR's state says who the document is for: **draft** while shaping is in progress, **ready for review** when the user judges it fit to share with the team, **merged** when it is fit for stakeholders. Feedback that arrives after a merge opens the next round on a new branch with a new draft PR. Whatever plumbing the consuming repo needs so its gates ignore `shaping/` (CI filters, lint and type-check exclusions) lands on the base branch through its own PR — a shaping PR only ever carries shaping.
 
-The document is the session's only memory. Write to it at every crystallization point — when something is settled, not sentence by sentence, because "Shaping is not filling in a template" (`references/03-articles/shaping-isnt-writing.md`). Done right, the user watches the document grow as you talk, and a session months later resumes from the document alone.
+The document is the session's only memory and the room's whiteboard. Write and draw on it at every crystallization point — when something is settled, not sentence by sentence, because "Shaping is not filling in a template" (`references/03-articles/shaping-isnt-writing.md`). Drawings enter that loop alongside the prose, appearing and changing mid-conversation, never rendered once the talking is over. Done right, the user watches the document grow as you talk, and a session months later resumes from the document alone.
 
-Feedback rounds are this same session type, seeded with the feedback, whatever channel it arrived by. Map each point to the section it lands in, adjudicate them with the user one at a time, and carry the reasoned declines back into the document alongside the accepted changes — a decline that lives only in a thread gets raised again by the next reader. Then revise, and re-derive the goal. Git is the revision history; the document states current truth only.
+Feedback rounds are this same session type, seeded with the feedback, whatever channel it arrived by. Map each point to the section it lands in, adjudicate them with the user one at a time, and carry the reasoned declines back into the document alongside the accepted changes — a decline that lives only in a thread gets raised again by the next reader. Then revise the prose, re-draw what the rulings changed, and re-derive the goal. Git is the revision history; the document states current truth only.
 
 ### The two hats
 
@@ -66,13 +67,26 @@ Two dangers wear the same name.
 
 **External time bombs** are interdependencies *between* projects. Two documents whose builds would fight over the same ground are one project pretending to be two, and running them in parallel detonates during the build. Merge them into a single bigger, well-orchestrated project rather than sequencing them or shelving one. Every session scans the not-yet-built documents in the registry for this and puts any join on the table. That is why no document has an interdependencies section: the answer changes as siblings land, so it is derived fresh each session against the registry as it stands.
 
-**Internal time bombs** are what the 2019 book calls rabbit holes — "technical unknowns, unsolved design problems, or misunderstood interdependencies" inside one project (`references/01-shape-up/06-risks-and-rabbit-holes.md`), including the hairball code a concept will have to fight. Hunt them during shaping, while the shape is still cheap to change and a cut costs a sentence instead of a week. "Any rabbit hole that isn't **solved** during shaping is a time bomb that can churn the project" (`references/03-articles/pitfalls-when-adopting-shape-up.md`), so every one the document names carries its solution. A time bomb the document names without defusing isn't a warning; it's the bomb, handed to the build with a label on it.
+**Internal time bombs** are what the 2019 book calls rabbit holes — "technical unknowns, unsolved design problems, or misunderstood interdependencies" inside one project (`references/01-shape-up/06-risks-and-rabbit-holes.md`), including the hairball code a concept will have to fight. Hunt them during shaping, while the shape is still cheap to change and a cut costs a sentence instead of a week. "Any rabbit hole that isn't **solved** during shaping is a time bomb that can churn the project" (`references/03-articles/pitfalls-when-adopting-shape-up.md`), so a build never opens with one unsolved. An open time bomb isn't a warning; it's the bomb, handed to the build.
+
+Time bombs are a discipline of the sessions, never a section of the document. A solved time bomb is written into the shape at the element it concerns, in the same technical note that defines that element, never gathered into a list. Once every solution lives beside its element, a list has nothing left to hold but history, and history belongs to git. An entry that wants a list of its own is usually no time bomb at all, and these symptoms give it away:
+
+- it restates a contract a technical note already defines;
+- it narrates a former version of the shape, or a decision already taken;
+- it describes a business or cost risk the build can't get stuck on;
+- it schedules a future decision ("if this produces nothing in four weeks, remove it"), which a document of current truth never does.
 
 ### Shaping
 
-Shaping is the concept: "the parts, the links between them, the things that are 'in' and the things that are 'out' that make it all work" (`references/03-articles/shaping-isnt-writing.md`). Hold the level of abstraction the corpus insists on — wireframes are too concrete, words alone are too abstract — so the work comes out rough, solved, and bounded (`references/01-shape-up/03-principles-of-shaping.md`).
+Shaping is the concept: "the parts, the links between them, the things that are 'in' and the things that are 'out' that make it all work" (`references/03-articles/shaping-isnt-writing.md`). Hold the level of abstraction the corpus insists on — wireframes are too concrete, words alone are too abstract.
 
-Draw. Elements first, then breadboards — places, affordances, connection lines (`references/01-shape-up/05-find-the-elements.md`) — and fat marker sketches where an idea is inherently visual. Everything stays lo-fi and hand-drawn on purpose: high-fidelity design done early "will blow up" (`references/03-articles/pitfalls-when-adopting-shape-up.md`), and rough drawings show their readers where their own contributions go.
+**The definition of shaped.** A document is shaped when the work it describes is all three of rough, solved, and bounded (`references/01-shape-up/03-principles-of-shaping.md`):
+
+- **Rough** — it visibly leaves room, because "Work that's too fine, too early commits everyone to the wrong details." Lo-fi drawings and macro-level prose are the finish line; wireframes or finished copy mean the work is over-shaped, not more done.
+- **Solved** — "All the main elements of the solution are there at the macro level and they connect together." The walkthrough replays the story end to end and no time bomb is left open; one open question means not yet shaped.
+- **Bounded** — "It tells the team where to stop." The book draws that line with an appetite; we have none, so our bound is scope alone: the no-gos are named, and what the document doesn't claim, the build doesn't do.
+
+Draw to find the elements. Breadboards — places, affordances, connection lines — and fat marker sketches where an idea is inherently visual are the tools that find them, and the narrowed list of elements is their output: "Elements are the output" (`references/01-shape-up/05-find-the-elements.md`). Draw inside the interview, never after it: sketch a flow while it is being debated rather than once it is settled, and let the drawing pose the next question — "Just figuring out what to write under the bar starts to provoke debates and discussions about what to build" (same chapter). Re-draw whenever a ruling changes the shape, in feedback rounds as much as in first sessions. The level of abstraction is free to dip into a more concrete sketch to settle a doubt and climb back: "When the level of abstraction dipped down to resolve a doubt, it climbed again afterward" (`references/03-articles/small-tools-for-shaping.md`). Everything stays lo-fi and hand-drawn on purpose: high-fidelity design done early "will blow up" (`references/03-articles/pitfalls-when-adopting-shape-up.md`), and rough drawings show their readers where their own contributions go.
 
 Then walk the framing's story through the new solution in slow motion: "Given the solution we sketched, how exactly would a user get from the starting point to the end?" (`references/01-shape-up/06-risks-and-rabbit-holes.md`). That walkthrough is the visible fitness test — it either replays the struggling moment with a better ending or it doesn't — and it goes in the document. Name the no-gos as you go: what this project is deliberately not covering.
 
@@ -84,26 +98,32 @@ One document per project, at `shaping/<project-title>/index.html` in the consumi
 
 It is a feedback instrument before it is anything else. The business rules a build depends on live in the heads of the people who run the business — more of them than any one shaper can hold. So the plan can't be trusted until those people have read it end to end and had their chance to say "that's not how it works here", before the build bakes a wrong rule in. That sets the bar: a non-technical operator reads the whole thing without hitting a wall. The document's own chrome holds the same bar — part-notes, hints, and captions plainly say what each section is, with no clever copy for the reader to decode.
 
-Anatomy, in this order:
+Anatomy, in reading order — the reader's path through the finished document, never the order the work happens in:
 
 1. **Title and essence** — one sentence anyone in the company could repeat.
 2. **Status** — built, or not.
 3. **The framing**, fully non-technical: the struggling-moment story with verbatim quotes from the demand records, linked to their sources; today's way and where it breaks; the outcome test; why now; the big hire and the little hires by name; a forces drawing if one was reached for.
-4. **The shape**: plain language and lo-fi drawings; the walkthrough replaying the framing's story with the new solution in place; the time bombs, each with its solution; the no-gos. Technical definitions live here as in-place toggled affordances on the elements they define.
+4. **The shape**: plain language and lo-fi drawings; the walkthrough replaying the framing's story with the new solution in place; the no-gos. Technical definitions, the solution to every time bomb among them, live here as in-place toggled affordances on the elements they define.
 5. **The goal** — the text that ignites the build.
 
 A toggle hides all technical detail, and both variants print perfectly to PDF. There is no interdependencies section and no revisions section: interdependencies are re-derived every session, git holds the history, and the document states current truth only.
 
 The document never names another project, another repository, or a path that exists only on someone's machine — its prose distills every contract it depends on. When the user points at battle-tested work elsewhere that the build should inherit, the work itself travels: copy the full implementation files, at shaping time, into `shaping/<project-title>/references/`, with a README saying what each file is in its own terms, no word of where it came from. Copy whole, never distill — what the user points at is battle-tested, and improving on it is welcome only when it is deliberate. The one thing that never gets copied is doctrine the consuming repo already owns: its own skills and standing rules are the binding source, and the document points at them rather than forking them.
 
+### The voice of a shaping document
+
+The document speaks as the team that will build it, in active future tense: "We'll add a card to the dashboard", never "The screen shows a card". Every change opens with what gets built, where it sits, and who sees it; the mechanism comes after. What stays the same is said outright ("stays word for word as it is"). Trade-offs are stated flatly ("that is expensive and we won't do it"), with no hedging and no marketing adjectives anywhere.
+
 ### The goal
 
 The last section is a thin ignition key, never a second spec. It carries:
 
 - the mission sentence — the document's essence, verbatim;
-- as its **first** instruction, read `shaping/<project-title>/index.html` in full as the single source of truth;
-- the acceptance criteria: the framing's outcome test, the walkthrough replayed in the shipped product, and — always — a closing audit of the complete implementation against the document, section by section, every element, contract, time bomb defusal, and no-go, with every shortfall fixed before the goal is called met. The audit is part of the goal, never a follow-up;
+- as its **first** instruction, that the build's orchestrator and every builder read `shaping/<project-title>/index.html` raw and whole, drawings included, as the single source of truth;
+- the acceptance criteria: the framing's outcome test, the walkthrough replayed in the shipped product, and — always — a closing audit of the complete implementation against the document, section by section, every element, contract, and no-go, with every shortfall fixed before the goal is called met. The audit is part of the goal, never a follow-up;
 - only the constraints the goal alone can carry — the base branch, the sequencing of any joined projects, that the no-gos are binding, and the standing instruction that the build session flips the document's built bit when it ships.
+
+A shaping document is read from its raw file, whole and in one sitting, drawings included. A text extract is not the document: the drawings carry shape the prose does not, and a builder chartered from an extract builds from a document missing them. A document read in slices across turns is not read either — when a tool pages a long file, read every page back to back in the same turn. The rule binds the build's orchestrator on its first reading and on every reground, and every builder it charters reads the same raw file.
 
 Everything else the build needs belongs in the document, where the readers who can correct it will see it. Re-derive the goal whenever the shape changes; that is part of closing a session. It renders behind the technical toggle, in monospace, with a live character count against `/goal`'s 4,000-character limit and a copy button.
 
@@ -119,9 +139,11 @@ A shape that feels done is not yet done. When the user has read the document end
 
 **The audit.** Fan read-only auditors out over the document, one lens each: every claim about the existing system verified against the code it describes; every formula and schema contract checked for internal consistency; every ruling made across the sessions confirmed present and correctly stated; every demand-record quote verified verbatim against its source, link by link; and the document read whole for sections that contradict each other. The shaper adjudicates every finding personally — re-verifying the load-bearing claims first-hand rather than taking an auditor's word — fixes what is real, and declines what is not.
 
-**Builder-comprehension rounds.** A fresh reader on the strongest model available plays the orchestrator of the future build: it reads the document and everything in its folder in full, with read-only access to the codebase for fact-checks, and reports whether it could design the implementation from what it read. Its findings are missing or ambiguous business rules only — implementation design is the build's own job, and a finding that asks for implementation detail is out of bounds. Three weights: a **blocker** it cannot design around, a **guess** it would be forced to make with real stakes on the answer, and a **note** it would carry into the build. Every finding quotes the document's own words, and the charter says plainly that a clean report is a valid report — a reader pressed for findings manufactures them. The shaper adjudicates each finding, improves the document, and launches the next round with a new fresh reader, looping until the shaper is satisfied a further round would come back clean.
+**Builder-comprehension rounds.** A fresh reader on the strongest model available plays the orchestrator of the future build: it reads the document raw and whole, drawings included, and everything in its folder in full, with read-only access to the codebase for fact-checks, and reports whether it could design the implementation from what it read. Its findings are missing or ambiguous business rules only — implementation design is the build's own job, and a finding that asks for implementation detail is out of bounds. Three weights: a **blocker** it cannot design around, a **guess** it would be forced to make with real stakes on the answer, and a **note** it would carry into the build. Every finding quotes the document's own words, and the charter says plainly that a clean report is a valid report — a reader pressed for findings manufactures them. The shaper adjudicates each finding, improves the document, and launches the next round with a new fresh reader, looping until the shaper is satisfied a further round would come back clean.
 
 The loop ends on the shaper's judgment, the way a code review ends on the owner's: readers propose, the shaper rules.
+
+Both checks judge the document against the definition of shaped: a blocker is a hole in *solved*, implementation detail the document should have left to the build is a violation of *rough*, and a scope question nobody can answer is a hole in *bounded*.
 
 ## Answering questions about the method
 
