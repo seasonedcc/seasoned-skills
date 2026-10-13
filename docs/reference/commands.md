@@ -205,7 +205,7 @@ what ended sessions left behind is killed.
 
 | Flag | What it does |
 | --- | --- |
-| `--browsers` | List the automated-browser processes your user account runs, with their ages and kinds. Exits 1 while any of your session's or an ended session's are alive. |
+| `--browsers` | List the automated-browser processes your user account runs, with their ages and kinds. Exits 1 while any of your session's or an ended session's are alive, or when they cannot be listed. |
 | `--lane-processes` | List the processes whose command name is on `provisioning.laneProcessCommands`, the common dev commands by default, and which run from inside a lane's worktree. Exits 1 when they cannot be listed. |
 | `--kill` | Kill your session's own processes and those of ended sessions, each by its exact process id. Browsers are listed again afterwards. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes, named by its directory name. |
