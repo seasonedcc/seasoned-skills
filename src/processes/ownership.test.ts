@@ -130,6 +130,9 @@ describe('classifyOwnership by marker', () => {
       '/Users/dev/.local/bin/claude -c',
       '/Users/dev/.local/share/claude/versions/2.1.296 --resume',
       'node /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js',
+      '/Users/dev/Library/Application Support/Claude/claude-code/2.1.296/0f3a9c/claude.app/Contents/MacOS/claude',
+      '/Users/dev/Library/Application Support/Claude/claude-code/2.1.296/0f3a9c/claude.app/Contents/MacOS/claude --output-format stream-json',
+      'node /Users/dev/app/node_modules/@anthropic-ai/claude-agent-sdk/cli.js --output-format stream-json',
     ]) {
       const table = snapshot(
         { 600: { started: 0, command } },
@@ -139,6 +142,21 @@ describe('classifyOwnership by marker', () => {
         kind: 'live-session',
         claudeProcessId: 600,
       })
+    }
+  })
+
+  it('does not take a command that merely mentions claude for Claude Code', () => {
+    for (const command of [
+      'node claude-helper.js',
+      '/opt/claudette/bin/server',
+      'vim notes-about-claude.md',
+      'grep -r session /Users/dev/.local/share/claude/versions/2.1.296/notes',
+    ]) {
+      const table = snapshot(
+        { 100: { started: 0, command: 'claude' }, 600: { started: 0, command } },
+        { 600: { claudeProcessId: sweeper } },
+      )
+      expect(classifyOwnership(600, table, sweeper)).toEqual({ kind: 'mine' })
     }
   })
 })

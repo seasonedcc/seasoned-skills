@@ -1,6 +1,5 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { basename } from 'node:path'
 
 /**
  * Which Claude Code instance a process belongs to. Every kill this package
@@ -50,12 +49,16 @@ function parseProcessId(value: string | undefined) {
   return value !== undefined && /^[1-9]\d*$/.test(value) ? Number(value) : undefined
 }
 
+/**
+ * Whether a command line runs Claude Code: a `claude` executable — the
+ * desktop app bundles one under a path with spaces — a native install's
+ * versioned binary, or either npm package run through node.
+ */
 function isClaudeCodeCommand(command: string) {
-  const [executable = ''] = command.trim().split(/\s+/)
   return (
-    basename(executable) === 'claude' ||
-    executable.includes('/claude/versions/') ||
-    command.includes('/@anthropic-ai/claude-code/')
+    /(^|\/)claude(\s|$)/.test(command) ||
+    /^\S*\/claude\/versions\/[^\s/]+(\s|$)/.test(command) ||
+    /\/@anthropic-ai\/claude-(code|agent-sdk)\/cli\.js(\s|$)/.test(command)
   )
 }
 
@@ -70,14 +73,15 @@ function lineage(processes: Map<number, ProcessEntry>, processId: number) {
   return chain
 }
 
-function holder(claudeProcessId: number, sessionId: string | undefined): Holder {
+function holderOf(claudeProcessId: number, sessionId: string | undefined): Holder {
   return sessionId ? { claudeProcessId, sessionId } : { claudeProcessId }
 }
 
 /**
  * The nearest Claude Code instance above a process: the sweeper's own, a
- * process whose command is Claude Code, or one a marker below it names. Being
- * an ancestor of what it marks, a named pid cannot be a recycled one.
+ * process whose command is Claude Code, or one a marker below it names. A
+ * named ancestor is taken for a running instance even in the rare case its
+ * pid was recycled, which errs toward not killing.
  */
 function nearestInstance(chain: number[], snapshot: ProcessSnapshot, sweeper?: number) {
   for (const [index, ancestor] of chain.entries()) {
@@ -91,8 +95,16 @@ function nearestInstance(chain: number[], snapshot: ProcessSnapshot, sweeper?: n
       naming !== undefined ||
       isClaudeCodeCommand(snapshot.processes.get(ancestor)?.command ?? '')
     ) {
-      return holder(ancestor, naming?.sessionId)
+      return holderOf(ancestor, naming?.sessionId)
     }
+  }
+  return undefined
+}
+
+function nearestMarker(chain: number[], snapshot: ProcessSnapshot) {
+  for (const marked of chain) {
+    const marker = snapshot.markers.get(marked)
+    if (marker !== undefined) return { marked, marker }
   }
   return undefined
 }
@@ -112,9 +124,9 @@ function classifyOwnership(
       ? { kind: 'mine' }
       : { kind: 'live-session', ...instance }
   }
-  const marked = chain.find((member) => snapshot.markers.has(member))
-  const marker = marked === undefined ? undefined : snapshot.markers.get(marked)
-  if (marked === undefined || marker === undefined) return { kind: 'unmarked' }
+  const nearest = nearestMarker(chain, snapshot)
+  if (nearest === undefined) return { kind: 'unmarked' }
+  const { marked, marker } = nearest
   if (marker.claudeProcessId === sweeper) return { kind: 'mine' }
   const claudeStarted = snapshot.processes.get(marker.claudeProcessId)?.started
   const markedStarted = snapshot.processes.get(marked)?.started
@@ -197,7 +209,7 @@ function markerFromValues(
   const parsed = others.length === 0 ? parseProcessId(claudeProcessId) : undefined
   if (parsed === undefined) return undefined
   const [sessionId, ...otherSessions] = new Set(sessionIds)
-  return holder(parsed, otherSessions.length === 0 ? sessionId : undefined)
+  return holderOf(parsed, otherSessions.length === 0 ? sessionId : undefined)
 }
 
 /**
