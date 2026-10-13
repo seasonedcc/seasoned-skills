@@ -128,23 +128,11 @@ Two axes rule alongside:
 
 ## Model selection
 
-Match the tier to the work. Model names here are family names, never pinned versions: spawns pass Claude Code's model aliases (`fable`, `opus`, `sonnet`), which resolve to each family's current model, so the skill tracks every release without edits — keep it that way.
+Match the tier to the work. Model names here are family names, never pinned versions: spawns pass Claude Code's model aliases (`opus`, `sonnet`), which resolve to each family's current model, so the skill tracks every release without edits — keep it that way.
 
-- **Fable** — reserved for the highest-judgment work only: the main orchestrator session, architecture, UX/UI design, the hardest coding tasks and problems, and **final QA** — the last pre-merge audit of a lane, judging with real discernment whether the work truly meets our quality bar. Work is never merged on a lower tier's word alone.
-- **Opus** — the default workhorse for everything below that bar: regular feature builds and implementation, fix passes, design-doc drafting within a settled architecture, code review with ≤5 subagents, and agent-browser end-to-end manual testing.
-- **Sonnet** — code review with ≥5 subagents (multi-dimension adversarial reviews) and similar wide fan-out work.
-
-Design work splits across the tiers by how much invention it demands. Invention-type design — a new pattern, a new architecture, a shape nothing in the repo prefigures — always runs on Fable. Design that applies a settled pattern to a new surface, where drafting is mostly grounded investigation, sits on the edge: make a fresh judgment call each time between Fable designing directly and Opus drafting for Fable to personally adjudicate against the primary sources. Neither arrangement is pre-approved for the edge — the call is part of the work.
+- **Opus** — everything except wide fan-out: the main orchestrator session, architecture, UX/UI design, the hardest coding tasks and problems, regular feature builds and implementation, fix passes, design-doc drafting, code review with ≤5 subagents, agent-browser end-to-end manual testing, and **final QA** — the last pre-merge audit of a lane, judging with real discernment whether the work truly meets our quality bar.
+- **Sonnet** — code review with ≥5 subagents (multi-dimension adversarial reviews) and similar wide fan-out work. Its findings feed an Opus judgment: work is never merged on Sonnet's word alone.
 
 ## Reasoning effort
 
-Pair every model with a fixed reasoning effort — always:
-
-- **Opus → `xhigh`.**
-- **Sonnet → `xhigh`.**
-- **Fable → `high`.**
-
-How to set it:
-
-- **Dynamic workflows** (`agent()`): pass `effort` on *every* call alongside `model` — e.g. `agent(prompt, { model: 'sonnet', effort: 'xhigh', schema, ... })`. Omitting `effort` inherits the session effort, which is **not** guaranteed to match this rule, so always set it explicitly.
-- **The `Agent` tool**: it has **no** per-call effort parameter — a directly-spawned subagent inherits the current session's reasoning effort. You cannot raise a single Agent-tool spawn to `xhigh` in isolation. To guarantee a required effort, either launch that agent from a workflow (where `effort` is settable) or run the whole session at the target effort. Call out this limitation whenever it bites (e.g. a directly-spawned agent-browser Opus run that you want at `xhigh`).
+Every model runs at `high` — the session's managed effort, and the one these rules are written for. In dynamic workflows, pass it on every `agent()` call alongside `model` — e.g. `agent(prompt, { model: 'sonnet', effort: 'high', schema, ... })` — because an omitted `effort` inherits whatever the session's effort is at launch, and that can drift from `high`.
