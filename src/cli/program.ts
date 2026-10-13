@@ -267,12 +267,12 @@ export function buildProgram(): Command {
             const config = await loadConfig(process.cwd())
             const laneOption = options.lane === undefined ? {} : { lane: options.lane }
             if (options.kill) {
-              const { candidates, terminated } = sweepLaneProcesses(
+              const { candidates, terminated, failed } = sweepLaneProcesses(
                 process.cwd(),
                 config.provisioning,
                 laneOption,
               )
-              reportLaneSweep(candidates, new Set(terminated))
+              reportLaneSweep(candidates, new Set(terminated), new Set(failed))
             } else {
               reportLaneProcesses(
                 listLaneProcesses(process.cwd(), config.provisioning, laneOption),
@@ -303,7 +303,7 @@ function sessionEndReason(): string | undefined {
   }
 }
 
-function processes(count: number) {
+function processCount(count: number) {
   return `${count} ${count === 1 ? 'process' : 'processes'}`
 }
 
@@ -333,6 +333,7 @@ function reportLaneProcesses(candidates: LaneProcessCandidate[]) {
 function reportLaneSweep(
   candidates: LaneProcessCandidate[],
   terminated: Set<LaneProcessCandidate>,
+  failed: Set<LaneProcessCandidate>,
 ) {
   if (candidates.length === 0) {
     console.log('No lane processes to sweep.')
@@ -341,13 +342,15 @@ function reportLaneSweep(
   for (const candidate of candidates) {
     const verdict = terminated.has(candidate)
       ? 'terminated'
-      : isKillable(candidate.ownership)
-        ? 'exited'
-        : 'kept'
+      : failed.has(candidate)
+        ? 'kill failed'
+        : isKillable(candidate.ownership)
+          ? 'exited'
+          : 'kept'
     console.log(laneProcessLine(verdict, candidate))
   }
   console.log(
-    `Terminated ${terminated.size} of ${processes(candidates.length)} found in lanes. ${KEPT_EXPLANATION}`,
+    `Terminated ${terminated.size} of ${processCount(candidates.length)} found in lanes. ${KEPT_EXPLANATION}`,
   )
 }
 
@@ -368,7 +371,7 @@ function reportBrowsers(browsers: ClassifiedBrowser[]) {
   const keptNote = kept === 0 ? '' : ` ${kept} kept. ${KEPT_EXPLANATION}`
   if (killable.length > 0) {
     console.log(
-      `SWEEP: ${processes(killable.length)} of this session or ended sessions still alive — NOT clean.${keptNote}`,
+      `SWEEP: ${processCount(killable.length)} of this session or ended sessions still alive — NOT clean.${keptNote}`,
     )
     process.exitCode = 1
     return

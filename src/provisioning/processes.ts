@@ -52,7 +52,7 @@ function laneWorktreesRoots(
  * 1 both when nothing matches and on errors, which only the latter explain on
  * stderr.
  */
-function lanesProcesses(roots: string[], commands: string[]) {
+function processesInsideLanes(roots: string[], commands: string[]) {
   const result = spawnSync(
     'lsof',
     [
@@ -101,7 +101,7 @@ function listLaneProcesses(
     resolveMainRepository(projectRoot),
     config,
   )
-  return lanesProcesses(roots, resolved.laneProcessCommands).filter(
+  return processesInsideLanes(roots, resolved.laneProcessCommands).filter(
     (candidate) => options.lane === undefined || candidate.lane === options.lane,
   )
 }
@@ -109,7 +109,8 @@ function listLaneProcesses(
 /**
  * Terminate the lane processes this session may kill — its own and those of
  * ended sessions — each by its exact process id with SIGTERM. Another live
- * session's processes and unmarked ones are listed and left running.
+ * session's processes and unmarked ones are listed and left running. A kill
+ * the system refuses is reported apart from a process that exited first.
  */
 function sweepLaneProcesses(
   projectRoot: string,
@@ -118,22 +119,23 @@ function sweepLaneProcesses(
 ) {
   const candidates = listLaneProcesses(projectRoot, config, options)
   const terminated: LaneProcessCandidate[] = []
+  const failed: LaneProcessCandidate[] = []
   for (const candidate of candidates) {
     if (!isKillable(candidate.ownership)) continue
     try {
       process.kill(candidate.processId, 'SIGTERM')
-    } catch {
-      continue
+      terminated.push(candidate)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') failed.push(candidate)
     }
-    terminated.push(candidate)
   }
-  return { candidates, terminated }
+  return { candidates, terminated, failed }
 }
 
 export type { LaneProcessCandidate, LaneProcessOptions }
 export {
-  lanesProcesses,
   listLaneProcesses,
+  processesInsideLanes,
   sessionEndCleansUpProcesses,
   sweepLaneProcesses,
 }

@@ -25,7 +25,7 @@ import {
   resolveProvisioning,
   withDatabaseName,
 } from './common.js'
-import { type LaneProcessCandidate, lanesProcesses } from './processes.js'
+import { type LaneProcessCandidate, processesInsideLanes } from './processes.js'
 import {
   commandLine,
   flushCacheStore,
@@ -164,7 +164,7 @@ type LiveSessionProcess = LaneProcessCandidate & {
 
 function laneProcessesOrRefusal(lane: string, worktrees: LaneWorktree[]) {
   try {
-    return lanesProcesses(
+    return processesInsideLanes(
       worktrees.map((worktree) => worktreesRoot(worktree.repositoryPath)),
       [],
     )
