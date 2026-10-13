@@ -197,11 +197,13 @@ project under `projects/` inside `$CLAUDE_CONFIG_DIR`, or `~/.claude` without
 it, and writes two lines into the folder, in a `.transcript` file: the
 transcript's absolute path, and the identity of the projects directory holding
 it. That identity is the directory's inode number, which the file system uses
-to tell one directory from another: it stays with a directory when it moves,
-and a directory created in its place gets another one. The device number is
-left out, since some file systems hand out a new one on every boot. The file
-only ever changes to name another transcript that exists, so asking for the
-folder under a different configuration never points it at nothing.
+to tell one directory from another, and its birth time, when the file system
+created it. Both stay with a directory when it moves, and a directory created
+in its place differs in at least the birth time, even when it gets the inode
+number a deleted directory freed. The device number is left out, since some
+file systems hand out a new one on every boot. The file only ever changes to
+name another transcript that exists, so asking for the folder under a
+different configuration never points it at nothing.
 
 Together the two lines pin the projects directory to look in, not the file
 itself: Claude Code moves a live session's transcript from one project
@@ -210,6 +212,13 @@ identity is there because a path can come to name a different directory. Move
 your configuration somewhere else, and the next Claude Code started without
 `$CLAUDE_CONFIG_DIR` creates a fresh one at the old path, which holds none of
 the old transcripts.
+
+One case gets past the identity. A file system that records no birth time
+reports zero for every directory, so there a configuration moved by copying
+it elsewhere and deleting the original can be mistaken for the directory
+recreated at its old path, when that new directory gets the inode number the
+deleted one freed. Sweep then removes the folders of sessions whose
+transcripts now live in the copy.
 
 When no transcript turns up, because the session keeps none or the
 configuration is not the one Claude Code is using, the command still creates
