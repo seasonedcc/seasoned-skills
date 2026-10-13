@@ -96,7 +96,7 @@ A charter is the task prompt a subagent receives. Requirements:
 - Every agent that drives a browser ends with its browser session closed, and the orchestrator verifies it — a successful `close`, or an agent's report that it closed its session, is not evidence that the processes died; only a process listing is. After each browser agent completes, and again between waves, sweep to zero with the shipped command. It lists this user's browser processes with the Claude Code session each belongs to; "to zero" covers this session's browsers and those of ended sessions, while another live session's are listed and never touched:
 
   ```bash
-  seasoned-skills sweep --browsers          # list with ages and owners; exits 1 while any of this session's or an ended session's are alive
+  seasoned-skills sweep --browsers          # list with ages and owners; exits 1 while any of this session's or an ended session's are alive, or when they cannot be listed
   seasoned-skills sweep --browsers --kill   # kill exactly those by pid, then re-list to prove it
   ```
 

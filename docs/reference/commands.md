@@ -198,7 +198,11 @@ That sorts every process into one of four kinds:
 One case follows from these rules rather than from any session's intent. A
 long-lived helper that one session started, such as a tmux server or a shared
 daemon, carries that session's mark into everything later started through it,
-so once that session ends, sweep counts those processes as an ended session's.
+whichever session asked for it. Once the session that started the helper ends,
+sweep counts every one of those processes as an ended session's. `--kill` then
+kills them, and so does the session-end hook whenever any session ends. That
+includes a dev server another live session started through that helper and is
+still using.
 
 Without `--kill`, sweep only lists, naming each process's kind. With it, sweep
 kills the first two kinds, each by its exact process id, and never the other
