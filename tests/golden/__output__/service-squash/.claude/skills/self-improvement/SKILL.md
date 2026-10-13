@@ -74,7 +74,7 @@ Search the target repository's open issues first, by the lesson's key words, wit
 
 ## What an issue carries
 
-An issue carries the lesson as a standalone statement of policy, the evidence with links to the pull request, run, or thread, why it clears the bar, and suggested wording marked as a suggestion, with no customer personal data. It is written so a shaping session can start from it without asking anyone.
+An issue carries the lesson as a standalone statement of policy, the evidence with links to the pull request, run, or thread, why it clears the bar, and suggested wording marked as a suggestion, with no customer personal data. An issue on the workflow package is public: it describes the evidence anonymized, on its own terms, naming and linking nothing of the project it came from. It is written so a shaping session can start from it without asking anyone.
 
 ## Propose upside too
 
