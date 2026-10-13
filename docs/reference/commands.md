@@ -14,7 +14,7 @@ work never collide on this machine.
 | `corpus` | Build the shaping reference library into this machine's cache. |
 | `provision` | Set up an isolated worktree lane. |
 | `teardown` | Remove a lane and everything it owns. |
-| `sweep` | Kill leftover browsers or lane processes. |
+| `sweep` | List leftover browsers or lane processes, and kill the ones this session may. |
 
 ## seasoned-skills
 
@@ -138,39 +138,60 @@ The lane name `<lane>` is required, and it also names the worktree directories.
 
 Remove a lane across every declared repository: its processes, its cache-store
 index, its whole database family including derived names, and its worktrees.
-Processes are killed by exact process id, and only the ones that both listen on
-one of the lane's managed ports and run from inside the lane's own worktrees.
-Anything the lane left running without a listening socket is what
-`sweep --lane-processes` is for.
+Processes are killed by exact process id, and only the ones that listen on one
+of the lane's managed ports, run from inside the lane's own worktrees, and were
+started by this session or by one that has ended. Anything else the lane left
+running is what `sweep --lane-processes` is for.
 
-Teardown refuses a lane whose worktree has uncommitted changes, and it never
-touches the branch. Your commits survive teardown; your uncommitted work is
-your own to deal with first.
+Teardown refuses a lane another live Claude Code session is using. Before it
+changes anything, it looks at every process running from inside the lane's
+worktrees. If one was started by another Claude Code session that is still
+running, or is a Claude Code session itself, teardown names that session and
+stops. It also refuses a lane whose worktree has uncommitted changes, and it
+never touches the branch. Your commits survive teardown; your uncommitted work
+is your own to deal with first.
 
 The lane name `<lane>` is required.
 
 | Flag | What it does |
 | --- | --- |
-| `--force` | Remove the lane even when a worktree has uncommitted changes. |
+| `--force` | Remove the lane even when a worktree has uncommitted changes or another live session is using it. That session's processes are still left running. |
 
 ## seasoned-skills sweep
 
-Kill what a session left running. Sweep covers two kinds of leftovers, and it
-needs to be told which: with neither `--browsers` nor `--lane-processes` it
-prints what to choose and exits 1.
+Find what sessions left running, and kill what this session may. Sweep covers
+two kinds of leftovers, and it needs to be told which: with neither
+`--browsers` nor `--lane-processes` it prints what to choose and exits 1.
 
-Sweep finds its candidates first: automated browsers by a pattern scoped to the
-`.agent-browser` install, lane processes by command name and only where the
-process runs from inside a lane's worktree. Everything it found is listed, and
-every kill is by exact process id.
+Sweep finds its candidates first: your own automated browsers by a pattern
+scoped to the `.agent-browser` install, lane processes by command name and only
+where the process runs from inside a lane's worktree. Then it works out which
+Claude Code session started each one. Claude Code puts its own process id in
+the `CLAUDE_PID` environment variable of every command it runs, and everything
+those commands start inherits it. That sorts every process into one of four
+kinds:
+
+- **Mine**: started by the Claude Code session running the sweep.
+- **Ended session**: started by a Claude Code session that no longer runs. A
+  process id that now belongs to a process younger than the one it marked has
+  been reused, so that session counts as ended too.
+- **Another live session**: started by a different Claude Code session that
+  is still running, or a Claude Code session itself.
+- **Unmarked**: no mark, or one sweep cannot read. On macOS, the system's own
+  programs hide their environment.
+
+Without `--kill`, sweep only lists, naming each process's kind. With it, sweep
+kills the first two kinds, each by its exact process id, and never the other
+two. Run from a plain terminal outside Claude Code, nothing counts as yours, so
+only what ended sessions left behind is killed.
 
 | Flag | What it does |
 | --- | --- |
-| `--browsers` | List surviving automated-browser processes. Exits 1 while any are alive. |
-| `--kill` | With `--browsers`: kill each survivor by its exact process id, then list again. |
-| `--lane-processes` | Terminate the processes whose command name is on `provisioning.laneProcessCommands`, the common dev commands by default, and which run from inside a lane's worktree. Each is killed by its exact process id, after listing. |
+| `--browsers` | List your automated-browser processes with their ages and kinds. Exits 1 while any of this session's or an ended session's are alive. |
+| `--lane-processes` | List the processes whose command name is on `provisioning.laneProcessCommands`, the common dev commands by default, and which run from inside a lane's worktree. |
+| `--kill` | Kill what this session may: its own processes and those of ended sessions, each by its exact process id. Browsers are listed again afterwards. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes. |
-| `--hook` | With `--lane-processes`: run quietly as the session-end hook. Reads the hook payload, sweeps only when the session is truly over, and never blocks the session from ending. |
+| `--hook` | With `--lane-processes`: run quietly as the session-end hook. Reads the hook payload, acts only when the session is truly over, and never blocks the session from ending. The hook passes `--kill`. |
 
 ## Where to go next
 
