@@ -66,10 +66,10 @@ standard everywhere.
 ### Everything that needs taste runs on Opus
 
 Wherever the work calls for judgment, we run Opus. In our experience its
-work matches that of Fable, the most capable Claude model, at a much
-lower cost. Concretely, Opus runs the shaping sessions, the session that
-coordinates every build, the final quality judgment on every piece of
-work before it merges, and the hardest problems when a build hits one.
+work matches Fable's at a much lower cost. Concretely, Opus runs the
+shaping sessions, the session that coordinates every build, the final
+quality judgment on every piece of work before it merges, and the
+hardest problems when a build hits one.
 Everyday building runs on Opus too, and only wide review sweeps run on
 Sonnet; the judgment always stays with Opus, and nothing merges on
 Sonnet's word alone.
