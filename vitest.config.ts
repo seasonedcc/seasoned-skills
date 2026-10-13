@@ -7,7 +7,10 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['src/**/*.test.ts', 'tests/unit/**/*.test.ts'],
-          setupFiles: ['tests/unit/outside-claude-code.ts'],
+          setupFiles: [
+            'tests/unit/outside-claude-code.ts',
+            'tests/unit/signal-only-own-processes.ts',
+          ],
         },
       },
       {

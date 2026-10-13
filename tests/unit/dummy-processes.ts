@@ -1,8 +1,9 @@
-import { execFileSync, spawn } from 'node:child_process'
+import { type ChildProcess, execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createInterface } from 'node:readline'
 
 /**
  * Long-lived node dummies that stand in for the processes a sweep or a
@@ -11,18 +12,27 @@ import { join } from 'node:path'
  * test, an orphan whose starter is gone, or the child of a stand-in for
  * another Claude Code instance. Each carries a unique token on its command
  * line, and cleanup kills a pid only while that token is still there, so it
- * never reaches a process that merely inherited a recycled pid. Every dummy is
- * recorded the moment its pid is known, so a test that fails halfway still
- * leaves nothing running.
+ * never reaches a process that merely inherited a recycled pid. Every process
+ * a helper starts is recorded the moment its pid is known, before anything
+ * waits on it, and every wait inside a dummy is bounded, so a test that fails
+ * halfway still leaves nothing running. The recorded processes are the only
+ * ones a test may signal.
  */
 
-type Dummy = { pid: number; token: string; line: string }
+type Tracked = { pid: number; token: string }
 
-const started: Dummy[] = []
+type Dummy = Tracked & { line: string }
 
-function record(dummy: Dummy) {
-  started.push(dummy)
-  return dummy
+const tracked: Tracked[] = []
+
+function track(pid: number, token: string): Tracked {
+  const entry = { pid, token }
+  tracked.push(entry)
+  return entry
+}
+
+function isTracked(processId: number) {
+  return tracked.some((entry) => entry.pid === processId)
 }
 
 type Marker = { claudeProcessId?: number; sessionId?: string }
@@ -41,12 +51,16 @@ const LISTEN = `const server = require('node:net').createServer()
 server.listen(0, '127.0.0.1', () => process.stdout.write(server.address().port + '\\n'))
 setInterval(() => {}, 1000)`
 
-const RENAMED = `process.title = 'renamed-' + process.argv[1]
-process.stdout.write('ready\\n')
-setInterval(() => {}, 1000)`
+const NEXT_SERVER_TITLE = 'next-server (v15.0.0)'
+
+const RENAMED_LISTENER = `process.title = '${NEXT_SERVER_TITLE}'
+${LISTEN}`
+
+const RENAMED = `process.title = '${NEXT_SERVER_TITLE}'
+${HOLD_OPEN}`
 
 const LAUNCHER = `const { spawn } = require('node:child_process')
-const spec = JSON.parse(process.argv[2])
+const spec = JSON.parse(process.env.DUMMY_LAUNCH)
 if (spec.mode === 'session') spec.environment.CLAUDE_PID = String(process.pid)
 const child = spawn(spec.command[0], spec.command.slice(1), {
   cwd: spec.cwd,
@@ -54,8 +68,9 @@ const child = spawn(spec.command[0], spec.command.slice(1), {
   detached: spec.mode === 'orphan',
   stdio: ['ignore', 'pipe', 'ignore'],
 })
+process.stdout.write(child.pid + '\\n')
 child.stdout.once('data', (line) => {
-  process.stdout.write(child.pid + ' ' + line)
+  process.stdout.write(line)
   if (spec.mode === 'orphan') {
     child.stdout.destroy()
     child.unref()
@@ -83,8 +98,22 @@ function nodeCommand(token: string, script = HOLD_OPEN) {
   return [process.execPath, '-e', script, token]
 }
 
-function firstLine(
+/** Reads a child's output one line at a time; a child that stops reporting rejects. */
+function lineReader(child: ChildProcess) {
+  const lines = createInterface({ input: child.stdout as NodeJS.ReadableStream })[
+    Symbol.asyncIterator
+  ]()
+  return async () => {
+    const next = await lines.next()
+    if (next.done) throw new Error(`process ${child.pid} exited before it reported`)
+    return String(next.value).trim()
+  }
+}
+
+/** Starts a command the test owns, recorded before anything waits on it. */
+function start(
   command: string[],
+  token: string,
   options: { cwd: string; environment: NodeJS.ProcessEnv },
 ) {
   const [executable = '', ...args] = command
@@ -93,55 +122,50 @@ function firstLine(
     env: options.environment,
     stdio: ['ignore', 'pipe', 'ignore'],
   })
-  return new Promise<{ pid: number; line: string }>((resolveLine, rejectLine) => {
-    child.once('error', rejectLine)
-    child.stdout.once('data', (data: Buffer) =>
-      resolveLine({ pid: child.pid as number, line: data.toString().trim() }),
-    )
-  })
+  if (child.pid === undefined) throw new Error(`could not start ${executable}`)
+  return { started: track(child.pid, token), nextLine: lineReader(child) }
 }
 
 /** A dummy the test starts itself. */
 async function spawnDummy(cwd: string, options: DummyOptions = {}): Promise<Dummy> {
   const token = newToken(options.label)
-  const { pid, line } = await firstLine(nodeCommand(token, options.script), {
+  const { started, nextLine } = start(nodeCommand(token, options.script), token, {
     cwd,
     environment: markedEnvironment(options.marker),
   })
-  return record({ pid, token, line })
+  return { ...started, line: await nextLine() }
 }
 
 /**
- * Runs a launcher, from outside every lane, that starts the given command and
- * reports its pid and first line.
+ * Runs an unmarked launcher, from outside every lane, that starts the given
+ * command — whose command line carries the given token — and reports first
+ * its pid, then its first line.
  */
 async function launch(
   mode: 'orphan' | 'parent' | 'session',
   command: string[],
-  options: { cwd: string; environment: NodeJS.ProcessEnv; launcher?: NodeJS.ProcessEnv },
+  token: string,
+  options: { cwd: string; environment: NodeJS.ProcessEnv },
 ) {
-  const token = newToken()
-  const { pid, line } = await firstLine(
-    [
-      process.execPath,
-      '-e',
-      LAUNCHER,
-      token,
-      JSON.stringify({
-        mode,
-        command,
-        cwd: options.cwd,
-        environment: options.environment,
-      }),
-    ],
-    { cwd: tmpdir(), environment: options.launcher ?? markedEnvironment() },
+  const launcherToken = newToken()
+  const { started: launcher, nextLine } = start(
+    [process.execPath, '-e', LAUNCHER, launcherToken],
+    launcherToken,
+    {
+      cwd: tmpdir(),
+      environment: {
+        ...markedEnvironment(),
+        DUMMY_LAUNCH: JSON.stringify({
+          mode,
+          command,
+          cwd: options.cwd,
+          environment: options.environment,
+        }),
+      },
+    },
   )
-  const [childPid = '', ...rest] = line.split(' ')
-  return {
-    launcher: record({ pid, token, line }),
-    childPid: Number(childPid),
-    line: rest.join(' '),
-  }
+  const child = track(Number(await nextLine()), token)
+  return { launcher, child, nextLine }
 }
 
 /**
@@ -150,11 +174,13 @@ async function launch(
  */
 async function spawnOrphan(cwd: string, options: DummyOptions = {}): Promise<Dummy> {
   const token = newToken(options.label)
-  const { childPid, line } = await launch('orphan', nodeCommand(token, options.script), {
-    cwd,
-    environment: markedEnvironment(options.marker),
-  })
-  return record({ pid: childPid, token, line })
+  const { child, nextLine } = await launch(
+    'orphan',
+    nodeCommand(token, options.script),
+    token,
+    { cwd, environment: markedEnvironment(options.marker) },
+  )
+  return { ...child, line: await nextLine() }
 }
 
 /**
@@ -167,56 +193,60 @@ async function spawnSessionWithChild(
   options: Omit<DummyOptions, 'marker'> = {},
 ) {
   const token = newToken(options.label)
-  const { launcher, childPid, line } = await launch(
+  const { launcher, child, nextLine } = await launch(
     'session',
     nodeCommand(token, options.script),
+    token,
     { cwd, environment: markedEnvironment({ sessionId }) },
   )
-  return { session: launcher, child: record({ pid: childPid, token, line }) }
+  return { session: launcher, child: { ...child, line: await nextLine() } }
 }
 
 /**
- * A marked dummy and a child it started that renames itself — on macOS a
- * renamed process hides its environment from ps.
+ * An unmarked dummy and an unmarked child it started that renames itself the
+ * way a Next.js server does — on Linux, lsof never lists a process whose
+ * name holds a parenthesis, and on macOS a renamed process hides its
+ * environment from ps. Only its ancestry can tell its owner.
  */
-async function spawnParentWithRenamedChild(cwd: string, marker: Marker) {
+async function spawnParentWithRenamedChild(cwd: string) {
   const token = newToken()
-  const environment = markedEnvironment(marker)
-  const { launcher, childPid, line } = await launch(
+  const { launcher, child, nextLine } = await launch(
     'parent',
     nodeCommand(token, RENAMED),
-    { cwd, environment, launcher: environment },
+    token,
+    { cwd, environment: markedEnvironment() },
   )
-  return { parent: launcher, child: record({ pid: childPid, token, line }) }
+  return { parent: launcher, child: { ...child, line: await nextLine() } }
 }
 
 /**
  * An orphan marked with the pid of a process that started after it — what a
- * recycled pid looks like. The shell waits for the marker and execs node with
- * it only once the later process exists; start times are whole seconds, hence
- * the pause between the two.
+ * recycled pid looks like. The shell waits, for at most 30 seconds, for the
+ * marker and execs node with it only once the later process exists. Start
+ * times are whole seconds, so the later process starts more than a second
+ * after the shell is known to run.
  */
 async function spawnOrphanMarkedByLaterProcess(cwd: string, laterCwd: string) {
   const markerDirectory = mkdtempSync(join(tmpdir(), 'seasoned-skills-marker-'))
   const markerFile = join(markerDirectory, 'claude-pid')
   const token = newToken()
   try {
-    const orphan = launch(
+    const { child, nextLine } = await launch(
       'orphan',
       [
         '/bin/sh',
         '-c',
-        'until [ -s "$0" ]; do sleep 0.1; done; CLAUDE_PID=$(cat "$0") exec "$@"',
+        'n=0; until [ -s "$0" ]; do n=$((n + 1)); [ "$n" -le 300 ] || exit 1; sleep 0.1; done; CLAUDE_PID=$(cat "$0") exec "$@"',
         markerFile,
         ...nodeCommand(token),
       ],
+      token,
       { cwd, environment: markedEnvironment() },
     )
     await new Promise((resolvePause) => setTimeout(resolvePause, 1100))
     const later = await spawnDummy(laterCwd)
     writeFileSync(markerFile, String(later.pid))
-    const { childPid, line } = await orphan
-    return { dummy: record({ pid: childPid, token, line }), later }
+    return { dummy: { ...child, line: await nextLine() }, later }
   } finally {
     rmSync(markerDirectory, { recursive: true, force: true })
   }
@@ -229,33 +259,37 @@ async function endedProcessId() {
   return child.pid as number
 }
 
-function isRunning(dummy: Dummy) {
+/** The real ps, resolved before any test puts a stand-in on PATH. */
+const PS = execFileSync('/bin/sh', ['-c', 'command -v ps'], { encoding: 'utf8' }).trim()
+
+function isRunning(entry: Tracked) {
   try {
-    return execFileSync('ps', ['-o', 'command=', '-p', String(dummy.pid)], {
+    return execFileSync(PS, ['-o', 'command=', '-p', String(entry.pid)], {
       encoding: 'utf8',
-    }).includes(dummy.token)
+    }).includes(entry.token)
   } catch {
     return false
   }
 }
 
-async function exits(dummy: Dummy, timeoutMilliseconds = 10_000) {
+async function exits(entry: Tracked, timeoutMilliseconds = 10_000) {
   const deadline = Date.now() + timeoutMilliseconds
-  while (isRunning(dummy)) {
+  while (isRunning(entry)) {
     if (Date.now() > deadline) return false
     await new Promise((resolvePause) => setTimeout(resolvePause, 50))
   }
   return true
 }
 
-/** Kills every dummy this test file started that still runs. */
+/** Kills every process this test file started that still runs. */
 function stopDummies() {
-  for (const dummy of started.splice(0)) {
-    if (!isRunning(dummy)) continue
+  for (const entry of tracked) {
+    if (!isRunning(entry)) continue
     try {
-      process.kill(dummy.pid, 'SIGKILL')
+      process.kill(entry.pid, 'SIGKILL')
     } catch {}
   }
+  tracked.splice(0)
 }
 
 export type { Dummy }
@@ -263,7 +297,9 @@ export {
   endedProcessId,
   exits,
   isRunning,
+  isTracked,
   LISTEN,
+  RENAMED_LISTENER,
   spawnDummy,
   spawnOrphan,
   spawnOrphanMarkedByLaterProcess,

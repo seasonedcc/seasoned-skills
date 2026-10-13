@@ -342,22 +342,15 @@ describe('lane-process sweep ownership', () => {
     })
   })
 
-  it('finds the owner of a process that hides its environment through its ancestry', {
+  it('finds the owner of a renamed, unmarked process through its ancestry alone', {
     timeout: 30_000,
   }, async () => {
     vi.stubEnv('CLAUDE_PID', String(process.pid))
     const [{ child: renamed }, unmarked, live] = await Promise.all([
-      spawnParentWithRenamedChild(lane, { claudeProcessId: process.pid }),
+      spawnParentWithRenamedChild(lane),
       spawnOrphan(lane),
       spawnSessionWithChild(lane, 'other-session'),
     ])
-    if (process.platform === 'darwin') {
-      expect(
-        execFileSync('ps', ['-E', '-ww', '-o', 'command=', '-p', String(renamed.pid)], {
-          encoding: 'utf8',
-        }),
-      ).not.toContain('CLAUDE_PID=')
-    }
 
     const listed = listLaneProcesses(repo, undefined)
     expect(listed.find((entry) => entry.processId === renamed.pid)?.ownership).toEqual({
