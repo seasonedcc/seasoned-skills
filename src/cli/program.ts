@@ -1,7 +1,6 @@
-import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import { setTimeout as delay } from 'node:timers/promises'
 import { Command } from 'commander'
 import { loadConfig } from '../config/load.js'
 import { buildCorpus } from '../corpus/build.js'
@@ -10,6 +9,14 @@ import { checkTarget, deriveChecks, renderReport, runChecks } from '../doctor/do
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
 import {
+  type BrowserProcess,
+  killBrowserProcesses,
+  listBrowserProcesses,
+} from '../processes/browsers.js'
+import { describeOwnership, isKillable, type Ownership } from '../processes/ownership.js'
+import {
+  type LaneProcessCandidate,
+  listLaneProcesses,
   provisionLane,
   sessionEndCleansUpProcesses,
   sweepLaneProcesses,
@@ -188,10 +195,13 @@ export function buildProgram(): Command {
   program
     .command('teardown')
     .description(
-      "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
+      "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those listening on the lane's ports from inside its worktrees that this session or an ended one started), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane another live Claude Code session is using, or one with uncommitted changes; never touches the branch.",
     )
     .argument('<lane>', 'the lane to remove')
-    .option('--force', 'remove the lane even when a worktree has uncommitted changes')
+    .option(
+      '--force',
+      "remove the lane even when a worktree has uncommitted changes or another live session is using it; that session's processes are still left running",
+    )
     .action(async (lane: string, options: { force?: boolean }) => {
       try {
         const config = await loadConfig(process.cwd())
@@ -205,22 +215,22 @@ export function buildProgram(): Command {
   program
     .command('sweep')
     .description(
-      'Sweep leftover workflow processes: automated browsers, or the processes of torn-down provisioning lanes.',
+      "List leftover workflow processes — automated browsers, or processes running from inside provisioning lanes — with the Claude Code session each belongs to, and with --kill, kill the ones this session may: its own and those of ended sessions, never another live session's or an unmarked process.",
     )
     .option(
       '--browsers',
-      'list surviving automated-browser processes; exits 1 while any are alive',
+      "list this user's automated-browser processes; exits 1 while any this session may kill are alive",
     )
+    .option('--lane-processes', 'list the processes running from inside worktree lanes')
     .option(
       '--kill',
-      'with --browsers: kill each survivor by its exact pid, then re-list',
-    )
-    .option(
-      '--lane-processes',
-      'terminate processes running from inside worktree lanes, each by its exact pid after listing',
+      "kill the listed processes this session may kill — its own and ended sessions' — each by its exact pid",
     )
     .option('--lane <lane>', "with --lane-processes: only that lane's processes")
-    .option('--hook', 'with --lane-processes: run quietly as the session-end hook')
+    .option(
+      '--hook',
+      'with --lane-processes: run quietly as the session-end hook, acting only when the session is truly over',
+    )
     .action(
       async (options: {
         browsers?: boolean
@@ -230,13 +240,12 @@ export function buildProgram(): Command {
         hook?: boolean
       }) => {
         if (options.browsers) {
-          const script = fileURLToPath(
-            new URL('../../runtime/sweeps/browser-sweep.sh', import.meta.url),
-          )
-          const result = spawnSync('sh', [script, ...(options.kill ? ['--kill'] : [])], {
-            stdio: 'inherit',
-          })
-          process.exitCode = result.status ?? 1
+          try {
+            await sweepBrowsers(options.kill === true)
+          } catch (error) {
+            console.error((error as Error).message)
+            process.exitCode = 1
+          }
           return
         }
         if (options.laneProcesses) {
@@ -245,7 +254,8 @@ export function buildProgram(): Command {
             // reasons that mean "this machine's session is truly over" sweep,
             // and nothing may ever block session end.
             try {
-              if (!sessionEndCleansUpProcesses(sessionEndReason())) return
+              if (!options.kill || !sessionEndCleansUpProcesses(sessionEndReason()))
+                return
               const config = await loadConfig(process.cwd())
               sweepLaneProcesses(process.cwd(), config.provisioning)
             } catch {
@@ -255,12 +265,19 @@ export function buildProgram(): Command {
           }
           try {
             const config = await loadConfig(process.cwd())
-            const swept = sweepLaneProcesses(
-              process.cwd(),
-              config.provisioning,
-              options.lane === undefined ? {} : { lane: options.lane },
-            )
-            if (swept.length === 0) console.log('No lane processes to sweep.')
+            const laneOption = options.lane === undefined ? {} : { lane: options.lane }
+            if (options.kill) {
+              const { candidates, terminated } = sweepLaneProcesses(
+                process.cwd(),
+                config.provisioning,
+                laneOption,
+              )
+              reportLaneSweep(candidates, new Set(terminated))
+            } else {
+              reportLaneProcesses(
+                listLaneProcesses(process.cwd(), config.provisioning, laneOption),
+              )
+            }
           } catch (error) {
             console.error((error as Error).message)
             process.exitCode = 1
@@ -284,4 +301,90 @@ function sessionEndReason(): string | undefined {
   } catch {
     return undefined
   }
+}
+
+function processes(count: number) {
+  return `${count} ${count === 1 ? 'process' : 'processes'}`
+}
+
+const KEPT_EXPLANATION =
+  "Another live session's processes and unmarked ones are never killed."
+
+function laneProcessLine(verdict: string, candidate: LaneProcessCandidate) {
+  return `  ${verdict.padEnd(11)} ${candidate.processId}  ${candidate.lane}  ${describeOwnership(candidate.ownership)}  ${candidate.command}`
+}
+
+function reportLaneProcesses(candidates: LaneProcessCandidate[]) {
+  if (candidates.length === 0) {
+    console.log('No lane processes to sweep.')
+    return
+  }
+  for (const candidate of candidates) {
+    console.log(
+      laneProcessLine(isKillable(candidate.ownership) ? 'would kill' : 'keep', candidate),
+    )
+  }
+  const killable = candidates.filter((candidate) => isKillable(candidate.ownership))
+  console.log(
+    `${killable.length} of ${candidates.length} would be killed with --kill: this session's own and those of ended sessions. ${KEPT_EXPLANATION}`,
+  )
+}
+
+function reportLaneSweep(
+  candidates: LaneProcessCandidate[],
+  terminated: Set<LaneProcessCandidate>,
+) {
+  if (candidates.length === 0) {
+    console.log('No lane processes to sweep.')
+    return
+  }
+  for (const candidate of candidates) {
+    const verdict = terminated.has(candidate)
+      ? 'terminated'
+      : isKillable(candidate.ownership)
+        ? 'exited'
+        : 'kept'
+    console.log(laneProcessLine(verdict, candidate))
+  }
+  console.log(
+    `Terminated ${terminated.size} of ${processes(candidates.length)} found in lanes. ${KEPT_EXPLANATION}`,
+  )
+}
+
+type ClassifiedBrowser = BrowserProcess & { ownership: Ownership }
+
+function reportBrowsers(browsers: ClassifiedBrowser[]) {
+  for (const kind of ['Chrome for Testing', 'agent-browser daemon'] as const) {
+    const ofKind = browsers.filter((browser) => browser.kind === kind)
+    console.log(`${kind} processes: ${ofKind.length}`)
+    for (const browser of ofKind) {
+      console.log(
+        `  pid=${browser.processId} age=${browser.age} ${describeOwnership(browser.ownership)}`,
+      )
+    }
+  }
+  const killable = browsers.filter((browser) => isKillable(browser.ownership))
+  const kept = browsers.length - killable.length
+  const keptNote = kept === 0 ? '' : ` ${kept} kept. ${KEPT_EXPLANATION}`
+  if (killable.length > 0) {
+    console.log(
+      `SWEEP: ${processes(killable.length)} of this session or ended sessions still alive — NOT clean.${keptNote}`,
+    )
+    process.exitCode = 1
+    return
+  }
+  console.log(
+    `SWEEP: clean — no browser process of this session or an ended session is alive.${keptNote}`,
+  )
+}
+
+async function sweepBrowsers(kill: boolean) {
+  let browsers = listBrowserProcesses()
+  if (kill) {
+    const killed = killBrowserProcesses(browsers)
+    for (const browser of killed) console.log(`killing pid=${browser.processId}`)
+    if (killed.length > 0) await delay(2000)
+    browsers = listBrowserProcesses()
+  }
+  reportBrowsers(browsers)
 }

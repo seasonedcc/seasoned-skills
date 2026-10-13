@@ -4,14 +4,18 @@ import { createServer, type Server } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ownProcessIds } from '../../src/processes/ownership.js'
 import { resolveProvisioning } from '../../src/provisioning/common.js'
+import {
+  listLaneProcesses,
+  sweepLaneProcesses,
+} from '../../src/provisioning/processes.js'
 import {
   commandLine,
   git,
   gitSucceeds,
   isPortFree,
   isPortListening,
-  ownProcessIds,
   portListenerProcessIds,
   processWorkingDirectory,
   resolveMainRepository,
@@ -25,6 +29,14 @@ import {
 } from '../../src/provisioning/setup.js'
 import { killLanePortListeners } from '../../src/provisioning/teardown.js'
 import { collectSources } from '../../src/provisioning/template.js'
+import {
+  endedProcessId,
+  exits,
+  isRunning,
+  spawnDummy,
+  spawnDummyMarkedByLaterProcess,
+  stopDummies,
+} from './dummy-processes.js'
 
 function initRepo(path: string) {
   mkdirSync(path, { recursive: true })
@@ -257,6 +269,92 @@ describe('killLanePortListeners', () => {
       inside.child.kill('SIGKILL')
       stranger.child.kill('SIGKILL')
     }
+  })
+})
+
+describe('lane-process sweep ownership', () => {
+  let root: string
+  let repo: string
+  let lane: string
+  const dummies: ChildProcess[] = []
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-sweep-')))
+    repo = join(root, 'project')
+    initRepo(repo)
+    lane = join(root, 'project-worktrees', 'lane-a')
+    mkdirSync(lane, { recursive: true })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    stopDummies(dummies)
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  async function laneOfEveryOwnership() {
+    const sweeper = await spawnDummy(root)
+    const otherSession = await spawnDummy(root)
+    dummies.push(sweeper, otherSession)
+    vi.stubEnv('CLAUDE_PID', String(sweeper.pid))
+    const endedSession = await endedProcessId()
+    const [mine, ended, live, unmarked] = await Promise.all([
+      spawnDummy(lane, { claudeProcessId: sweeper.pid as number }),
+      spawnDummy(lane, { claudeProcessId: endedSession }),
+      spawnDummy(lane, {
+        claudeProcessId: otherSession.pid as number,
+        sessionId: 'other-session',
+      }),
+      spawnDummy(lane),
+    ])
+    const { dummy: recycled, later } = await spawnDummyMarkedByLaterProcess(lane, root)
+    dummies.push(mine, ended, live, unmarked, recycled, later)
+    return { mine, ended, recycled, live, unmarked, otherSession, endedSession }
+  }
+
+  it('classifies every process in a lane by the Claude Code instance that started it', {
+    timeout: 30_000,
+  }, async () => {
+    const lane = await laneOfEveryOwnership()
+
+    const listed = listLaneProcesses(repo, undefined)
+
+    expect(
+      Object.fromEntries(listed.map((entry) => [entry.processId, entry.ownership])),
+    ).toEqual({
+      [lane.mine.pid as number]: { kind: 'mine' },
+      [lane.ended.pid as number]: {
+        kind: 'ended-session',
+        claudeProcessId: lane.endedSession,
+      },
+      [lane.recycled.pid as number]: expect.objectContaining({ kind: 'ended-session' }),
+      [lane.live.pid as number]: {
+        kind: 'live-session',
+        claudeProcessId: lane.otherSession.pid,
+        sessionId: 'other-session',
+      },
+      [lane.unmarked.pid as number]: { kind: 'unmarked' },
+    })
+    expect(listed.every((entry) => entry.lane === 'lane-a')).toBe(true)
+    expect(
+      [lane.mine, lane.ended, lane.recycled, lane.live, lane.unmarked].every(isRunning),
+    ).toBe(true)
+  })
+
+  it("kills its own and ended sessions' lane processes, never another live session's or an unmarked one", {
+    timeout: 30_000,
+  }, async () => {
+    const lane = await laneOfEveryOwnership()
+
+    sweepLaneProcesses(repo, undefined)
+
+    expect(
+      await Promise.all([exits(lane.mine), exits(lane.ended), exits(lane.recycled)]),
+    ).toEqual([true, true, true])
+    expect(await exits(lane.live, 1000)).toBe(false)
+    expect(await exits(lane.unmarked, 1000)).toBe(false)
   })
 })
 

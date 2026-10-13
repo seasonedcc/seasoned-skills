@@ -24,11 +24,11 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "provision",
     },
     {
-      "description": "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those running from the lane's own worktrees), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane with uncommitted changes; never touches the branch.",
+      "description": "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those listening on the lane's ports from inside its worktrees that this session or an ended one started), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane another live Claude Code session is using, or one with uncommitted changes; never touches the branch.",
       "name": "teardown",
     },
     {
-      "description": "Sweep leftover workflow processes: automated browsers, or the processes of torn-down provisioning lanes.",
+      "description": "List leftover workflow processes — automated browsers, or processes running from inside provisioning lanes — with the Claude Code session each belongs to, and with --kill, kill the ones this session may: its own and those of ended sessions, never another live session's or an unmarked process.",
       "name": "sweep",
     },
   ],

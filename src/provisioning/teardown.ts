@@ -2,6 +2,13 @@ import { existsSync, readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import type { ProvisioningConfig } from '../config/types.js'
 import {
+  describeHolder,
+  describeOwnership,
+  isKillable,
+  type Ownership,
+  withOwnership,
+} from '../processes/ownership.js'
+import {
   databaseNameFromUrl,
   defaultDatabasePrefix,
   isFlushableCacheStoreUrl,
@@ -17,7 +24,9 @@ import {
   resolveProvisioning,
   withDatabaseName,
 } from './common.js'
+import { type LaneProcessCandidate, lanesProcesses } from './processes.js'
 import {
+  commandLine,
   flushCacheStore,
   git,
   gitSucceeds,
@@ -27,13 +36,14 @@ import {
   resolveMainRepository,
   withAdminClient,
 } from './runtime.js'
-import { type LaneWorktree, laneWorktrees } from './setup.js'
+import { type LaneWorktree, laneWorktrees, worktreesRoot } from './setup.js'
 
 /**
- * Lane teardown: refuses a dirty tree unless forced, kills only processes
- * that both listen on the lane's managed ports and run from inside the lane's
- * worktrees — by exact process id, after listing — flushes the lane's
- * cache-store index, drops the lane's whole derived-database family via the
+ * Lane teardown: refuses a lane another live Claude Code session is using, or
+ * a dirty tree, unless forced; kills only processes that listen on the lane's
+ * managed ports, run from inside the lane's worktrees, and belong to this
+ * session or an ended one — by exact process id, after listing — flushes the
+ * lane's cache-store index, drops the lane's whole derived-database family via the
  * declared derived-name patterns, and removes the worktrees. Teardown takes no
  * selection: it sweeps the lane across every declared repository, whichever
  * subset of them the lane was provisioned for. A repository the lane never
@@ -44,7 +54,10 @@ import { type LaneWorktree, laneWorktrees } from './setup.js'
  */
 
 type TeardownOptions = {
-  /** Remove the lane even when a worktree has uncommitted changes. */
+  /**
+   * Remove the lane even when a worktree has uncommitted changes or another
+   * live session is using it. That session's processes are still never killed.
+   */
   force?: boolean
 }
 
@@ -99,12 +112,14 @@ function isDirty(worktreePath: string) {
 
 /**
  * Terminate the listeners on the lane's ports — but only processes whose
- * working directory is inside one of the lane's worktrees. A stranger that
- * happened to grab the port is left alone. Kills are by exact pid, listed
- * first, never by pattern.
+ * working directory is inside one of the lane's worktrees, and only those
+ * this session may kill: its own and those of ended sessions. A stranger that
+ * happened to grab the port, another live session's server, and an unmarked
+ * process are left alone. Kills are by exact pid, listed first, never by
+ * pattern.
  */
 function killLanePortListeners(ports: number[], laneWorktreePaths: string[]) {
-  const killed: number[] = []
+  const listeners: { port: number; processId: number; command: string }[] = []
   for (const port of ports) {
     if (!Number.isFinite(port) || port <= 0) continue
     for (const processId of portListenerProcessIds(port)) {
@@ -118,16 +133,48 @@ function killLanePortListeners(ports: number[], laneWorktreePaths: string[]) {
         )
         continue
       }
-      try {
-        process.kill(processId, 'SIGTERM')
-      } catch {
-        continue
-      }
-      killed.push(processId)
-      log(`terminated process ${processId} listening on port ${port}`)
+      listeners.push({ port, processId, command: commandLine(processId) })
     }
   }
+  const killed: number[] = []
+  for (const listener of withOwnership(listeners)) {
+    if (!isKillable(listener.ownership)) {
+      log(
+        `leaving process ${listener.processId} on port ${listener.port} running — ${describeOwnership(listener.ownership)}`,
+      )
+      continue
+    }
+    try {
+      process.kill(listener.processId, 'SIGTERM')
+    } catch {
+      continue
+    }
+    killed.push(listener.processId)
+    log(`terminated process ${listener.processId} listening on port ${listener.port}`)
+  }
   return killed
+}
+
+type LiveSessionProcess = LaneProcessCandidate & {
+  ownership: Extract<Ownership, { kind: 'live-session' }>
+}
+
+function inUseRefusal(lane: string, holders: LiveSessionProcess[]) {
+  const sessions = [
+    ...new Map(
+      holders.map((holder) => [holder.ownership.claudeProcessId, holder.ownership]),
+    ).values(),
+  ]
+  return [
+    `lane ${lane} is in use by another live Claude Code session (${sessions
+      .map(describeHolder)
+      .join('; ')}) — nothing was changed:`,
+    ...holders.map(
+      (holder) =>
+        `  process ${holder.processId} runs ${holder.command} from ${holder.workingDirectory}`,
+    ),
+    "Re-run with force to tear it down anyway; that session's processes are left running.",
+  ].join('\n')
 }
 
 async function dropLaneDatabase(adminUrl: string, name: string, prefix: string) {
@@ -252,8 +299,20 @@ async function teardownLane(
     `worktree/${lane}`,
   )
 
-  // The dirty check comes before anything destructive: a lane holding
-  // uncommitted work is refused whole, not half torn down.
+  // Both refusals come before anything destructive: a lane another live
+  // session is using, or one holding uncommitted work, is refused whole, not
+  // half torn down.
+  if (!options.force) {
+    const holders = lanesProcesses(
+      worktrees.map((worktree) => worktreesRoot(worktree.repositoryPath)),
+      [],
+      lane,
+    ).filter(
+      (candidate): candidate is LiveSessionProcess =>
+        candidate.ownership.kind === 'live-session',
+    )
+    if (holders.length > 0) throw new Error(inUseRefusal(lane, holders))
+  }
   for (const worktree of worktrees) {
     if (isDirty(worktree.worktreePath) && !options.force) {
       throw new Error(

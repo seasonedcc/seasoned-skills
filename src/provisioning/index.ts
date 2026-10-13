@@ -14,9 +14,9 @@ export {
   type TemplateFingerprint,
 } from './common.js'
 export {
+  type LaneProcessCandidate,
   type LaneProcessOptions,
   listLaneProcesses,
-  type SweptProcess,
   sweepLaneProcesses,
 } from './processes.js'
 export {

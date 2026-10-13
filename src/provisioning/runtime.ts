@@ -7,8 +7,9 @@ import { withDatabaseName } from './common.js'
 /**
  * Side-effecting helpers the provisioning flows share: git, shell steps,
  * Postgres admin connections, port probes, and the cache-store flush. Nothing
- * here kills a process — the only kills in this package live in teardown and
- * the lane-process sweep, and both act on exact process ids after listing.
+ * here kills a process — the only kills in this package live in teardown, the
+ * lane-process sweep, and the browser sweep, and each acts on exact process
+ * ids after listing, only where the process ownership rule allows.
  */
 
 function log(message: string) {
@@ -190,20 +191,6 @@ function commandLine(processId: number) {
   return result.stdout?.trim() ?? ''
 }
 
-/** This process and its ancestors — never candidates for a sweep. */
-function ownProcessIds() {
-  const ids = new Set<number>()
-  let current = process.pid
-  while (current > 1 && !ids.has(current)) {
-    ids.add(current)
-    const result = spawnSync('ps', ['-o', 'ppid=', '-p', String(current)], {
-      encoding: 'utf8',
-    })
-    current = Number(result.stdout?.trim())
-  }
-  return ids
-}
-
 export {
   commandLine,
   flushCacheStore,
@@ -212,7 +199,6 @@ export {
   isPortFree,
   isPortListening,
   log,
-  ownProcessIds,
   portListenerProcessIds,
   processWorkingDirectory,
   resolveMainRepository,

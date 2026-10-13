@@ -3,23 +3,30 @@ import { userInfo } from 'node:os'
 import { basename } from 'node:path'
 import type { ProvisioningConfig } from '../config/types.js'
 import {
+  isKillable,
+  type Ownership,
+  ownProcessIds,
+  withOwnership,
+} from '../processes/ownership.js'
+import {
   defaultDatabasePrefix,
   type LaneProcess,
   laneProcessesFromLsofOutput,
   resolveProvisioning,
   sessionEndCleansUpProcesses,
 } from './common.js'
-import { commandLine, log, ownProcessIds, resolveMainRepository } from './runtime.js'
+import { commandLine, resolveMainRepository } from './runtime.js'
 import { laneWorktrees, worktreesRoot } from './setup.js'
 
 /**
  * Lane-process handling: enumerate the processes running from inside a lane
- * (lsof by working directory under the worktrees roots), and sweep orphans.
- * Every kill is by exact process id, after listing — never by pattern. The
+ * (lsof by working directory under the worktrees roots), each with the Claude
+ * Code instance it belongs to, and sweep the ones this session may kill — its
+ * own, and those of sessions that ended — each by its exact process id. The
  * CLI's `sweep --lane-processes` and the session-end hook both land here.
  */
 
-type SweptProcess = LaneProcess & { command: string }
+type LaneProcessCandidate = LaneProcess & { command: string; ownership: Ownership }
 
 type LaneProcessOptions = {
   /** Restrict to one lane's processes. */
@@ -42,17 +49,11 @@ function laneWorktreesRoots(
 }
 
 /**
- * List the processes whose working directory sits inside a lane, across every
- * declared repository's worktrees root. This process and its ancestors are
- * never listed.
+ * This user's processes running from inside a lane under the given worktrees
+ * roots, with their ownership — restricted to the given command names when
+ * there are any. This process and its ancestors are never listed.
  */
-function listLaneProcesses(
-  projectRoot: string,
-  config: ProvisioningConfig | undefined,
-  options: LaneProcessOptions = {},
-): SweptProcess[] {
-  const mainRepository = resolveMainRepository(projectRoot)
-  const { resolved, roots } = laneWorktreesRoots(mainRepository, config)
+function lanesProcesses(roots: string[], commands: string[], lane?: string) {
   const result = spawnSync(
     'lsof',
     [
@@ -61,47 +62,67 @@ function listLaneProcesses(
       userInfo().username,
       '-d',
       'cwd',
-      ...resolved.laneProcessCommands.flatMap((name) => ['-c', name]),
+      ...commands.flatMap((name) => ['-c', name]),
       '-F',
       'pn',
     ],
     { encoding: 'utf8' },
   )
   const own = ownProcessIds()
-  return laneProcessesFromLsofOutput(result.stdout ?? '', roots)
-    .filter(
-      (candidate) =>
-        !own.has(candidate.processId) &&
-        (!options.lane || candidate.lane === options.lane),
-    )
-    .map((candidate) => ({ ...candidate, command: commandLine(candidate.processId) }))
+  return withOwnership(
+    laneProcessesFromLsofOutput(result.stdout ?? '', roots)
+      .filter(
+        (candidate) =>
+          !own.has(candidate.processId) && (!lane || candidate.lane === lane),
+      )
+      .map((candidate) => ({ ...candidate, command: commandLine(candidate.processId) })),
+  )
 }
 
 /**
- * Terminate a lane's (or every lane's) processes. Lists first, then kills
- * each by its exact process id with SIGTERM. Returns what was killed.
+ * List the processes whose working directory sits inside a lane, across every
+ * declared repository's worktrees root, each with its ownership.
+ */
+function listLaneProcesses(
+  projectRoot: string,
+  config: ProvisioningConfig | undefined,
+  options: LaneProcessOptions = {},
+): LaneProcessCandidate[] {
+  const { resolved, roots } = laneWorktreesRoots(
+    resolveMainRepository(projectRoot),
+    config,
+  )
+  return lanesProcesses(roots, resolved.laneProcessCommands, options.lane)
+}
+
+/**
+ * Terminate the lane processes this session may kill — its own and those of
+ * ended sessions — each by its exact process id with SIGTERM. Another live
+ * session's processes and unmarked ones are listed and left running.
  */
 function sweepLaneProcesses(
   projectRoot: string,
   config: ProvisioningConfig | undefined,
   options: LaneProcessOptions = {},
-): SweptProcess[] {
-  const processes = listLaneProcesses(projectRoot, config, options)
-  const killed: SweptProcess[] = []
-  for (const candidate of processes) {
+) {
+  const candidates = listLaneProcesses(projectRoot, config, options)
+  const terminated: LaneProcessCandidate[] = []
+  for (const candidate of candidates) {
+    if (!isKillable(candidate.ownership)) continue
     try {
       process.kill(candidate.processId, 'SIGTERM')
     } catch {
-      log(`process ${candidate.processId} in lane ${candidate.lane} already exited`)
       continue
     }
-    killed.push(candidate)
-    log(
-      `terminated ${candidate.processId} in lane ${candidate.lane}: ${candidate.command}`,
-    )
+    terminated.push(candidate)
   }
-  return killed
+  return { candidates, terminated }
 }
 
-export type { LaneProcessOptions, SweptProcess }
-export { listLaneProcesses, sessionEndCleansUpProcesses, sweepLaneProcesses }
+export type { LaneProcessCandidate, LaneProcessOptions }
+export {
+  lanesProcesses,
+  listLaneProcesses,
+  sessionEndCleansUpProcesses,
+  sweepLaneProcesses,
+}

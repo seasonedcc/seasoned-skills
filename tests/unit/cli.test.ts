@@ -1,9 +1,11 @@
-import { execFileSync } from 'node:child_process'
+import { type ChildProcess, execFileSync } from 'node:child_process'
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -12,6 +14,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
+import { exits, spawnDummy, stopDummies } from './dummy-processes.js'
 
 const fixture = fileURLToPath(new URL('../golden/fixtures/cli-package/', import.meta.url))
 
@@ -22,6 +25,7 @@ function run(...args: string[]) {
 describe('the CLI program', () => {
   let root: string
   const startDirectory = process.cwd()
+  const dummies: ChildProcess[] = []
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'seasoned-skills-cli-'))
@@ -35,6 +39,8 @@ describe('the CLI program', () => {
   })
 
   afterEach(() => {
+    stopDummies(dummies)
+    rmSync(`${root}-worktrees`, { recursive: true, force: true })
     process.chdir(startDirectory)
     process.exitCode = undefined
     vi.unstubAllEnvs()
@@ -133,5 +139,28 @@ describe('the CLI program', () => {
     expect(vi.mocked(console.log).mock.calls.join('\n')).toContain(
       'No lane processes to sweep.',
     )
+  })
+
+  it('lane-process sweep lists by default and kills only with --kill', {
+    timeout: 30_000,
+  }, async () => {
+    scaffoldProject()
+    execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+      cwd: root,
+    })
+    const lane = join(`${realpathSync(root)}-worktrees`, 'lane-a')
+    mkdirSync(lane, { recursive: true })
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const mine = await spawnDummy(lane, { claudeProcessId: process.pid })
+    dummies.push(mine)
+
+    await run('sweep', '--lane-processes')
+    const listing = vi.mocked(console.log).mock.calls.join('\n')
+    expect(listing).toContain(`${mine.pid}`)
+    expect(listing).toContain('mine')
+    expect(await exits(mine, 1000)).toBe(false)
+
+    await run('sweep', '--lane-processes', '--kill')
+    expect(await exits(mine)).toBe(true)
   })
 })
