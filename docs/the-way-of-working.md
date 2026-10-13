@@ -63,16 +63,16 @@ years to build, and the workflow exists to keep that inheritance current
 in every project at once, so a standard sharpened anywhere becomes the
 standard everywhere.
 
-### Everything that needs taste runs on Fable
+### Everything that needs taste runs on Opus
 
-Wherever the work calls for judgment, we run Fable, the strongest Claude
-model, because taste is exactly what it has and we have not found its
-match anywhere else. Concretely, Fable runs the shaping sessions, the
+Wherever the work calls for judgment, we run Opus, the strongest Claude
+model for the price. Fable costs much more, and in our experience its
+work is no better. Concretely, Opus runs the shaping sessions, the
 session that coordinates every build, the final quality judgment on every
 piece of work before it merges, and the hardest problems when a build
-hits one. Everyday building runs on Opus, and wide review sweeps run on
-Sonnet; the judgment always stays with Fable, and nothing merges on a
-lower tier's word alone.
+hits one. Everyday building runs on Opus too, and only wide review sweeps
+run on Sonnet; the judgment always stays with Opus, and nothing merges on
+Sonnet's word alone.
 
 The second half of this conviction matters as much as the first: the
 taste is codified in skills. When a session learns what good looks like
@@ -277,7 +277,7 @@ review that precedes every build mean what it should.
 ## From document to build
 
 A person starts the build by opening a fresh Claude Code session on the
-project, picking Fable, and typing `/goal` followed by the goal text
+project, picking Opus, and typing `/goal` followed by the goal text
 pasted from the document. `/goal` is Claude Code's own feature, not
 something this package ships: it keeps the session working until the goal
 is met, and it is what makes the multi-hour autonomous build possible.
@@ -289,7 +289,7 @@ smaller job is the whole of [Running a session](running-a-session.md).
 The session the goal was typed into acts as the orchestrator: the one
 session that plans the work, splits it into independent pieces, delegates
 each piece, reads the resulting changes, and rules on quality. It runs on
-Fable, because everything it does is judgment. It does not type the code
+Opus, because everything it does is judgment. It does not type the code
 itself; agents type, the orchestrator decides. Each delegated piece goes
 out with written instructions saying what to build, which files belong to
 it and which belong to its siblings, and where to stop, and each is sized
@@ -452,7 +452,7 @@ things deliberately not being done. A reviewer who knows the business
 reads it and corrects one wrong assumption before any code exists.
 
 The document's goal is pasted into `/goal` in a fresh Claude Code session
-running Fable. The orchestrator splits the work into lanes, agents build
+running Opus. The orchestrator splits the work into lanes, agents build
 and test in parallel worktrees, pull requests are adversarially reviewed
 and merged into the goal's branch, and the person checks in a few times a
 day to compact the context and answer the occasional questionnaire, as
