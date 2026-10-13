@@ -44,18 +44,20 @@ checks what it remembers against the real sources of truth (the
 codebase, the pull requests, the shaping document), and where the
 summary and the sources disagree, the sources win.
 
-The ledger sits in `.sessions/<session id>/` in your main checkout,
-beside everything else the session writes: its notes, its logs, the
-instructions it hands its helpers. Claude Code offers a scratch
-directory of its own, but it lives under `/tmp`, and the operating
-system empties that on a reboot and clears out files nobody touched for
-a few days. A session that loses its ledger halfway through a long
-effort loses the record it recovers from, so the workflow uses Claude
-Code's directory for browser logins alone. The session folder stays for
-as long as Claude Code keeps the session's transcript, the saved
+Claude Code gives every session a scratch directory of its own, but it
+lives under `/tmp`, and the operating system empties that on a reboot
+and clears out files nobody has touched for a few days. A session that
+loses its ledger halfway through a long effort loses the record it
+recovers from. So the ledger, and everything else the session writes
+(its notes, its logs, the instructions it hands its helpers), lives in a
+folder named after the id Claude Code gives each session, under
+`.sessions/` in your main checkout (the copy of the repository you
+cloned, which every worktree branches from). That folder stays for as
+long as Claude Code keeps the session's transcript, the saved
 conversation a session resumes from, so a session you resume weeks later
 still finds its ledger, and the folder is removed once that transcript
-is gone.
+is gone. Browser logins are the one thing left in Claude Code's
+directory, because their cookies must never land inside a checkout.
 
 The status line at the bottom of the session shows a context bar:
 green while the context is under a quarter full, yellow up to a third,

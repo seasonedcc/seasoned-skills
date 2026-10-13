@@ -51,4 +51,4 @@ fi
 
 echo
 echo "Ready. Narrate a line:"
-echo "  ./narrate.sh --text 'The recipe list opens on drafts.' --out /tmp/line.wav"
+echo "  ./narrate.sh --text 'The recipe list opens on drafts.' --out \"\$(seasoned-skills session-folder)/line.wav\""
