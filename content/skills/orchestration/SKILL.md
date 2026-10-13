@@ -93,18 +93,18 @@ A charter is the task prompt a subagent receives. Requirements:
 
 ## Browser and process hygiene
 
-- Every agent that drives a browser ends with its browser session closed, and the orchestrator verifies it — a successful `close`, or an agent's report that it closed its session, is not evidence that the processes died; only a process listing is. After each browser agent completes, and again between waves, sweep to zero with the shipped command:
+- Every agent that drives a browser ends with its browser session closed, and the orchestrator verifies it — a successful `close`, or an agent's report that it closed its session, is not evidence that the processes died; only a process listing is. After each browser agent completes, and again between waves, sweep to zero with the shipped command. It lists this user's browser processes with the Claude Code session each belongs to; "to zero" covers this session's browsers and those of ended sessions, while another live session's are listed and never touched:
 
   ```bash
-  seasoned-skills sweep --browsers          # list survivors with their ages; exits 1 if any are alive
-  seasoned-skills sweep --browsers --kill   # kill each survivor by its exact pid, then re-list to prove it
+  seasoned-skills sweep --browsers          # list with ages and owners; exits 1 while any of this session's or an ended session's are alive, or when they cannot be listed
+  seasoned-skills sweep --browsers --kill   # kill exactly those by pid, then re-list to prove it
   ```
 
 - A gate that turns flaky while browser work is in flight is a leak suspect before it is a product bug.
-- Every process a lane needs beyond a single turn — a development server, a worker — runs as its own harness background task, never forked with `&` inside another task's shell; the orchestrator's own long gate runs follow the same rule. Every lane process is swept at session end, and the same sweep is runnable by hand at any time.
+- Every process a lane needs beyond a single turn — a development server, a worker — runs as its own harness background task, never forked with `&` inside another task's shell; the orchestrator's own long gate runs follow the same rule. When a session ends, its hook kills the lane processes that session started; `seasoned-skills sweep --lane-processes` lists every lane process with its owning session at any time — found from the process's ancestry first and its `CLAUDE_PID` marker second — and `--kill` kills this session's own and those of ended sessions. A process with neither is unmarked and never killed: stop it yourself by its exact process id after listing it.
 - Judge leakage by process count and age, never by reported RSS — paged-out memory hides an order of magnitude (7.6GB visible while roughly 80GB was actually held).
 - Leakage comes from sessions accumulating across sequential waves, not from parallel width. Keep lanes parallel; the invariant is verified teardown, not a concurrency cap.
-- Kills are the sweep's job precisely because it kills by exact pid after listing what is about to die. Never reach for a pattern kill (`pkill -f` and relatives) as cleanup or as verification — a pattern that reads as lane-scoped can match unrelated long-running processes on the host, and listing the pids is the inspection step a pattern kill skips. Every kill goes through the shipped sweep, which enforces the rule.
+- Kills are the sweep's job precisely because it kills by exact pid after listing what is about to die, and only what this session or an ended one started — never another live session's process, and never an unmarked one, whose session neither its ancestry nor a readable marker names. Never reach for a pattern kill (`pkill -f` and relatives) as cleanup or as verification — a pattern that reads as lane-scoped can match unrelated long-running processes on the host, and listing the pids is the inspection step a pattern kill skips. Every kill goes through the shipped sweep, which enforces the rule.
 
 ## Ledger discipline
 

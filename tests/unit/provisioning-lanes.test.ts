@@ -16,13 +16,27 @@ import {
   type ResolvedRepository,
   resolveProvisioning,
 } from '../../src/provisioning/common.js'
-import { provisionLane, teardownLane } from '../../src/provisioning/index.js'
+import {
+  listLaneProcesses,
+  provisionLane,
+  teardownLane,
+} from '../../src/provisioning/index.js'
 import * as runtime from '../../src/provisioning/runtime.js'
 import { provisionLaneDatabases } from '../../src/provisioning/setup.js'
 import {
   readTemplateFingerprint,
   writeTemplateFingerprint,
 } from '../../src/provisioning/template.js'
+import {
+  endedProcessId,
+  exits,
+  isRunning,
+  spawnDummy,
+  spawnOrphan,
+  spawnSessionWithChild,
+  stopDummies,
+} from './dummy-processes.js'
+import { fakeCommands } from './fake-commands.js'
 
 function initRepo(path: string) {
   mkdirSync(path, { recursive: true })
@@ -137,6 +151,129 @@ describe('lane setup and teardown without databases', () => {
       removedWorktrees: [join(root, 'project-worktrees/clean-lane')],
       droppedDatabases: [],
       killedProcessIds: [],
+    })
+  })
+
+  describe('teardown against the sessions using the lane', () => {
+    afterEach(() => {
+      stopDummies()
+      vi.unstubAllEnvs()
+    })
+
+    it('refuses a lane another live session is using, changing nothing, unless forced', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'held-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/held-lane')
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const { session: otherSession, child: held } = await spawnSessionWithChild(
+        worktree,
+        'other-session',
+      )
+
+      const refusal = teardownLane(repo, undefined, 'held-lane')
+      await expect(refusal).rejects.toThrow(
+        `lane held-lane is in use by another live Claude Code session (pid ${otherSession.pid}, session other-session)`,
+      )
+      expect(existsSync(worktree)).toBe(true)
+
+      const result = await teardownLane(repo, undefined, 'held-lane', { force: true })
+      expect(result.removedWorktrees).toEqual([worktree])
+      expect(await exits(held, 1000)).toBe(false)
+    })
+
+    it('refuses a lane named any other way than by its single directory name', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'held-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/held-lane')
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const { child: held } = await spawnSessionWithChild(worktree, 'other-session')
+
+      for (const lane of [
+        './held-lane',
+        'held-lane/',
+        '../project-worktrees/held-lane',
+      ]) {
+        await expect(teardownLane(repo, undefined, lane)).rejects.toThrow(
+          `lane "${lane}" is not a single directory name`,
+        )
+      }
+      expect(existsSync(worktree)).toBe(true)
+      expect(isRunning(held)).toBe(true)
+      for (const lane of ['nested/lane', '..', '.', '']) {
+        await expect(
+          provisionLane(repo, undefined, lane, { skipProvision: true }),
+        ).rejects.toThrow(`lane "${lane}" is not a single directory name`)
+      }
+      expect(() => listLaneProcesses(repo, undefined, { lane: './held-lane' })).toThrow(
+        'lane "./held-lane" is not a single directory name',
+      )
+    })
+
+    it('refuses to tear down a lane whose processes it cannot list, changing nothing', async () => {
+      await provisionLane(repo, undefined, 'unlisted-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/unlisted-lane')
+      vi.spyOn(runtime, 'processWorkingDirectories').mockImplementation(() => {
+        throw new Error('lsof: unknown option')
+      })
+
+      await expect(teardownLane(repo, undefined, 'unlisted-lane')).rejects.toThrow(
+        'cannot list the processes of lane unlisted-lane, so nothing was changed — lsof: unknown option',
+      )
+      expect(existsSync(worktree)).toBe(true)
+
+      vi.mocked(runtime.processWorkingDirectories).mockRestore()
+      const result = await teardownLane(repo, undefined, 'unlisted-lane')
+      expect(result.removedWorktrees).toEqual([worktree])
+    })
+
+    it('refuses to tear down a lane whose processes cannot be told apart, changing nothing', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'unreadable-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/unreadable-lane')
+      await spawnOrphan(worktree)
+      fakeCommands(root, { ps: 'exit 1' })
+
+      await expect(teardownLane(repo, undefined, 'unreadable-lane')).rejects.toThrow(
+        'cannot list the processes of lane unreadable-lane, so nothing was changed — cannot read the process table',
+      )
+      expect(existsSync(worktree)).toBe(true)
+    })
+
+    it('tears down a lane while another live session works in a sibling lane', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'own-lane', { skipProvision: true })
+      await provisionLane(repo, undefined, 'sibling-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/own-lane')
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const { child: sibling } = await spawnSessionWithChild(
+        join(root, 'project-worktrees/sibling-lane'),
+        'other-session',
+      )
+
+      const result = await teardownLane(repo, undefined, 'own-lane')
+
+      expect(result.removedWorktrees).toEqual([worktree])
+      expect(isRunning(sibling)).toBe(true)
+    })
+
+    it('tears down a lane whose processes are its own or left by ended sessions', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'own-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/own-lane')
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const endedSession = await endedProcessId()
+      await Promise.all([
+        spawnDummy(worktree, { marker: { claudeProcessId: process.pid } }),
+        spawnOrphan(worktree, { marker: { claudeProcessId: endedSession } }),
+      ])
+
+      const result = await teardownLane(repo, undefined, 'own-lane')
+      expect(result.removedWorktrees).toEqual([worktree])
     })
   })
 

@@ -25,6 +25,15 @@ describe('materializeRuntime', () => {
     expect(paths).toContain('shaping/assets/document.css')
     expect(paths).toContain('shaping/assets/drawing/fonts/OFL.txt')
   })
+
+  it('has the session-end hook kill what the sweep lists, not only list it', () => {
+    const hook = materializeRuntime().find(
+      (file) => file.path === '.claude/hooks/session-end-sweep.sh',
+    )
+    expect(Buffer.from(hook?.contents ?? '').toString()).toContain(
+      'seasoned-skills sweep --lane-processes --kill --hook',
+    )
+  })
 })
 
 describe('writeGeneratedFiles', () => {

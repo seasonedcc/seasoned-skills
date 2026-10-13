@@ -2,8 +2,10 @@ import { execFileSync } from 'node:child_process'
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -12,6 +14,22 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
+import {
+  exits,
+  isRunning,
+  spawnDummy,
+  spawnSessionWithChild,
+  stopDummies,
+} from './dummy-processes.js'
+import { browserListingOf, fakeBrowserPs } from './fake-commands.js'
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return { ...actual, readFileSync: vi.fn(actual.readFileSync) }
+})
+
+const { readFileSync: realReadFileSync } =
+  await vi.importActual<typeof import('node:fs')>('node:fs')
 
 const fixture = fileURLToPath(new URL('../golden/fixtures/cli-package/', import.meta.url))
 
@@ -35,6 +53,8 @@ describe('the CLI program', () => {
   })
 
   afterEach(() => {
+    stopDummies()
+    rmSync(`${root}-worktrees`, { recursive: true, force: true })
     process.chdir(startDirectory)
     process.exitCode = undefined
     vi.unstubAllEnvs()
@@ -133,5 +153,203 @@ describe('the CLI program', () => {
     expect(vi.mocked(console.log).mock.calls.join('\n')).toContain(
       'No lane processes to sweep.',
     )
+  })
+
+  it('lane-process sweep lists by default and kills only with --kill', {
+    timeout: 30_000,
+  }, async () => {
+    scaffoldProject()
+    execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+      cwd: root,
+    })
+    const lane = join(`${realpathSync(root)}-worktrees`, 'lane-a')
+    mkdirSync(lane, { recursive: true })
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const mine = await spawnDummy(lane, { marker: { claudeProcessId: process.pid } })
+
+    await run('sweep', '--lane-processes')
+    const listing = vi.mocked(console.log).mock.calls.join('\n')
+    expect(listing).toContain(`${mine.pid}`)
+    expect(listing).toContain('mine')
+    expect(await exits(mine, 1000)).toBe(false)
+
+    await run('sweep', '--lane-processes', '--kill')
+    expect(await exits(mine)).toBe(true)
+  })
+
+  it('lane-process sweep tells a refused kill apart from a process that exited', {
+    timeout: 30_000,
+  }, async () => {
+    scaffoldProject()
+    execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+      cwd: root,
+    })
+    const lane = join(`${realpathSync(root)}-worktrees`, 'lane-a')
+    mkdirSync(lane, { recursive: true })
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const mine = await spawnDummy(lane, { marker: { claudeProcessId: process.pid } })
+    const deliver = process.kill.bind(process)
+    vi.spyOn(process, 'kill').mockImplementation((processId, signal) => {
+      if (processId === mine.pid && signal === 'SIGTERM') {
+        throw Object.assign(new Error('kill EPERM'), { code: 'EPERM' })
+      }
+      return deliver(processId, signal)
+    })
+
+    await run('sweep', '--lane-processes', '--kill')
+
+    const output = vi.mocked(console.log).mock.calls.join('\n')
+    expect(output).toMatch(new RegExp(`kill failed +${mine.pid} `))
+    expect(output).toContain('Terminated 0 of 1 process found in lanes.')
+    expect(isRunning(mine)).toBe(true)
+  })
+
+  describe('the session-end hook', () => {
+    async function laneWithOwnAndLiveProcesses() {
+      scaffoldProject()
+      execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+        cwd: root,
+      })
+      const lane = join(`${realpathSync(root)}-worktrees`, 'lane-a')
+      mkdirSync(lane, { recursive: true })
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const [mine, live] = await Promise.all([
+        spawnDummy(lane, { marker: { claudeProcessId: process.pid } }),
+        spawnSessionWithChild(lane, 'other-session'),
+      ])
+      return { mine, live: live.child }
+    }
+
+    function endSessionWith(reason: string) {
+      vi.mocked(readFileSync).mockImplementation((path, options) =>
+        path === 0
+          ? JSON.stringify({ reason })
+          : realReadFileSync(path, options as BufferEncoding),
+      )
+    }
+
+    afterEach(() => {
+      vi.mocked(readFileSync).mockImplementation(realReadFileSync)
+    })
+
+    it('kills nothing without --kill, even when the session is over', {
+      timeout: 30_000,
+    }, async () => {
+      const { mine } = await laneWithOwnAndLiveProcesses()
+      endSessionWith('prompt_input_exit')
+
+      await run('sweep', '--lane-processes', '--hook')
+
+      expect(await exits(mine, 1000)).toBe(false)
+      expect(process.exitCode).toBeUndefined()
+    })
+
+    it("kills its own lane processes when the session is over, never another live session's", {
+      timeout: 30_000,
+    }, async () => {
+      const { mine, live } = await laneWithOwnAndLiveProcesses()
+      endSessionWith('prompt_input_exit')
+
+      await run('sweep', '--lane-processes', '--kill', '--hook')
+
+      expect(await exits(mine)).toBe(true)
+      expect(await exits(live, 1000)).toBe(false)
+      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
+    })
+
+    it('kills nothing when the session merely clears or resumes', {
+      timeout: 30_000,
+    }, async () => {
+      const { mine } = await laneWithOwnAndLiveProcesses()
+      endSessionWith('clear')
+
+      await run('sweep', '--lane-processes', '--kill', '--hook')
+
+      expect(await exits(mine, 1000)).toBe(false)
+    })
+  })
+
+  describe('the browser sweep', () => {
+    it('exits 0 when no browser of this session or an ended one is alive', async () => {
+      fakeBrowserPs(root, { browsers: browserListingOf([]) })
+
+      await run('sweep', '--browsers')
+      expect(process.exitCode).toBeUndefined()
+      await run('sweep', '--browsers', '--kill')
+      expect(process.exitCode).toBeUndefined()
+
+      expect(vi.mocked(console.log).mock.calls.join('\n')).toContain('SWEEP: clean')
+    })
+
+    it('exits 1 while a browser of this session is alive', {
+      timeout: 30_000,
+    }, async () => {
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const mine = await spawnDummy(root, {
+        label: 'agent-browser-linux-x64',
+        marker: { claudeProcessId: process.pid },
+      })
+      fakeBrowserPs(root, { browsers: browserListingOf([mine]) })
+
+      await run('sweep', '--browsers')
+
+      expect(process.exitCode).toBe(1)
+      const output = vi.mocked(console.log).mock.calls.join('\n')
+      expect(output).toContain(`pid=${mine.pid}`)
+      expect(output).toContain('NOT clean')
+      expect(isRunning(mine)).toBe(true)
+    })
+
+    it('kills a browser of this session with --kill and then reports clean', {
+      timeout: 30_000,
+    }, async () => {
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const mine = await spawnDummy(root, {
+        label: 'agent-browser-linux-x64',
+        marker: { claudeProcessId: process.pid },
+      })
+      fakeBrowserPs(root, { browsers: browserListingOf([mine]) })
+
+      await run('sweep', '--browsers', '--kill')
+
+      expect(await exits(mine)).toBe(true)
+      expect(process.exitCode).toBeUndefined()
+      const output = vi.mocked(console.log).mock.calls.join('\n')
+      expect(output).toContain(`killed pid=${mine.pid}`)
+      expect(output).toContain('SWEEP: clean')
+    })
+
+    it('exits 1 and kills nothing when the browsers cannot be listed', {
+      timeout: 30_000,
+    }, async () => {
+      fakeBrowserPs(root, { browsers: "echo 'ps: no such option' >&2; exit 1" })
+
+      await run('sweep', '--browsers', '--kill')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'ps could not list the browser processes: ps: no such option',
+      )
+      expect(vi.mocked(console.log).mock.calls.join('\n')).not.toContain('SWEEP')
+    })
+
+    it('exits 1 and kills nothing when the process table cannot be read', {
+      timeout: 30_000,
+    }, async () => {
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const mine = await spawnDummy(root, {
+        label: 'agent-browser-linux-x64',
+        marker: { claudeProcessId: process.pid },
+      })
+      fakeBrowserPs(root, { browsers: browserListingOf([mine]), table: 'exit 0' })
+
+      await run('sweep', '--browsers', '--kill')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'cannot read the process table',
+      )
+      expect(isRunning(mine)).toBe(true)
+    })
   })
 })
