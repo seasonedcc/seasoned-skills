@@ -14,9 +14,7 @@ import { dirname, join } from 'node:path'
 
 /**
  * Package-versioned runtime assumptions: tuning one is a release. The model is
- * the family alias, so it follows the newest Opus without one. Automatic
- * compaction works against a third of the model's million-token window, for the
- * session and its subagents alike.
+ * the family alias, so it follows the newest Opus without one.
  */
 export const MANAGED_RUNTIME_VALUES = {
   model: 'opus[1m]',

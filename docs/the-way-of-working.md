@@ -93,13 +93,13 @@ written into the workflow rather than left to habit, in two places:
 
 - **Compaction fires early and on its own.** Compaction means
   summarizing the session so far to free space, and the workflow sets
-  Claude Code to compact every session and every subagent once its
-  context reaches around 300,000 tokens, a little under a third of the
-  window.
+  Claude Code to compact every session, and every helper agent a
+  session delegates to, once its context reaches around 300,000 tokens,
+  a little under a third of the window.
 - **Every long effort keeps a ledger**: a running file of the durable
   facts and lessons the effort must not lose, kept current at every
   moment rather than reconstructed when it is needed. After every
-  compaction the orchestrator goes back to the ledger and the real
+  compaction the session goes back to the ledger and the real
   sources before its next step, never trusting its summary alone.
   [Running a session](running-a-session.md) shows what that looks like
   from your chair.

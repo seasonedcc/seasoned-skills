@@ -39,7 +39,6 @@ describe('sync', () => {
     })
   }
 
-  /** Switches the demo-seed option on, its manifest at a path of the test's choosing. */
   const declareSeedManifest = (path: string) => {
     const configPath = join(root, 'seasoned-skills.config.ts')
     const config = readFileSync(configPath, 'utf8')
