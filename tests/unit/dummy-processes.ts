@@ -207,9 +207,10 @@ async function spawnSessionWithChild(
 
 /**
  * An unmarked dummy and an unmarked child it started that renames itself the
- * way a Next.js server does — on Linux, lsof never lists a process whose
- * name holds a parenthesis, and on macOS a renamed process hides its
- * environment from ps. Only its ancestry can tell its owner.
+ * way a Next.js server does — on Linux, lsof leaves it out, because its
+ * 15-character name `next-server (v1` opens a parenthesis it never closes,
+ * and on macOS a renamed process hides its environment from ps. Only its
+ * ancestry can tell its owner.
  */
 async function spawnParentWithRenamedChild(cwd: string) {
   const token = newToken()

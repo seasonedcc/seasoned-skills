@@ -245,8 +245,9 @@ function portListenerProcessIdsFromProc(procRoot: string, port: number, userId: 
 
 /**
  * The pids listening on a TCP port. Linux reads /proc, because its lsof
- * leaves out every process whose name holds a parenthesis — a Next.js server
- * names itself `next-server (v15.0.0)`; macOS asks lsof.
+ * leaves out some processes, such as a Next.js server, whose 15-character
+ * name `next-server (v1` opens a parenthesis it never closes; macOS asks
+ * lsof.
  */
 function portListenerProcessIds(port: number) {
   if (process.platform === 'linux') {
@@ -340,9 +341,10 @@ function processWorkingDirectoriesFromLsof() {
 
 /**
  * Every process of this user with its working directory, whatever its name.
- * Linux reads /proc, because its lsof leaves out every process whose name
- * holds a parenthesis; macOS asks lsof. Throws when the processes cannot be
- * listed.
+ * Linux reads /proc, because its lsof leaves out some processes, such as a
+ * Next.js server, whose 15-character name `next-server (v1` opens a
+ * parenthesis it never closes; macOS asks lsof. Throws when the processes
+ * cannot be listed.
  */
 function processWorkingDirectories() {
   return process.platform === 'linux'
