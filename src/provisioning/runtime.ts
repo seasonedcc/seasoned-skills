@@ -166,42 +166,81 @@ function flushCacheStore(url: string) {
   }
 }
 
-/**
- * The pids of this user's processes listening on a TCP port, read from /proc:
- * the listening sockets' inodes from the TCP tables, then each process whose
- * open descriptors hold one. Processes that vanish or cannot be read are
- * passed over.
- */
-function portListenerProcessIdsFromProc(procRoot: string, port: number) {
-  const inodes = new Set<string>()
-  for (const table of ['tcp', 'tcp6']) {
-    let contents = ''
-    try {
-      contents = readFileSync(join(procRoot, 'net', table), 'utf8')
-    } catch {
-      continue
-    }
-    for (const line of contents.split('\n').slice(1)) {
-      const [, localAddress = '', , state, , , , , , inode] = line.trim().split(/\s+/)
+const LISTEN_STATE = '0A'
+
+/** The inodes of the sockets listening on a port, from a /proc/net TCP table. */
+function listeningSocketInodes(table: string, port: number) {
+  return table
+    .split('\n')
+    .slice(1)
+    .flatMap((line) => {
+      const columns = line.trim().split(/\s+/)
+      const localAddress = columns[1] ?? ''
+      const state = columns[3]
+      const inode = columns[9]
       const localPort = Number.parseInt(localAddress.split(':').at(-1) ?? '', 16)
-      if (state === '0A' && localPort === port && inode !== undefined) inodes.add(inode)
-    }
+      return state === LISTEN_STATE && localPort === port && inode !== undefined
+        ? [inode]
+        : []
+    })
+}
+
+function procTcpTable(procRoot: string, table: string) {
+  try {
+    return readFileSync(join(procRoot, 'net', table), 'utf8')
+  } catch {
+    return ''
   }
+}
+
+function isOwnedBy(processDirectory: string, userId: number) {
+  try {
+    return statSync(processDirectory).uid === userId
+  } catch {
+    return false
+  }
+}
+
+function descriptorPaths(processDirectory: string) {
+  const descriptors = join(processDirectory, 'fd')
+  try {
+    return readdirSync(descriptors).map((descriptor) => join(descriptors, descriptor))
+  } catch {
+    return []
+  }
+}
+
+/** The inode of the socket a descriptor holds — absent once it closed. */
+function socketInode(descriptorPath: string) {
+  try {
+    return readlinkSync(descriptorPath).match(/^socket:\[(\d+)\]$/)?.[1]
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The pids of one user's processes listening on a TCP port, read from /proc:
+ * the listening sockets' inodes from the TCP tables, then each process whose
+ * open descriptors hold one. Processes and descriptors that vanish or cannot
+ * be read are passed over.
+ */
+function portListenerProcessIdsFromProc(procRoot: string, port: number, userId: number) {
+  const inodes = new Set(
+    ['tcp', 'tcp6'].flatMap((table) =>
+      listeningSocketInodes(procTcpTable(procRoot, table), port),
+    ),
+  )
   if (inodes.size === 0) return []
-  const listeners: number[] = []
-  for (const processId of procProcessIds(procRoot)) {
-    try {
-      const descriptors = join(procRoot, String(processId), 'fd')
-      const holdsListener = readdirSync(descriptors).some((descriptor) => {
-        const socket = readlinkSync(join(descriptors, descriptor)).match(
-          /^socket:\[(\d+)\]$/,
-        )
-        return socket?.[1] !== undefined && inodes.has(socket[1])
-      })
-      if (holdsListener) listeners.push(processId)
-    } catch {}
-  }
-  return listeners
+  return procProcessIds(procRoot).filter((processId) => {
+    const directory = join(procRoot, String(processId))
+    return (
+      isOwnedBy(directory, userId) &&
+      descriptorPaths(directory).some((descriptorPath) =>
+        inodes.has(socketInode(descriptorPath) ?? ''),
+      )
+    )
+  })
 }
 
 /**
@@ -210,7 +249,9 @@ function portListenerProcessIdsFromProc(procRoot: string, port: number) {
  * names itself `next-server (v15.0.0)`; macOS asks lsof.
  */
 function portListenerProcessIds(port: number) {
-  if (process.platform === 'linux') return portListenerProcessIdsFromProc('/proc', port)
+  if (process.platform === 'linux') {
+    return portListenerProcessIdsFromProc('/proc', port, userInfo().uid)
+  }
   const result = spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
     encoding: 'utf8',
   })
@@ -247,19 +288,30 @@ function procProcessIds(procRoot: string) {
     .map(Number)
 }
 
+function hasVanished(error: unknown) {
+  const code = (error as NodeJS.ErrnoException).code
+  return code === 'ENOENT' || code === 'ESRCH'
+}
+
 /**
  * Every process of one user with its working directory, read from /proc.
- * Processes that vanish or cannot be read are passed over; a /proc that
- * cannot be read at all throws.
+ * Processes that vanish are passed over; one of the user's processes that
+ * cannot be read, or a /proc that cannot be read at all, throws rather than
+ * leaving the listing short.
  */
 function processWorkingDirectoriesFromProc(procRoot: string, userId: number) {
   const entries: ProcessWorkingDirectory[] = []
   for (const processId of procProcessIds(procRoot)) {
+    const directory = join(procRoot, String(processId))
     try {
-      const directory = join(procRoot, String(processId))
       if (statSync(directory).uid !== userId) continue
       entries.push({ processId, workingDirectory: readlinkSync(join(directory, 'cwd')) })
-    } catch {}
+    } catch (error) {
+      if (hasVanished(error)) continue
+      throw new Error(
+        `could not read the working directory of process ${processId}: ${(error as Error).message}`,
+      )
+    }
   }
   return entries
 }

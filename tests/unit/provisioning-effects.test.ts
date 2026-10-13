@@ -182,6 +182,18 @@ describe('finding processes from /proc', () => {
     ).toThrow()
   })
 
+  it("refuses to read a listing missing one of the user's processes it could not read", () => {
+    fakeProcess(123, { cwd: '/lanes/lane-a/apps/web' })
+    mkdirSync(join(proc, '456'))
+    writeFileSync(join(proc, '456', 'cwd'), '')
+
+    const userId = userInfo().uid
+    expect(() => processWorkingDirectoriesFromProc(proc, userId)).toThrow(
+      /working directory of process 456/,
+    )
+    expect(processWorkingDirectoriesFromProc(proc, userId + 1)).toEqual([])
+  })
+
   it('finds the processes holding a listening socket on a port, over IPv4 and IPv6', () => {
     const header =
       '  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode'
@@ -210,9 +222,29 @@ describe('finding processes from /proc', () => {
     fakeProcess(13, { 'fd/6': 'socket:[999]' })
     mkdirSync(join(proc, '14'))
 
-    expect(portListenerProcessIdsFromProc(proc, 8080).sort()).toEqual([10, 12])
-    expect(portListenerProcessIdsFromProc(proc, 9090)).toEqual([13])
-    expect(portListenerProcessIdsFromProc(proc, 4000)).toEqual([])
+    const userId = userInfo().uid
+    expect(portListenerProcessIdsFromProc(proc, 8080, userId).sort()).toEqual([10, 12])
+    expect(portListenerProcessIdsFromProc(proc, 9090, userId)).toEqual([13])
+    expect(portListenerProcessIdsFromProc(proc, 4000, userId)).toEqual([])
+    expect(portListenerProcessIdsFromProc(proc, 8080, userId + 1)).toEqual([])
+  })
+
+  it('finds a listener even when some of its descriptors close before they are read', () => {
+    mkdirSync(join(proc, 'net'))
+    writeFileSync(
+      join(proc, 'net', 'tcp'),
+      [
+        '  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode',
+        '   0: 0100007F:1F90 00000000:0000 0A 00000000:00000000 00:00000000 00000000   501        0 6392 1 0000000000000000 100 0 0 10 0',
+        '',
+      ].join('\n'),
+    )
+    fakeProcess(10, { 'fd/5': 'socket:[6392]' })
+    for (const closed of ['0', '1', '2', '3', '4', '6', '7']) {
+      writeFileSync(join(proc, '10', 'fd', closed), '')
+    }
+
+    expect(portListenerProcessIdsFromProc(proc, 8080, userInfo().uid)).toEqual([10])
   })
 })
 
