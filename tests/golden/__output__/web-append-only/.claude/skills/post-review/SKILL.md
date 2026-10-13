@@ -25,7 +25,8 @@ gh api repos/<owner>/<repo>/pulls/<number>/reviews --input review.json
 }
 ```
 
-- `event` is `REQUEST_CHANGES`, `APPROVE`, or `COMMENT` — pick what the user asked for; never approve or request changes on your own initiative.
+- `event` is `APPROVE` or `REQUEST_CHANGES` — the review's verdict, posted when the user asks; never approve or request changes on your own initiative. Never post a `COMMENT` review: a review that neither approves nor requests changes is the hedge the `pr-review` skill's verdict rule forbids, and it leaves the author asking whether the branch may merge.
+- GitHub refuses both events on a pull request opened by the account `gh` is signed in as. A review of our own PR is never posted: its findings are ours to fix through the `review-fixes` skill, and its verdict stays in the conversation — never downgraded to a `COMMENT` review to get it onto the PR.
 - `line` is a line number in the file as shown in the diff (`side: "RIGHT"` for the new version, `"LEFT"` for deleted lines). It must fall inside a diff hunk — context lines count. Compute it from the hunk headers in `gh pr diff`; an off-hunk line rejects the whole review.
 - Build the payload in a file and pass `--input` — inline `-f` flags cannot express the comments array.
 - When follow-up PRs will implement the findings, say so in the review body — the author must learn it in the same read as the findings. Each inline comment's "unblock" path reads as a work request, and the PRs only land minutes to hours later; an author who reads the review in that window starts implementing fixes you are about to hand them.
@@ -34,7 +35,10 @@ gh api repos/<owner>/<repo>/pulls/<number>/reviews --input review.json
 
 - Mark each blocking comment **Blocking** and state what unblocks it. When the finding is an undocumented behavior change, the unblock path includes "if intentional, document it in the PR description" — the author decides intent, the review only demands the decision be visible.
 - Label everything else explicitly as non-blocking so the author can triage at a glance.
+- Each inline comment carries the finding's severity next to its Blocking or non-blocking marker (**Blocking, high.**, **Non-blocking, medium.**), so the author triages on the same scale the review used — non-blocking is the label for a medium finding that does not gate the merge — and names what the fix can break next to the harm of shipping without it.
+- A finding about a file the diff never touched anchors on the diff line that caused it — the author sees the code change and the record it invalidated in one place — and falls back to the body only when no such line exists.
 - The summary opens with what is good and what was verified before listing why the review blocks. Credit claims you checked and found true — a review that only lists faults reads as unverified suspicion.
+- The review was delivered under the `pr-review` skill's medium-and-up bar, so nothing below medium reaches an inline comment or the body. The summary states the bar once, in one sentence ("findings below medium were not listed"), never enumerating what fell under it: a teammate reading a short review from outside needs to know it is a filtered list, not a shallow read.
 - Verify before asserting: check the PR's claims against the base branch (call sites, conventions, test counts) and anchor each finding to evidence. A finding you could not verify is phrased as a question, not a defect.
 - A dead-code or unused claim stands only on a complete enumeration of possible consumers — every name the module registers, every template and call site — never on a sampled read. A deadness claim built from a truncated listing once shipped a review comment that, applied, would have broken every page rendering the template.
 - When any claim in a submitted review is disproven — by the author, by later verification, or by your own follow-up work — post a correction reply on that claim's own thread as soon as you know, stating exactly what was wrong and what holds instead. Never build follow-up work on the corrected premise before the retraction is up.

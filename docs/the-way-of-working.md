@@ -356,7 +356,22 @@ defects, from independent angles (a line-by-line read, a check of every
 behavior the diff removed, a trace of every caller of every changed
 function, the project's own conventions), and every candidate defect is
 verified before it counts: a finding must name the concrete input or
-state that triggers it, or it is dropped. The orchestrator loops the
+state that triggers it, or it is dropped.
+
+A verified finding still has to be worth fixing. Every fix is a change,
+and a change to a branch that is nearly ready can break something the
+finding never touched, so the review reports a finding only when leaving
+it unfixed is riskier than fixing it. Each finding is rated critical,
+high, medium, or low by who it harms, how often, and how badly, and
+nothing below medium is reported. The review says once that it applied
+that bar, without listing what fell under it, which is why a careful
+review can come back short.
+
+The review ends in one of two verdicts: approve, or request changes. If
+anything has to change before the merge, however small, the verdict is
+request changes, along with exactly what would turn it into an approval.
+"Approve once these are fixed" is a request for changes, and a review
+that only comments has not decided at all. The orchestrator loops the
 review until it is satisfied with the quality, not until the list of
 findings happens to be empty.
 
