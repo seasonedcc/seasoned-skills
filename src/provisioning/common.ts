@@ -21,17 +21,6 @@ const ENV_MARKER =
 const DEFAULT_ENV_FILE = '.env'
 const DEFAULT_CACHE_STORE_ENV_KEYS = ['REDIS_URL']
 const DEFAULT_SERVICE_START_COMMAND = 'docker compose up -d'
-const DEFAULT_LANE_PROCESS_COMMANDS = [
-  'node',
-  'pnpm',
-  'npm',
-  'yarn',
-  'turbo',
-  'vite',
-  'python',
-  'python3',
-  'uv',
-]
 
 /** Indexes 1..14 — 0 stays with the main checkout and is never touched. */
 const CACHE_STORE_INDEXES = 14
@@ -99,7 +88,6 @@ type ResolvedProvisioning = {
   serviceStartCommand: string
   databasePrefix: string
   seedDateTimezone: string | undefined
-  laneProcessCommands: string[]
 }
 
 const RESOURCE_NAME_PATTERN = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/
@@ -224,8 +212,6 @@ function resolveProvisioning(
       provisioning.serviceStartCommand ?? DEFAULT_SERVICE_START_COMMAND,
     databasePrefix,
     seedDateTimezone: provisioning.seedDateTimezone,
-    laneProcessCommands:
-      provisioning.laneProcessCommands ?? DEFAULT_LANE_PROCESS_COMMANDS,
   }
 }
 
@@ -1121,20 +1107,34 @@ type LaneProcess = {
   workingDirectory: string
 }
 
-function laneProcessesFromLsofOutput(output: string, worktreesRoots: string[]) {
-  const roots = worktreesRoots.map((root) => root.replace(/\/+$/, ''))
-  const processes: LaneProcess[] = []
+type ProcessWorkingDirectory = { processId: number; workingDirectory: string }
+
+/** Parses `lsof -F pn` output into each listed process and its working directory. */
+function workingDirectoriesFromLsofOutput(output: string) {
+  const entries: ProcessWorkingDirectory[] = []
   let processId: number | undefined
   for (const line of output.split('\n')) {
     const field = line[0]
     const value = line.slice(1)
     if (field === 'p') processId = Number(value)
-    if (field !== 'n' || !processId) continue
-    const root = roots.find((candidate) => value.startsWith(`${candidate}/`))
+    if (field === 'n' && processId) entries.push({ processId, workingDirectory: value })
+  }
+  return entries
+}
+
+/** The processes whose working directory sits inside a lane under one of the worktrees roots. */
+function laneProcessesAmong(
+  entries: ProcessWorkingDirectory[],
+  worktreesRoots: string[],
+) {
+  const roots = worktreesRoots.map((root) => root.replace(/\/+$/, ''))
+  const processes: LaneProcess[] = []
+  for (const { processId, workingDirectory } of entries) {
+    const root = roots.find((candidate) => workingDirectory.startsWith(`${candidate}/`))
     if (root === undefined) continue
-    const lane = value.slice(root.length + 1).split('/')[0]
+    const lane = workingDirectory.slice(root.length + 1).split('/')[0]
     if (lane === undefined || lane === '') continue
-    processes.push({ processId, lane, workingDirectory: value })
+    processes.push({ processId, lane, workingDirectory })
   }
   return processes
 }
@@ -1179,6 +1179,7 @@ export type {
   LaneAllocation,
   LaneProcess,
   PortPlan,
+  ProcessWorkingDirectory,
   ResolvedDatabase,
   ResolvedEnvFile,
   ResolvedProvisioning,
@@ -1210,7 +1211,7 @@ export {
   laneDatabaseName,
   laneEnvValues,
   laneEnvValuesForFile,
-  laneProcessesFromLsofOutput,
+  laneProcessesAmong,
   laneResourcePool,
   laneSlug,
   mergedLaneEnvValues,
@@ -1239,5 +1240,6 @@ export {
   widestPortBlock,
   withCacheStoreIndex,
   withDatabaseName,
+  workingDirectoriesFromLsofOutput,
   worktreePathsFromPorcelain,
 }

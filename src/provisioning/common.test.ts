@@ -23,7 +23,7 @@ import {
   laneDatabaseName,
   laneEnvValues,
   laneEnvValuesForFile,
-  laneProcessesFromLsofOutput,
+  laneProcessesAmong,
   laneResourcePool,
   laneSlug,
   type PortPlan,
@@ -51,6 +51,7 @@ import {
   upsertEnvValues,
   withCacheStoreIndex,
   withDatabaseName,
+  workingDirectoriesFromLsofOutput,
   worktreePathsFromPorcelain,
 } from './common.js'
 
@@ -984,10 +985,8 @@ describe('hasStaleSeedDate', () => {
   })
 })
 
-describe('laneProcessesFromLsofOutput', () => {
-  const root = '/Users/dev/app-worktrees'
-
-  it('extracts processes whose working directory is inside a lane', () => {
+describe('workingDirectoriesFromLsofOutput', () => {
+  it('pairs each listed process with its working directory', () => {
     const output = [
       'p123',
       'fcwd',
@@ -995,12 +994,36 @@ describe('laneProcessesFromLsofOutput', () => {
       'p456',
       'fcwd',
       'n/Users/dev/app',
-      'p789',
-      'fcwd',
-      'n/Users/dev/app-worktrees/task-b',
       '',
     ].join('\n')
-    expect(laneProcessesFromLsofOutput(output, [root])).toEqual([
+    expect(workingDirectoriesFromLsofOutput(output)).toEqual([
+      { processId: 123, workingDirectory: '/Users/dev/app-worktrees/task-a/apps/web' },
+      { processId: 456, workingDirectory: '/Users/dev/app' },
+    ])
+  })
+
+  it('returns nothing when lsof matched no processes', () => {
+    expect(workingDirectoriesFromLsofOutput('')).toEqual([])
+  })
+})
+
+describe('laneProcessesAmong', () => {
+  const root = '/Users/dev/app-worktrees'
+
+  it('keeps the processes whose working directory is inside a lane', () => {
+    expect(
+      laneProcessesAmong(
+        [
+          {
+            processId: 123,
+            workingDirectory: '/Users/dev/app-worktrees/task-a/apps/web',
+          },
+          { processId: 456, workingDirectory: '/Users/dev/app' },
+          { processId: 789, workingDirectory: '/Users/dev/app-worktrees/task-b' },
+        ],
+        [root],
+      ),
+    ).toEqual([
       {
         processId: 123,
         lane: 'task-a',
@@ -1015,17 +1038,14 @@ describe('laneProcessesFromLsofOutput', () => {
   })
 
   it('spans the worktrees roots of every declared repository', () => {
-    const output = [
-      'p11',
-      'fcwd',
-      'n/Users/dev/app-worktrees/task-a',
-      'p22',
-      'fcwd',
-      'n/Users/dev/engine-worktrees/task-a/src',
-      '',
-    ].join('\n')
     expect(
-      laneProcessesFromLsofOutput(output, [root, '/Users/dev/engine-worktrees']),
+      laneProcessesAmong(
+        [
+          { processId: 11, workingDirectory: '/Users/dev/app-worktrees/task-a' },
+          { processId: 22, workingDirectory: '/Users/dev/engine-worktrees/task-a/src' },
+        ],
+        [root, '/Users/dev/engine-worktrees'],
+      ),
     ).toEqual([
       {
         processId: 11,
@@ -1040,13 +1060,16 @@ describe('laneProcessesFromLsofOutput', () => {
     ])
   })
 
-  it('ignores sibling directories sharing the root as a prefix', () => {
-    const output = 'p123\nfcwd\nn/Users/dev/app-worktrees-archive/task-a\n'
-    expect(laneProcessesFromLsofOutput(output, [root])).toEqual([])
-  })
-
-  it('returns nothing when lsof matched no processes', () => {
-    expect(laneProcessesFromLsofOutput('', [root])).toEqual([])
+  it('ignores sibling directories sharing the root as a prefix, and the root itself', () => {
+    expect(
+      laneProcessesAmong(
+        [
+          { processId: 123, workingDirectory: '/Users/dev/app-worktrees-archive/task-a' },
+          { processId: 456, workingDirectory: '/Users/dev/app-worktrees' },
+        ],
+        [root],
+      ),
+    ).toEqual([])
   })
 })
 
@@ -1093,7 +1116,6 @@ describe('resolveProvisioning', () => {
     expect(resolved.databasePrefix).toBe('app_wt_')
     expect(resolved.services).toEqual([])
     expect(resolved.serviceStartCommand).toBe('docker compose up -d')
-    expect(resolved.laneProcessCommands).toContain('node')
     expect(resolved.repositories.map((repository) => repository.path)).toEqual(['.'])
   })
 

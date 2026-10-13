@@ -1,15 +1,22 @@
 import { spawnSync } from 'node:child_process'
+import { readdirSync, readFileSync, readlinkSync, statSync } from 'node:fs'
 import { createConnection, createServer } from 'node:net'
-import { dirname } from 'node:path'
+import { userInfo } from 'node:os'
+import { dirname, join } from 'node:path'
 import pg from 'pg'
-import { withDatabaseName } from './common.js'
+import {
+  type ProcessWorkingDirectory,
+  withDatabaseName,
+  workingDirectoriesFromLsofOutput,
+} from './common.js'
 
 /**
  * Side-effecting helpers the provisioning flows share: git, shell steps,
- * Postgres admin connections, port probes, and the cache-store flush. Nothing
- * here kills a process — the only kills in this package live in teardown, the
- * lane-process sweep, and the browser sweep, and each acts on exact process
- * ids after listing, only where the process ownership rule allows.
+ * Postgres admin connections, port probes, process listings, and the
+ * cache-store flush. Nothing here kills a process — the only kills in this
+ * package live in teardown, the lane-process sweep, and the browser sweep,
+ * and each acts on exact process ids after listing, only where the process
+ * ownership rule allows.
  */
 
 function log(message: string) {
@@ -159,8 +166,51 @@ function flushCacheStore(url: string) {
   }
 }
 
-/** The pids listening on a TCP port, via lsof. */
+/**
+ * The pids of this user's processes listening on a TCP port, read from /proc:
+ * the listening sockets' inodes from the TCP tables, then each process whose
+ * open descriptors hold one. Processes that vanish or cannot be read are
+ * passed over.
+ */
+function portListenerProcessIdsFromProc(procRoot: string, port: number) {
+  const inodes = new Set<string>()
+  for (const table of ['tcp', 'tcp6']) {
+    let contents = ''
+    try {
+      contents = readFileSync(join(procRoot, 'net', table), 'utf8')
+    } catch {
+      continue
+    }
+    for (const line of contents.split('\n').slice(1)) {
+      const [, localAddress = '', , state, , , , , , inode] = line.trim().split(/\s+/)
+      const localPort = Number.parseInt(localAddress.split(':').at(-1) ?? '', 16)
+      if (state === '0A' && localPort === port && inode !== undefined) inodes.add(inode)
+    }
+  }
+  if (inodes.size === 0) return []
+  const listeners: number[] = []
+  for (const processId of procProcessIds(procRoot)) {
+    try {
+      const descriptors = join(procRoot, String(processId), 'fd')
+      const holdsListener = readdirSync(descriptors).some((descriptor) => {
+        const socket = readlinkSync(join(descriptors, descriptor)).match(
+          /^socket:\[(\d+)\]$/,
+        )
+        return socket?.[1] !== undefined && inodes.has(socket[1])
+      })
+      if (holdsListener) listeners.push(processId)
+    } catch {}
+  }
+  return listeners
+}
+
+/**
+ * The pids listening on a TCP port. Linux reads /proc, because its lsof
+ * leaves out every process whose name holds a parenthesis — a Next.js server
+ * names itself `next-server (v15.0.0)`; macOS asks lsof.
+ */
 function portListenerProcessIds(port: number) {
+  if (process.platform === 'linux') return portListenerProcessIdsFromProc('/proc', port)
   const result = spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
     encoding: 'utf8',
   })
@@ -172,8 +222,15 @@ function portListenerProcessIds(port: number) {
     .filter((pid) => Number.isInteger(pid) && pid > 0)
 }
 
-/** A process's working directory, via lsof — empty when it cannot be told. */
+/** A process's working directory — empty when it cannot be told. */
 function processWorkingDirectory(processId: number) {
+  if (process.platform === 'linux') {
+    try {
+      return readlinkSync(`/proc/${processId}/cwd`)
+    } catch {
+      return ''
+    }
+  }
   const result = spawnSync('lsof', ['-a', '-p', String(processId), '-d', 'cwd', '-Fn'], {
     encoding: 'utf8',
   })
@@ -182,6 +239,63 @@ function processWorkingDirectory(processId: number) {
     if (line.startsWith('n')) return line.slice(1)
   }
   return ''
+}
+
+function procProcessIds(procRoot: string) {
+  return readdirSync(procRoot)
+    .filter((entry) => /^[1-9]\d*$/.test(entry))
+    .map(Number)
+}
+
+/**
+ * Every process of one user with its working directory, read from /proc.
+ * Processes that vanish or cannot be read are passed over; a /proc that
+ * cannot be read at all throws.
+ */
+function processWorkingDirectoriesFromProc(procRoot: string, userId: number) {
+  const entries: ProcessWorkingDirectory[] = []
+  for (const processId of procProcessIds(procRoot)) {
+    try {
+      const directory = join(procRoot, String(processId))
+      if (statSync(directory).uid !== userId) continue
+      entries.push({ processId, workingDirectory: readlinkSync(join(directory, 'cwd')) })
+    } catch {}
+  }
+  return entries
+}
+
+/**
+ * Every process of this user with its working directory, through lsof. lsof
+ * exits 1 both when nothing matched and on errors, and only errors explain
+ * themselves on stderr once its warnings are silenced — so a listing lsof
+ * could not make throws rather than reading as no processes at all.
+ */
+function processWorkingDirectoriesFromLsof() {
+  const result = spawnSync(
+    'lsof',
+    ['-w', '-a', '-u', userInfo().username, '-d', 'cwd', '-F', 'pn'],
+    { encoding: 'utf8' },
+  )
+  if (result.status === 0 || (result.status === 1 && result.stderr === '')) {
+    return workingDirectoriesFromLsofOutput(result.stdout)
+  }
+  const reason =
+    result.error?.message ??
+    (result.stderr.trim() ||
+      (result.signal ? `killed by ${result.signal}` : `exit status ${result.status}`))
+  throw new Error(`lsof could not list the processes' working directories: ${reason}`)
+}
+
+/**
+ * Every process of this user with its working directory, whatever its name.
+ * Linux reads /proc, because its lsof leaves out every process whose name
+ * holds a parenthesis; macOS asks lsof. Throws when the processes cannot be
+ * listed.
+ */
+function processWorkingDirectories() {
+  return process.platform === 'linux'
+    ? processWorkingDirectoriesFromProc('/proc', userInfo().uid)
+    : processWorkingDirectoriesFromLsof()
 }
 
 function commandLine(processId: number) {
@@ -200,6 +314,10 @@ export {
   isPortListening,
   log,
   portListenerProcessIds,
+  portListenerProcessIdsFromProc,
+  processWorkingDirectories,
+  processWorkingDirectoriesFromLsof,
+  processWorkingDirectoriesFromProc,
   processWorkingDirectory,
   resolveMainRepository,
   runStep,

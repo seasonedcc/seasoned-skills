@@ -214,12 +214,6 @@ export interface ProvisioningConfig {
    * machine's timezone.
    */
   seedDateTimezone?: string
-  /**
-   * Command names the lane-process sweep enumerates (lsof by working
-   * directory under the worktrees roots). Defaults to common dev-server
-   * commands; interactive shells are never listed.
-   */
-  laneProcessCommands?: string[]
 }
 
 export interface EnvFileResource {

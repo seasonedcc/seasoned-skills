@@ -214,30 +214,50 @@ describe('lane setup and teardown without databases', () => {
     it('refuses to tear down a lane whose processes it cannot list, changing nothing', async () => {
       await provisionLane(repo, undefined, 'unlisted-lane', { skipProvision: true })
       const worktree = join(root, 'project-worktrees/unlisted-lane')
-      const realPath = process.env.PATH
+      vi.spyOn(runtime, 'processWorkingDirectories').mockImplementation(() => {
+        throw new Error('lsof: unknown option')
+      })
 
-      for (const failure of [
-        { lsof: "echo 'lsof: unknown option' >&2; exit 1" },
-        { lsof: 'kill -9 $$' },
-        { lsof: 'exit 2' },
-      ]) {
-        vi.stubEnv('PATH', realPath)
-        fakeCommands(root, failure)
-        await expect(teardownLane(repo, undefined, 'unlisted-lane')).rejects.toThrow(
-          'cannot list the processes of lane unlisted-lane, so nothing was changed',
-        )
-      }
-      vi.stubEnv('PATH', realPath)
-      fakeCommands(root, { git: null }, { only: true })
       await expect(teardownLane(repo, undefined, 'unlisted-lane')).rejects.toThrow(
-        'cannot list the processes of lane unlisted-lane, so nothing was changed',
+        'cannot list the processes of lane unlisted-lane, so nothing was changed — lsof: unknown option',
       )
       expect(existsSync(worktree)).toBe(true)
 
-      vi.stubEnv('PATH', realPath)
-      fakeCommands(root, { lsof: 'exit 1' })
+      vi.mocked(runtime.processWorkingDirectories).mockRestore()
       const result = await teardownLane(repo, undefined, 'unlisted-lane')
       expect(result.removedWorktrees).toEqual([worktree])
+    })
+
+    it('refuses to tear down a lane whose processes cannot be told apart, changing nothing', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'unreadable-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/unreadable-lane')
+      await spawnOrphan(worktree)
+      fakeCommands(root, { ps: 'exit 1' })
+
+      await expect(teardownLane(repo, undefined, 'unreadable-lane')).rejects.toThrow(
+        'cannot list the processes of lane unreadable-lane, so nothing was changed — cannot read the process table',
+      )
+      expect(existsSync(worktree)).toBe(true)
+    })
+
+    it('tears down a lane while another live session works in a sibling lane', {
+      timeout: 30_000,
+    }, async () => {
+      await provisionLane(repo, undefined, 'own-lane', { skipProvision: true })
+      await provisionLane(repo, undefined, 'sibling-lane', { skipProvision: true })
+      const worktree = join(root, 'project-worktrees/own-lane')
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const { child: sibling } = await spawnSessionWithChild(
+        join(root, 'project-worktrees/sibling-lane'),
+        'other-session',
+      )
+
+      const result = await teardownLane(repo, undefined, 'own-lane')
+
+      expect(result.removedWorktrees).toEqual([worktree])
+      expect(isRunning(sibling)).toBe(true)
     })
 
     it('tears down a lane whose processes are its own or left by ended sessions', {

@@ -170,8 +170,8 @@ two kinds of leftovers, and it needs to be told which: with neither
 `--browsers` nor `--lane-processes` it prints what to choose and exits 1.
 
 Sweep finds its candidates first: the automated browsers your user account
-runs, by a pattern scoped to the `.agent-browser` install, and lane processes by
-command name, only where the process runs from inside a lane's worktree. Then
+runs, by a pattern scoped to the `.agent-browser` install, and every process
+your user account runs from inside a lane's worktree, whatever its name. Then
 it works out which Claude Code session each one belongs to.
 
 It looks at the process's ancestry first: the process that started it, the one
@@ -195,6 +195,11 @@ That sorts every process into one of four kinds:
   itself hide their environment, so their mark has to come from a process
   above them.
 
+One case follows from these rules rather than from any session's intent. A
+long-lived helper that one session started, such as a tmux server or a shared
+daemon, carries that session's mark into everything later started through it,
+so once that session ends, sweep counts those processes as an ended session's.
+
 Without `--kill`, sweep only lists, naming each process's kind. With it, sweep
 kills the first two kinds, each by its exact process id, and never the other
 two. An unmarked process is never killed: once the listing has shown you what
@@ -206,7 +211,7 @@ what ended sessions left behind is killed.
 | Flag | What it does |
 | --- | --- |
 | `--browsers` | List the automated-browser processes your user account runs, with their ages and kinds. Exits 1 while any of your session's or an ended session's are alive, or when they cannot be listed. |
-| `--lane-processes` | List the processes whose command name is on `provisioning.laneProcessCommands`, the common dev commands by default, and which run from inside a lane's worktree. Exits 1 when they cannot be listed. |
+| `--lane-processes` | List every process your user account runs from inside a lane's worktree, whatever its name. Exits 1 when they cannot be listed. |
 | `--kill` | Kill your session's own processes and those of ended sessions, each by its exact process id. Browsers are listed again afterwards. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes, named by its directory name. |
 | `--hook` | With `--lane-processes`: run quietly as the session-end hook. Reads the hook payload, acts only when the session is truly over, and never blocks the session from ending. Without `--kill` it does nothing; the generated hook passes `--kill`. |

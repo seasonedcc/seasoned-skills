@@ -166,7 +166,6 @@ function laneProcessesOrRefusal(lane: string, worktrees: LaneWorktree[]) {
   try {
     return processesInsideLanes(
       worktrees.map((worktree) => worktreesRoot(worktree.repositoryPath)),
-      [],
     )
   } catch (error) {
     throw new Error(
@@ -175,19 +174,19 @@ function laneProcessesOrRefusal(lane: string, worktrees: LaneWorktree[]) {
   }
 }
 
-function inUseRefusal(lane: string, holders: LiveSessionProcess[]) {
+function inUseRefusal(lane: string, liveSessionProcesses: LiveSessionProcess[]) {
   const sessions = [
     ...new Map(
-      holders.map((holder) => [holder.ownership.claudeProcessId, holder.ownership]),
+      liveSessionProcesses.map(({ ownership }) => [ownership.claudeProcessId, ownership]),
     ).values(),
   ]
   return [
     `lane ${lane} is in use by another live Claude Code session (${sessions
       .map(describeHolder)
       .join('; ')}) — nothing was changed:`,
-    ...holders.map(
-      (holder) =>
-        `  process ${holder.processId} runs ${holder.command} from ${holder.workingDirectory}`,
+    ...liveSessionProcesses.map(
+      ({ processId, command, workingDirectory }) =>
+        `  process ${processId} runs ${command} from ${workingDirectory}`,
     ),
     "Re-run with force to tear it down anyway; that session's processes are left running.",
   ].join('\n')
@@ -321,12 +320,14 @@ async function teardownLane(
   // half torn down.
   const laneWorktreePaths = worktrees.map((worktree) => worktree.worktreePath)
   if (!options.force) {
-    const holders = laneProcessesOrRefusal(lane, worktrees).filter(
+    const liveSessionProcesses = laneProcessesOrRefusal(lane, worktrees).filter(
       (candidate): candidate is LiveSessionProcess =>
         candidate.ownership.kind === 'live-session' &&
         isInsideAny(candidate.workingDirectory, laneWorktreePaths),
     )
-    if (holders.length > 0) throw new Error(inUseRefusal(lane, holders))
+    if (liveSessionProcesses.length > 0) {
+      throw new Error(inUseRefusal(lane, liveSessionProcesses))
+    }
   }
   for (const worktree of worktrees) {
     if (isDirty(worktree.worktreePath) && !options.force) {

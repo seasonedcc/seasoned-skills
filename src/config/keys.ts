@@ -94,7 +94,6 @@ export const CONFIGURATION_KEYS: KeyManifest<SeasonedSkillsConfig> = {
     serviceStartCommand: null,
     databasePrefix: null,
     seedDateTimezone: null,
-    laneProcessCommands: null,
   },
   additionalCriteria: [
     { text: null, backedBy: null, quickDisposition: null, quickText: null },

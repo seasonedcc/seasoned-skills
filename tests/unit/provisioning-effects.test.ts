@@ -1,8 +1,15 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { createServer, type Server } from 'node:net'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { tmpdir, userInfo } from 'node:os'
+import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveProvisioning } from '../../src/provisioning/common.js'
 import {
@@ -16,6 +23,9 @@ import {
   isPortFree,
   isPortListening,
   portListenerProcessIds,
+  portListenerProcessIdsFromProc,
+  processWorkingDirectoriesFromLsof,
+  processWorkingDirectoriesFromProc,
   processWorkingDirectory,
   resolveMainRepository,
   runStep,
@@ -33,6 +43,7 @@ import {
   exits,
   isRunning,
   LISTEN,
+  RENAMED_LISTENER,
   spawnDummy,
   spawnOrphan,
   spawnOrphanMarkedByLaterProcess,
@@ -40,6 +51,7 @@ import {
   spawnSessionWithChild,
   stopDummies,
 } from './dummy-processes.js'
+import { fakeCommands } from './fake-commands.js'
 
 function initRepo(path: string) {
   mkdirSync(path, { recursive: true })
@@ -116,7 +128,7 @@ describe('provisioning runtime helpers', () => {
     expect(() => runStep('exit 3', { cwd: root })).toThrow(/exit code 3/)
   })
 
-  it('reads its own process identity through ps and lsof', () => {
+  it('reads its own command line and working directory', () => {
     expect(commandLine(process.pid)).toContain('node')
     expect(processWorkingDirectory(process.pid)).toBe(process.cwd())
   })
@@ -127,6 +139,130 @@ describe('provisioning runtime helpers', () => {
     expect(portListenerProcessIds(port)).toContain(process.pid)
     await new Promise((resolveClose) => server.close(resolveClose))
     expect(portListenerProcessIds(port)).toEqual([])
+  })
+})
+
+describe('finding processes from /proc', () => {
+  let proc: string
+
+  beforeEach(() => {
+    proc = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-proc-')))
+  })
+
+  afterEach(() => {
+    rmSync(proc, { recursive: true, force: true })
+  })
+
+  function fakeProcess(processId: number, links: Record<string, string>) {
+    for (const [path, target] of Object.entries(links)) {
+      mkdirSync(join(proc, String(processId), dirname(path)), { recursive: true })
+      symlinkSync(target, join(proc, String(processId), path))
+    }
+  }
+
+  it("reads every one of the user's processes with its working directory, whatever its name", () => {
+    fakeProcess(123, { cwd: '/lanes/lane-a/apps/web' })
+    fakeProcess(456, { cwd: '/home/dev' })
+    mkdirSync(join(proc, '789'))
+    mkdirSync(join(proc, 'net'))
+    symlinkSync('123', join(proc, 'self'))
+
+    const userId = userInfo().uid
+    expect(
+      processWorkingDirectoriesFromProc(proc, userId).sort(
+        (first, second) => first.processId - second.processId,
+      ),
+    ).toEqual([
+      { processId: 123, workingDirectory: '/lanes/lane-a/apps/web' },
+      { processId: 456, workingDirectory: '/home/dev' },
+    ])
+    expect(processWorkingDirectoriesFromProc(proc, userId + 1)).toEqual([])
+    expect(() =>
+      processWorkingDirectoriesFromProc(join(proc, 'missing'), userId),
+    ).toThrow()
+  })
+
+  it('finds the processes holding a listening socket on a port, over IPv4 and IPv6', () => {
+    const header =
+      '  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode'
+    mkdirSync(join(proc, 'net'))
+    writeFileSync(
+      join(proc, 'net', 'tcp'),
+      [
+        header,
+        '   0: 0100007F:1F90 00000000:0000 0A 00000000:00000000 00:00000000 00000000   501        0 6392 1 0000000000000000 100 0 0 10 0',
+        '   1: 0100007F:1F90 0100007F:D8EC 01 00000000:00000000 00:00000000 00000000   501        0 777 1 0000000000000000 20 4 30 10 -1',
+        '   2: 0100007F:2382 00000000:0000 0A 00000000:00000000 00:00000000 00000000   501        0 999 1 0000000000000000 100 0 0 10 0',
+        '',
+      ].join('\n'),
+    )
+    writeFileSync(
+      join(proc, 'net', 'tcp6'),
+      [
+        header,
+        '   0: 00000000000000000000000000000000:1F90 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000   501        0 888 1 0000000000000000 100 0 0 10 0',
+        '',
+      ].join('\n'),
+    )
+    fakeProcess(10, { 'fd/3': 'socket:[6392]', 'fd/0': '/dev/null' })
+    fakeProcess(11, { 'fd/4': 'socket:[777]' })
+    fakeProcess(12, { 'fd/5': 'socket:[888]' })
+    fakeProcess(13, { 'fd/6': 'socket:[999]' })
+    mkdirSync(join(proc, '14'))
+
+    expect(portListenerProcessIdsFromProc(proc, 8080).sort()).toEqual([10, 12])
+    expect(portListenerProcessIdsFromProc(proc, 9090)).toEqual([13])
+    expect(portListenerProcessIdsFromProc(proc, 4000)).toEqual([])
+  })
+})
+
+describe('finding processes through lsof', () => {
+  let root: string
+
+  beforeEach(() => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'seasoned-skills-lsof-')))
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it("reads every one of the user's processes with its working directory", () => {
+    fakeCommands(root, { lsof: "printf 'p123\\nfcwd\\nn/lanes/lane-a\\n'" })
+    expect(processWorkingDirectoriesFromLsof()).toEqual([
+      { processId: 123, workingDirectory: '/lanes/lane-a' },
+    ])
+  })
+
+  it('reads a warning-only run with nothing matched as no processes', () => {
+    fakeCommands(root, {
+      lsof: [
+        'case " $* " in',
+        '  *" -w "*) exit 1 ;;',
+        '  *) echo "lsof: WARNING: can\'t stat() fuse file system /run/user/501/doc" >&2; exit 1 ;;',
+        'esac',
+      ].join('\n'),
+    })
+    expect(processWorkingDirectoriesFromLsof()).toEqual([])
+  })
+
+  it('throws when lsof could not list the processes', () => {
+    const realPath = process.env.PATH
+    for (const [failure, reason] of [
+      ["echo 'lsof: unknown option' >&2; exit 1", 'lsof: unknown option'],
+      ['kill -9 $$', 'killed by SIGKILL'],
+      ['exit 2', 'exit status 2'],
+    ]) {
+      vi.stubEnv('PATH', realPath)
+      fakeCommands(root, { lsof: failure ?? '' })
+      expect(() => processWorkingDirectoriesFromLsof()).toThrow(
+        `lsof could not list the processes' working directories: ${reason}`,
+      )
+    }
+    vi.stubEnv('PATH', realPath)
+    fakeCommands(root, {}, { only: true })
+    expect(() => processWorkingDirectoriesFromLsof()).toThrow('ENOENT')
   })
 })
 
@@ -242,7 +378,7 @@ describe('killLanePortListeners', () => {
     vi.stubEnv('CLAUDE_PID', String(process.pid))
     const mine = { claudeProcessId: process.pid }
     const [inside, stranger, unmarked, live] = await Promise.all([
-      spawnDummy(lane, { marker: mine, script: LISTEN }),
+      spawnDummy(lane, { marker: mine, script: RENAMED_LISTENER }),
       spawnDummy(elsewhere, { marker: mine, script: LISTEN }),
       spawnOrphan(lane, { script: LISTEN }),
       spawnSessionWithChild(lane, 'other-session', { script: LISTEN }),
@@ -361,6 +497,22 @@ describe('lane-process sweep ownership', () => {
     expect(await exits(renamed)).toBe(true)
     expect(await exits(unmarked, 1000)).toBe(false)
     expect(await exits(live.child, 1000)).toBe(false)
+  })
+
+  it('never lists the sweeper itself, even when it runs from inside a lane', {
+    timeout: 30_000,
+  }, async () => {
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const mine = await spawnDummy(lane, { marker: { claudeProcessId: process.pid } })
+    const startDirectory = process.cwd()
+    process.chdir(lane)
+    try {
+      const listed = listLaneProcesses(repo, undefined).map((entry) => entry.processId)
+      expect(listed).toContain(mine.pid)
+      expect(listed).not.toContain(process.pid)
+    } finally {
+      process.chdir(startDirectory)
+    }
   })
 
   it("kills its own and ended sessions' lane processes, never another live session's or an unmarked one", {

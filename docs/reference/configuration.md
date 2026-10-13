@@ -178,7 +178,6 @@ provisioning and teardown both know exactly what to create and what to remove.
 | `provisioning.serviceStartCommand` | no | The command run from the main checkout to start the declared services that are not already listening. The names of the missing ones are appended to it. Defaults to `docker compose up -d`. |
 | `provisioning.databasePrefix` | no | The prefix every lane-owned database name carries, lowercase and ending in an underscore. Teardown refuses to drop anything outside it. Defaults to your project directory's name lowercased, with every run of other characters becoming an underscore, underscores at either end taken off, the result cut to 28 characters, any underscore that cut leaves at the end taken off too, and `_wt_` on the end. |
 | `provisioning.seedDateTimezone` | no | The IANA time zone the seed date is read in, so a cached template records the calendar day your team is on. Re-anchoring an existing template is always a deliberate `provision --fresh-seed`. Defaults to this machine's zone. |
-| `provisioning.laneProcessCommands` | no | The command names the lane-process sweep looks for. Defaults to the common dev-server commands. Interactive shells are never listed. |
 
 ### What a repository owns
 
