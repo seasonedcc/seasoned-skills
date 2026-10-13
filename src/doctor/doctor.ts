@@ -70,7 +70,7 @@ export function deriveChecks(config: SeasonedSkillsConfig): DoctorCheck[] {
     },
     {
       binary: 'python3',
-      reason: 'the subagent watchdog and meeting-request verification run on Python 3',
+      reason: 'meeting-request verification runs on Python 3',
       hint: 'https://www.python.org/downloads',
     },
     {

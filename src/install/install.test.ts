@@ -20,7 +20,6 @@ const minimal: InstallAnswers = {
     packages: [{ name: 'consumer', publishCommand: 'pnpm release' }],
   },
   gates: { lint: 'pnpm check', unit: 'pnpm test:unit', full: ['pnpm test'] },
-  calibrationFile: 'workflow-content/calibrations.md',
 }
 
 const full: InstallAnswers = {
@@ -64,7 +63,6 @@ describe('planInstall', () => {
     applyInstall(root, plan)
     const paths = plan.files.map((file) => file.path)
     expect(paths).toContain('seasoned-skills.config.ts')
-    expect(paths).toContain('workflow-content/calibrations.md')
     expect(paths).toContain('shaping/.gitkeep')
     expect(paths).toContain('requests-from-meetings/assets/manifest.json')
     expect(paths).toContain('requests-from-meetings/stakeholders.md')
@@ -82,10 +80,7 @@ describe('planInstall', () => {
   it('keeps the content directory even when nothing else lands in it', () => {
     // Sync fails loud on a missing content directory, and git cannot carry an
     // empty one — so the scaffold gives it a keepfile whatever else it writes.
-    const plan = planInstall(root, {
-      ...minimal,
-      calibrationFile: 'docs/calibrations.md',
-    })
+    const plan = planInstall(root, minimal)
     applyInstall(root, plan)
     expect(existsSync(join(root, 'workflow-content'))).toBe(true)
   })

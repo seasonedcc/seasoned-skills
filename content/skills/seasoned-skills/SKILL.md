@@ -5,7 +5,7 @@ description: Install, configure, upgrade, and repair the seasoned-skills workflo
 
 # The seasoned-skills workflow
 
-This project's workflow — the doctrine file, the generated skills, the hooks, the status line, the provisioning — comes from the `seasoned-skills` npm package. Everything generated is rebuilt by `seasoned-skills sync` and is gitignored: never edit a generated file, because the next sync rewrites it. What the project owns, and what git carries, are the configuration (`seasoned-skills.config.ts`), the content directory it points at, and the committed artifacts the workflow reads (calibrations, registers, shaping documents, meeting records).
+This project's workflow — the doctrine file, the generated skills, the hooks, the status line, the provisioning — comes from the `seasoned-skills` npm package. Everything generated is rebuilt by `seasoned-skills sync` and is gitignored: never edit a generated file, because the next sync rewrites it. What the project owns, and what git carries, are the configuration (`seasoned-skills.config.ts`), the content directory it points at, and the committed artifacts the workflow reads (registers, shaping documents, meeting records).
 
 ## The moving parts
 
@@ -18,13 +18,13 @@ This project's workflow — the doctrine file, the generated skills, the hooks, 
 
 Adoption runs once, interactively: `seasoned-skills install`. It writes the configuration scaffold (asking for every option the rulings give no default), creates the committed artifacts, builds the shaping corpus when this machine's cache is missing or stale (asking for the one commercial book, falling back to the distilled account), wires the sync into the prepare script, and finishes by running sync and doctor.
 
-The committed artifacts arrive as templates, and templates are all a CLI can write: seeding them is the adopting agent's work, because only reading the project answers what belongs in them. Seed the option-gated registers from what the project already carries — above all the coverage register, which starts as the list of surfaces its specs do not reach today — and the calibration file from whatever calibration text the project kept elsewhere. A register left at its template says the project has nothing to declare, which is almost never true.
+The committed artifacts arrive as templates, and templates are all a CLI can write: seeding them is the adopting agent's work, because only reading the project answers what belongs in them. Seed the option-gated registers from what the project already carries — above all the coverage register, which starts as the list of surfaces its specs do not reach today. A register left at its template says the project has nothing to declare, which is almost never true.
 
 ## Upgrading
 
 Versions are exact-pinned; pre-1.0 releases may break in any release. An upgrade is agent work:
 
-1. Read the new version's release notes — they carry migration instructions written for agents, including any calibration review a Definition-of-Done expansion demands.
+1. Read the new version's release notes — they carry migration instructions written for agents.
 2. Bump the pinned version, install, and let the prepare script sync.
 3. Discharge every migration instruction in the project, then run the project's gates.
 4. Open the upgrade as a pull request like any other change.

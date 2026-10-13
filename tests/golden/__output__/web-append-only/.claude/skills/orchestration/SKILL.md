@@ -1,6 +1,6 @@
 ---
 name: orchestration
-description: Run delegated work reliably — writing subagent charters, verifying subagent claims, keeping judgment at the orchestrator tier, ledger discipline, recovering from interruptions, and shipping/merging lane PRs. Use when spawning subagents or workflows, coordinating parallel lanes, resuming after a session limit or compaction, or rebasing and merging a lane's PR. The subagents skill covers task sizing and model choice; this skill covers everything after the spawn.
+description: Run delegated work reliably — writing subagent charters, verifying subagent claims, keeping judgment at the orchestrator tier, ledger discipline, recovering from interruptions, and shipping/merging lane PRs. Use when spawning subagents or workflows, coordinating parallel lanes, resuming after a session limit or compaction, or rebasing and merging a lane's PR. The subagents skill covers model choice and dynamic-workflow practice; this skill covers everything after the spawn.
 ---
 
 # Orchestration

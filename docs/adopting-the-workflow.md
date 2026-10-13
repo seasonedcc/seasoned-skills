@@ -110,9 +110,9 @@ The install is a one-time interactive scaffold. It asks for every option
 that has no ruled default (nothing defaults silently), then creates the
 committed pieces the workflow reads: `seasoned-skills.config.ts` stating
 every option explicitly, the shaping and meeting-requests folders, the
-calibration file, the content directory, the registers the enabled
-options need, the content files the interview already has answers for,
-and a minimal `package.json` when the repository has none. It never overwrites
+content directory, the registers the enabled options need, the content
+files the interview already has answers for, and a minimal `package.json`
+when the repository has none. It never overwrites
 anything that exists. When this machine has no current reference
 library for the shaping skill, it asks for your own copy of the one
 commercial book (an

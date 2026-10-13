@@ -39,6 +39,16 @@ describe('sync', () => {
     })
   }
 
+  /** Switches the demo-seed option on, its manifest at a path of the test's choosing. */
+  const declareSeedManifest = (path: string) => {
+    const configPath = join(root, 'seasoned-skills.config.ts')
+    const config = readFileSync(configPath, 'utf8')
+    writeFileSync(
+      configPath,
+      config.replace(/\n\}\)\n$/, `\n  demoSeed: { seedManifest: '${path}' },\n})\n`),
+    )
+  }
+
   const runSync = () => sync(root, { corpusCache: join(root, 'no-corpus-cache') })
 
   const failedSync = async (): Promise<SyncInputError> => {
@@ -155,10 +165,11 @@ describe('sync', () => {
 
   it('recognizes disabled skills, configured files, and ignores subdirectories', async () => {
     plant('cli-package')
+    declareSeedManifest('workflow-content/seeds.md')
     // kysely generates only for a project that declares a stack; this fixture
     // does not, and the file it would leave behind must not fail the sync.
     writeFileSync(join(root, 'workflow-content/kysely.md'), 'Stack notes.\n')
-    writeFileSync(join(root, 'workflow-content/calibrations.md'), 'Calibrations.\n')
+    writeFileSync(join(root, 'workflow-content/seeds.md'), 'Seeds.\n')
     mkdirSync(join(root, 'workflow-content/notes'))
     writeFileSync(join(root, 'workflow-content/notes/anything.md'), 'An aside.\n')
     const result = await runSync()
@@ -167,15 +178,8 @@ describe('sync', () => {
 
   it('recognizes a configured file whose path is written with a leading ./', async () => {
     plant('cli-package')
-    const config = readFileSync(join(root, 'seasoned-skills.config.ts'), 'utf8')
-    writeFileSync(
-      join(root, 'seasoned-skills.config.ts'),
-      config.replace(
-        "calibrationFile: 'workflow-content/calibrations.md'",
-        "calibrationFile: './workflow-content/calibrations.md'",
-      ),
-    )
-    writeFileSync(join(root, 'workflow-content/calibrations.md'), 'Calibrations.\n')
+    declareSeedManifest('./workflow-content/seeds.md')
+    writeFileSync(join(root, 'workflow-content/seeds.md'), 'Seeds.\n')
     const result = await runSync()
     expect(result.generated).toContain('CLAUDE.md')
   })

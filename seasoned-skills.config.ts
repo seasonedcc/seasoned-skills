@@ -16,7 +16,6 @@ export default defineConfig({
     unit: 'pnpm test:unit',
     full: ['pnpm test'],
   },
-  calibrationFile: 'workflow-content/calibrations.md',
   provisioning: {
     repositories: [{ path: '.', provisionSteps: ['pnpm install'] }],
   },

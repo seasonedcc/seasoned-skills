@@ -23,7 +23,6 @@ describe('loadConfig', () => {
           packages: [{ name: 'example', publishCommand: 'pnpm publish' }],
         },
         gates: {},
-        calibrationFile: 'workflow-content/calibrations.md',
       }
       export default config
       `,

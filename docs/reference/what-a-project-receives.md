@@ -14,7 +14,6 @@ rig's own setup fetches, and your per-user meeting settings.
 | --- | --- |
 | `seasoned-skills.config.ts` | You. Every option, stated explicitly. |
 | Your content directory | You. One markdown file per generated skill, plus one for the standing instructions. All optional. |
-| The calibration file | You. How this project's subagents are calibrated against the Definition of Done: the checklist every task is held to before it counts as finished. |
 | The registers your options need | You. The coverage register, excused pages, seed manifest, parity standard, exception register. |
 | `shaping/` | You. Your shaping documents. Its `assets/` folder is generated. |
 | `requests-from-meetings/` | You. The records parsed from meetings. Its `assets/style.css` is generated. |
@@ -29,10 +28,9 @@ The last three are the whole managed footprint, and
 
 | File | What it is |
 | --- | --- |
-| `CLAUDE.md` | The standing instructions every session reads first, woven from your own content and the workflow's rules, Definition of Done included. |
+| `CLAUDE.md` | The standing instructions every session reads first, woven from your own content and the workflow's rules. They include the Definition of Done: the checklist every task is held to before it counts as finished. |
 | `.claude/skills/<name>/` | One folder per enabled skill, holding its `SKILL.md` and any reference files it ships. |
 | `.claude/skills/shaping/references/` | The shaping reference library, woven in from this machine's cache. Absent until that cache exists: the install builds it, and `seasoned-skills corpus` rebuilds it. |
-| `.claude/skills/subagents/scripts/watchdog.py` | Watches a subagent's context and raises the alarm before it fills. |
 | `.claude/skills/requests-from-meetings/scripts/verify.py` | Verifies a parsed meeting record against its transcript. |
 | `.claude/skills/demo-videos/scripts/` | The rig that films and narrates demo videos. |
 | `.claude/hooks/` | Three hooks: one blocks `git stash`, one guards worktree isolation, one sweeps a lane's leftover processes when a session ends. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files. |
@@ -55,7 +53,7 @@ them on, and disappear again when the option goes away.
 | Skill | What it is for |
 | --- | --- |
 | `orchestration` | Delegating work: writing a subagent's instructions, checking its claims, recovering after an interruption, shipping a lane's pull request. |
-| `subagents` | Sizing each subagent's task to the context window, and picking the right model for it. |
+| `subagents` | Picking the right model and reasoning effort for each subagent, and running many subagents at once from a script. |
 | `worktrees` | Running parallel work in isolated lanes, provisioned through this package's binary. |
 | `testing` | Writing, running, and debugging both suites, including mutation proofs and flaky-test diagnosis. |
 | `quick` | The reduced Definition of Done for a small polish. Only your own `/quick` turns it on. |

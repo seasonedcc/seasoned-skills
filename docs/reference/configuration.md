@@ -43,7 +43,6 @@ export default defineConfig({
     relatedSpecs: 'pnpm test:e2e',
     full: ['pnpm test:unit', 'pnpm test:e2e'],
   },
-  calibrationFile: 'workflow-content/calibrations.md',
   webSurface: {
     coverageRegister: 'workflow-content/coverage-register.md',
     excusedSurfaces: 'workflow-content/excused-surfaces.md',
@@ -89,10 +88,9 @@ export default defineConfig({
 })
 ```
 
-Most projects need far less than this. Six top-level keys are required:
-`projectName`, `contentDir`, `mergeStrategy`, `release`, `gates`, and
-`calibrationFile`. Every optional key below is a layer you turn on when the
-machinery behind it exists.
+Most projects need far less than this. Five top-level keys are required:
+`projectName`, `contentDir`, `mergeStrategy`, `release`, and `gates`. Every
+optional key below is a layer you turn on when the machinery behind it exists.
 
 ## The top level
 
@@ -105,13 +103,12 @@ machinery behind it exists.
 | `outOfScopeFindings` | no | What an agent does with breakage it finds outside its task. `'bank'`, the default, records it with evidence for you to rule on; `'autofix'` has agents fix it in a dedicated pass. |
 | `release` | yes | What a release is for this project. See below. |
 | `gates` | yes | Your lint, typecheck, and test commands. See below. |
-| `calibrationFile` | yes | The committed file where subagent calibrations accumulate, stated relative to the Definition of Done: the checklist every task is held to before it counts as finished. The install seeds it; updates arrive as pull requests. |
 | `webSurface` | no | Declare it when the project has web pages people use. Browser verification and the responsive rules apply only where it exists. |
 | `demoSeed` | no | Declare it to require that every new or changed page ships its seed section and its manifest entry in the same change. |
 | `machineSurface` | no | Declare it when the project exposes an MCP server or a public API. Turns on the capability-parity criterion. |
 | `stack` | no | Declare your stack, or don't. Declaring it generates the twelve stack skills, from database design and Kysely queries to nested routes; leaving it out removes every trace of them. |
 | `provisioning` | no | The resource table isolated worktree lanes are built from. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files; without `provisioning`, it is a worktree and nothing else. |
-| `additionalCriteria` | no | Whole Definition of Done criteria your project adds beyond the ones the workflow ships. |
+| `additionalCriteria` | no | Whole Definition of Done criteria your project adds beyond the ones the workflow ships. The Definition of Done is the checklist every task is held to before it counts as finished. |
 | `quickDisqualifiers` | no | Things that disqualify a change from quick mode, added to the package's own list. |
 | `machinePrerequisites` | no | Binaries your own content depends on, beyond the ones the enabled layers already declare. Doctor checks them like any other. |
 

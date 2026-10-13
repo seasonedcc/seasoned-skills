@@ -122,11 +122,6 @@ export async function collectAnswers(
       gates.full.push(await ask('Full-gate command the orchestrator owns?'))
     } while (await askYesNo('Another full-gate command?'))
 
-    const calibrationFile = await ask(
-      'Path for the committed subagent-calibration file?',
-      `${contentDir}/calibrations.md`,
-    )
-
     const answers: InstallAnswers = {
       projectName,
       contentDir,
@@ -134,7 +129,6 @@ export async function collectAnswers(
       outOfScopeFindings,
       release,
       gates,
-      calibrationFile,
     }
 
     if (await askYesNo('Does this project have a user-facing web surface?')) {

@@ -72,7 +72,7 @@ Act as the orchestrator on every task, not just during `/goal` loops. Delegate e
 
 Merging into the default branch is the user's act: open the PR and stop. Merge only when the user explicitly asks — a green CI run or an approved review never implies that authorization.
 
-Load the `subagents` skill before spawning subagents or dynamic workflows — it covers which model tier and reasoning effort to use for each kind of work and how to split tasks. Load the `orchestration` skill alongside it — it covers charters, verifying subagent claims, recovery after interruptions, and shipping lane PRs. Size every subagent task so its context lands at roughly one-third of the 1M-token window by completion, since these models start degrading past ~25–33% fill.
+Load the `subagents` skill before spawning subagents or dynamic workflows — it covers which model tier and reasoning effort to use for each kind of work. Load the `orchestration` skill alongside it — it covers charters, verifying subagent claims, recovery after interruptions, and shipping lane PRs.
 
 Break the work down however you think is best, as long as you respect dependencies: work that depends on other work only starts when the dependency has fully landed. Independent work runs in parallel, each piece in its own worktree. Use well-designed dynamic workflows whenever the work allows for parallelism.
 

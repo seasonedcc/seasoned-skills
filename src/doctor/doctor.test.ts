@@ -12,7 +12,6 @@ const base = {
   outOfScopeFindings: 'bank',
   release: { target: 'published-package', packages: ['consumer'] },
   gates: { lint: 'lint', typecheck: 'typecheck', unit: 'test', full: ['test'] },
-  calibrationFile: 'calibration.md',
 } as unknown as SeasonedSkillsConfig
 
 const WHISPER_VOICE_ACTIVITY_MODEL = join(

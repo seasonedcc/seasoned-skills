@@ -292,11 +292,10 @@ each piece, reads the resulting changes, and rules on quality. It runs on
 Opus, because everything it does is judgment. It does not type the code
 itself; agents type, the orchestrator decides. Each delegated piece goes
 out with written instructions saying what to build, which files belong to
-it and which belong to its siblings, and where to stop, and each is sized
-so the agent doing it lands near a third of its context window by the
-time it finishes. The orchestrator treats every claim an agent reports as
-unverified until it has checked the work itself: gates are re-run, diffs
-are read, and nothing advances on an agent's word alone.
+it and which belong to its siblings, and where to stop. The orchestrator
+treats every claim an agent reports as unverified until it has checked the
+work itself: gates are re-run, diffs are read, and nothing advances on an
+agent's word alone.
 
 The orchestrator also keeps the effort's ledger, the running file of
 durable facts introduced earlier, which is what lets the effort survive
@@ -455,7 +454,7 @@ The document's goal is pasted into `/goal` in a fresh Claude Code session
 running Opus. The orchestrator splits the work into lanes, agents build
 and test in parallel worktrees, pull requests are adversarially reviewed
 and merged into the goal's branch, and the person checks in a few times a
-day to compact the context and answer the occasional questionnaire, as
+day to watch the usage limit and answer the occasional questionnaire, as
 [Running a session](running-a-session.md) teaches. When the goal is met,
 the self-improvement pass files what the effort taught. The person
 watches the demo videos the workflow generated, tries by hand the one

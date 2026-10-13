@@ -65,7 +65,6 @@ export const CONFIGURATION_KEYS: KeyManifest<SeasonedSkillsConfig> = {
     relatedSpecs: null,
     full: null,
   },
-  calibrationFile: null,
   webSurface: { coverageRegister: null, excusedSurfaces: null },
   demoSeed: { seedManifest: null },
   machineSurface: { parityStandard: null, exceptionRegister: null },
