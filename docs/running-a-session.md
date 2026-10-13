@@ -56,8 +56,9 @@ cloned, which every worktree branches from). That folder stays for as
 long as Claude Code keeps the session's transcript, the saved
 conversation a session resumes from, so a session you resume weeks later
 still finds its ledger, and the folder is removed once that transcript
-is gone. Browser logins are the one thing left in Claude Code's
-directory, because their cookies must never land inside a checkout.
+is gone. A folder that never found its transcript stays until you delete
+it. Browser logins are the one thing left in Claude Code's directory,
+because their cookies must never land inside a checkout.
 
 The status line at the bottom of the session shows a context bar:
 green while the context is under a quarter full, yellow up to a third,
