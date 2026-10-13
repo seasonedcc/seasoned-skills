@@ -117,8 +117,9 @@ off. A full demo that plays well means the process held; move toward
 deployment. Running the project locally to poke at it happens sometimes,
 but the lean is videos first.
 
-One more thing waits for you after a goal: the self-improvement pass has
-filed its findings as draft pull requests on your project and issues on
-this package. Reviewing them is yours, and merging them is only ever
-yours: a change to the way of working reaches nobody until you have read
-it and agreed.
+One more thing a goal leaves behind: the self-improvement pass has filed
+what it learned as issues, on your project and on this package. None of
+them is a task waiting for you. They're raw material for your next shaping
+session. Apart from an urgent fix, or a correction to a rule the work
+itself made untrue, the workflow's rules change only when a shaping
+session decides they should.

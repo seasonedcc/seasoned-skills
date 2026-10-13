@@ -30,7 +30,7 @@ describe('composeSkill', () => {
     expect(contents).toContain('## Project specifics\n\nThis section carries the')
     expect(contents).toContain('Skills live only at the project level.')
     expect(contents).toContain(
-      'lessons about this skill land in `workflow-content/skill-management.md`',
+      "this project's part of the skill belongs in `workflow-content/skill-management.md`",
     )
   })
 

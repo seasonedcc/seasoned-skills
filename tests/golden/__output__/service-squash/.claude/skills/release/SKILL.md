@@ -80,4 +80,4 @@ A green run is not a working site. The release is not done until the project's p
 
 ## Where lessons go
 
-Project-empirical lessons about this skill land in `workflow-content/release.md` through a pull request on the project — never by editing this file, which is regenerated on every upgrade. A lesson that turns out to be true of every project travels as an issue on the workflow package instead.
+A lesson about this skill travels as an issue, never as an edit to this file, which is regenerated on every upgrade. File it on the workflow package when it would hold in every project, and on the project when it is specific to this project; this project's part of the skill belongs in `workflow-content/release.md`.
