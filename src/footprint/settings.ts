@@ -14,10 +14,10 @@ import { dirname, join } from 'node:path'
 
 /**
  * Package-versioned runtime assumptions: tuning one is a release. The model is
- * the family alias, so it follows the newest Fable without one.
+ * the family alias, so it follows the newest Opus without one.
  */
 export const MANAGED_RUNTIME_VALUES = {
-  model: 'fable[1m]',
+  model: 'opus[1m]',
   effortLevel: 'high',
   alwaysThinkingEnabled: true,
   autoCompactEnabled: false,

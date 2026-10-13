@@ -65,12 +65,12 @@ USAGE=""
 EFFORT_SUFFIX=""
 [ -n "$EFFORT" ] && EFFORT_SUFFIX=" ${DIM}${EFFORT}${RESET}"
 
-# Demotion alarm: the workflow runs the main session on Fable at high effort.
+# Demotion alarm: the workflow runs the main session on Opus at high effort.
 # If the classifier demotes the model (or drops the effort), wrap the
 # model + effort segment in sirens and paint it red so it's impossible to miss.
 ALERT_PRE="" ALERT_POST=""
 case "$MODEL" in
-  *[Ff]able*) MODEL_OK=1 ;;
+  *[Oo]pus*)  MODEL_OK=1 ;;
   *)          MODEL_OK=0 ;;
 esac
 if [ "$MODEL_OK" -eq 0 ] || { [ -n "$EFFORT" ] && [ "$EFFORT" != "high" ]; }; then
