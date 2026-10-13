@@ -422,10 +422,9 @@ never as a ready-made change. A person's good idea comes back on its own;
 an agent's can't, because its memory ends with the session, so the issue
 is its only way back.
 
-That is all issues are for here. An issue is either an urgent signal, the
-cord that stops the line, or raw material for framing and shaping. It's
-never a task list anyone has to work through, and nobody owes an issue a
-build.
+Issues serve exactly two purposes here: an urgent signal, the cord that
+stops the line, or raw material for framing and shaping. An issue is never
+a task list anyone has to work through, and nobody owes an issue a build.
 
 Two things the pass never files, because they get fixed instead. A defect
 doing harm right now isn't a lesson: the session says so in conversation
