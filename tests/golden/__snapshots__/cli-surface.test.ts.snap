@@ -24,7 +24,7 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "provision",
     },
     {
-      "description": "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those listening on the lane's ports from inside its worktrees that this session or an ended one started), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane another live Claude Code session is using, or one with uncommitted changes; never touches the branch.",
+      "description": "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those that listen on the lane's ports, run from inside its worktrees, and were started by this session or an ended one), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane another live Claude Code session is using, one whose processes cannot be listed, or one with uncommitted changes; never touches the branch.",
       "name": "teardown",
     },
     {

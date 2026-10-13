@@ -148,7 +148,10 @@ export function buildProgram(): Command {
     .description(
       "Set up an isolated worktree lane over the repositories the run covers, from what each declares in the configuration's resource table: worktrees, ports, databases, cache-store index, dependencies, and seed data. Idempotent — re-running keeps the lane's allocation and never reseeds existing databases.",
     )
-    .argument('<lane>', 'the lane name; also names the worktree directories')
+    .argument(
+      '<lane>',
+      'the lane name, a single directory name; also names the worktree directories',
+    )
     .option(
       '--repo <path>',
       'a declared repository this lane covers, by its exact declared path; repeatable (default: the first declared repository)',
@@ -195,9 +198,9 @@ export function buildProgram(): Command {
   program
     .command('teardown')
     .description(
-      "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those listening on the lane's ports from inside its worktrees that this session or an ended one started), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane another live Claude Code session is using, or one with uncommitted changes; never touches the branch.",
+      "Remove a provisioned lane across every declared repository: its processes (by exact pid, only those that listen on the lane's ports, run from inside its worktrees, and were started by this session or an ended one), its cache-store index, its whole database family including derived names, and its worktrees. Refuses a lane another live Claude Code session is using, one whose processes cannot be listed, or one with uncommitted changes; never touches the branch.",
     )
-    .argument('<lane>', 'the lane to remove')
+    .argument('<lane>', 'the lane to remove, by its directory name')
     .option(
       '--force',
       "remove the lane even when a worktree has uncommitted changes or another live session is using it; that session's processes are still left running",
@@ -229,7 +232,7 @@ export function buildProgram(): Command {
     .option('--lane <lane>', "with --lane-processes: only that lane's processes")
     .option(
       '--hook',
-      'with --lane-processes: run quietly as the session-end hook, acting only when the session is truly over',
+      'with --lane-processes: run quietly as the session-end hook, acting only when the session is truly over; without --kill it does nothing, and the generated hook passes --kill',
     )
     .action(
       async (options: {
