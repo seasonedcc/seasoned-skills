@@ -39,18 +39,28 @@ function browserProcessesFromPsOutput(output: string, userId: number) {
   return browsers
 }
 
-function listBrowserProcesses() {
+type ClassifiedBrowser = BrowserProcess & { ownership: Ownership }
+
+/** This user's browser processes with their ownership; throws when ps cannot list them. */
+function listBrowserProcesses(): ClassifiedBrowser[] {
   const result = spawnSync('ps', ['-A', '-ww', '-o', 'pid=,uid=,etime=,command='], {
     encoding: 'utf8',
   })
+  if (result.status !== 0) {
+    const reason =
+      result.error?.message ??
+      (result.stderr.trim() ||
+        (result.signal ? `killed by ${result.signal}` : `exit status ${result.status}`))
+    throw new Error(`ps could not list the browser processes: ${reason}`)
+  }
   return withOwnership(
-    browserProcessesFromPsOutput(result.stdout ?? '', process.getuid?.() ?? -1),
+    browserProcessesFromPsOutput(result.stdout, process.getuid?.() ?? -1),
   )
 }
 
 /** Kill each browser process this session may kill by its exact pid. */
-function killBrowserProcesses(browsers: (BrowserProcess & { ownership: Ownership })[]) {
-  const killed: (BrowserProcess & { ownership: Ownership })[] = []
+function killBrowserProcesses(browsers: ClassifiedBrowser[]) {
+  const killed: ClassifiedBrowser[] = []
   for (const browser of browsers) {
     if (!isKillable(browser.ownership)) continue
     try {
@@ -63,5 +73,5 @@ function killBrowserProcesses(browsers: (BrowserProcess & { ownership: Ownership
   return killed
 }
 
-export type { BrowserProcess }
+export type { ClassifiedBrowser }
 export { browserProcessesFromPsOutput, killBrowserProcesses, listBrowserProcesses }

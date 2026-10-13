@@ -1,5 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   endedProcessId,
   exits,
@@ -9,6 +11,7 @@ import {
   spawnSessionWithChild,
   stopDummies,
 } from '../../tests/unit/dummy-processes.js'
+import { browserListingOf, fakeBrowserPs } from '../../tests/unit/fake-commands.js'
 import {
   browserProcessesFromPsOutput,
   killBrowserProcesses,
@@ -45,9 +48,16 @@ describe('browserProcessesFromPsOutput', () => {
 })
 
 describe('the browser sweep against real processes', () => {
+  let fakes: string
+
+  beforeEach(() => {
+    fakes = mkdtempSync(join(tmpdir(), 'seasoned-skills-browsers-'))
+  })
+
   afterEach(() => {
     stopDummies()
     vi.unstubAllEnvs()
+    rmSync(fakes, { recursive: true, force: true })
   })
 
   it('classifies each browser process and kills only the killable ones', {
@@ -62,9 +72,11 @@ describe('the browser sweep against real processes', () => {
       spawnSessionWithChild(tmpdir(), 'other-session', { label }),
       spawnOrphan(tmpdir(), { label }),
     ])
-    const ours = new Set([mine.pid, ended.pid, live.child.pid, unmarked.pid])
+    fakeBrowserPs(fakes, {
+      browsers: browserListingOf([mine, ended, live.child, unmarked]),
+    })
 
-    const listed = listBrowserProcesses().filter((browser) => ours.has(browser.processId))
+    const listed = listBrowserProcesses()
     expect(
       Object.fromEntries(listed.map((browser) => [browser.processId, browser.ownership])),
     ).toEqual({

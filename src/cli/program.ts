@@ -9,11 +9,11 @@ import { checkTarget, deriveChecks, renderReport, runChecks } from '../doctor/do
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
 import {
-  type BrowserProcess,
+  type ClassifiedBrowser,
   killBrowserProcesses,
   listBrowserProcesses,
 } from '../processes/browsers.js'
-import { describeOwnership, isKillable, type Ownership } from '../processes/ownership.js'
+import { describeOwnership, isKillable } from '../processes/ownership.js'
 import {
   type LaneProcessCandidate,
   listLaneProcesses,
@@ -357,8 +357,6 @@ function reportLaneSweep(
   )
 }
 
-type ClassifiedBrowser = BrowserProcess & { ownership: Ownership }
-
 function reportBrowsers(browsers: ClassifiedBrowser[]) {
   for (const kind of ['Chrome for Testing', 'agent-browser daemon'] as const) {
     const ofKind = browsers.filter((browser) => browser.kind === kind)
@@ -388,7 +386,7 @@ async function sweepBrowsers(kill: boolean) {
   let browsers = listBrowserProcesses()
   if (kill) {
     const killed = killBrowserProcesses(browsers)
-    for (const browser of killed) console.log(`killing pid=${browser.processId}`)
+    for (const browser of killed) console.log(`killed pid=${browser.processId}`)
     if (killed.length > 0) await delay(2000)
     browsers = listBrowserProcesses()
   }

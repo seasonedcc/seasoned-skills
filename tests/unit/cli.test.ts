@@ -21,7 +21,7 @@ import {
   spawnSessionWithChild,
   stopDummies,
 } from './dummy-processes.js'
-import { fakeCommands } from './fake-commands.js'
+import { browserListingOf, fakeBrowserPs } from './fake-commands.js'
 
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
@@ -177,6 +177,33 @@ describe('the CLI program', () => {
     expect(await exits(mine)).toBe(true)
   })
 
+  it('lane-process sweep tells a refused kill apart from a process that exited', {
+    timeout: 30_000,
+  }, async () => {
+    scaffoldProject()
+    execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+      cwd: root,
+    })
+    const lane = join(`${realpathSync(root)}-worktrees`, 'lane-a')
+    mkdirSync(lane, { recursive: true })
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const mine = await spawnDummy(lane, { marker: { claudeProcessId: process.pid } })
+    const deliver = process.kill.bind(process)
+    vi.spyOn(process, 'kill').mockImplementation((processId, signal) => {
+      if (processId === mine.pid && signal === 'SIGTERM') {
+        throw Object.assign(new Error('kill EPERM'), { code: 'EPERM' })
+      }
+      return deliver(processId, signal)
+    })
+
+    await run('sweep', '--lane-processes', '--kill')
+
+    const output = vi.mocked(console.log).mock.calls.join('\n')
+    expect(output).toMatch(new RegExp(`kill failed +${mine.pid} `))
+    expect(output).toContain('Terminated 0 of 1 process found in lanes.')
+    expect(isRunning(mine)).toBe(true)
+  })
+
   describe('the session-end hook', () => {
     async function laneWithOwnAndLiveProcesses() {
       scaffoldProject()
@@ -244,7 +271,7 @@ describe('the CLI program', () => {
 
   describe('the browser sweep', () => {
     it('exits 0 when no browser of this session or an ended one is alive', async () => {
-      vi.spyOn(process, 'getuid').mockReturnValue(2_147_483_646)
+      fakeBrowserPs(root, { browsers: browserListingOf([]) })
 
       await run('sweep', '--browsers')
       expect(process.exitCode).toBeUndefined()
@@ -262,6 +289,7 @@ describe('the CLI program', () => {
         label: 'agent-browser-linux-x64',
         marker: { claudeProcessId: process.pid },
       })
+      fakeBrowserPs(root, { browsers: browserListingOf([mine]) })
 
       await run('sweep', '--browsers')
 
@@ -272,6 +300,39 @@ describe('the CLI program', () => {
       expect(isRunning(mine)).toBe(true)
     })
 
+    it('kills a browser of this session with --kill and then reports clean', {
+      timeout: 30_000,
+    }, async () => {
+      vi.stubEnv('CLAUDE_PID', String(process.pid))
+      const mine = await spawnDummy(root, {
+        label: 'agent-browser-linux-x64',
+        marker: { claudeProcessId: process.pid },
+      })
+      fakeBrowserPs(root, { browsers: browserListingOf([mine]) })
+
+      await run('sweep', '--browsers', '--kill')
+
+      expect(await exits(mine)).toBe(true)
+      expect(process.exitCode).toBeUndefined()
+      const output = vi.mocked(console.log).mock.calls.join('\n')
+      expect(output).toContain(`killed pid=${mine.pid}`)
+      expect(output).toContain('SWEEP: clean')
+    })
+
+    it('exits 1 and kills nothing when the browsers cannot be listed', {
+      timeout: 30_000,
+    }, async () => {
+      fakeBrowserPs(root, { browsers: "echo 'ps: no such option' >&2; exit 1" })
+
+      await run('sweep', '--browsers', '--kill')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'ps could not list the browser processes: ps: no such option',
+      )
+      expect(vi.mocked(console.log).mock.calls.join('\n')).not.toContain('SWEEP')
+    })
+
     it('exits 1 and kills nothing when the process table cannot be read', {
       timeout: 30_000,
     }, async () => {
@@ -280,9 +341,7 @@ describe('the CLI program', () => {
         label: 'agent-browser-linux-x64',
         marker: { claudeProcessId: process.pid },
       })
-      fakeCommands(root, {
-        ps: 'case "$*" in *lstart*) exit 0 ;; *) exec /bin/ps "$@" ;; esac',
-      })
+      fakeBrowserPs(root, { browsers: browserListingOf([mine]), table: 'exit 0' })
 
       await run('sweep', '--browsers', '--kill')
 
