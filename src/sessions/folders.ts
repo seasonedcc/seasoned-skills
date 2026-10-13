@@ -32,16 +32,16 @@ const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 type SessionFolder = { sessionId: string; path: string }
 
-type UndecidedSessionFolder = SessionFolder & { reason: string }
+type KeptSessionFolder = SessionFolder & { reason: string }
 
 type SessionFolderListing = {
   sessionsDirectory: string
   /** Folders whose transcript no project directory holds any more. */
   expired: SessionFolder[]
   /** Folders whose transcript a project directory still holds. */
-  kept: SessionFolder[]
+  resumable: SessionFolder[]
   /** Folders kept because the sweep cannot tell whether their transcript remains. */
-  undecided: UndecidedSessionFolder[]
+  kept: KeptSessionFolder[]
 }
 
 /**
@@ -161,9 +161,9 @@ function recordedProjectsDirectory(folder: SessionFolder) {
  * Every session folder in the main checkout, listed before any is judged, so
  * a session that starts mid-sweep is never judged at all. Each recorded
  * projects directory is read twice, back to back, and a folder expires only
- * when neither read finds its transcript, so one Claude Code was moving
- * between project directories during the first read keeps it. Only
- * directories named like a session id are session folders.
+ * when neither read finds its transcript, so a transcript Claude Code was
+ * moving between project directories during the first read keeps its
+ * folder. Only directories named like a session id are session folders.
  */
 function listSessionFolders(projectDirectory: string): SessionFolderListing {
   const sessionsDirectory = sessionsDirectoryOf(projectDirectory)
@@ -175,8 +175,8 @@ function listSessionFolders(projectDirectory: string): SessionFolderListing {
   const listing: SessionFolderListing = {
     sessionsDirectory,
     expired: [],
+    resumable: [],
     kept: [],
-    undecided: [],
   }
   const reads = new Map<string, Set<string>[] | { reason: string }>()
   function readTwice(projectsDirectory: string) {
@@ -199,14 +199,14 @@ function listSessionFolders(projectDirectory: string): SessionFolderListing {
   for (const folder of folders) {
     const projectsDirectory = recordedProjectsDirectory(folder)
     if (projectsDirectory === undefined) {
-      listing.undecided.push({ ...folder, reason: 'it records no projects directory' })
+      listing.kept.push({ ...folder, reason: 'it records no projects directory' })
       continue
     }
     const read = readTwice(projectsDirectory)
     if ('reason' in read) {
-      listing.undecided.push({ ...folder, reason: read.reason })
+      listing.kept.push({ ...folder, reason: read.reason })
     } else if (read.some((sessions) => sessions.has(folder.sessionId))) {
-      listing.kept.push(folder)
+      listing.resumable.push(folder)
     } else {
       listing.expired.push(folder)
     }
@@ -229,7 +229,7 @@ function removeExpiredSessionFolders(projectDirectory: string) {
   return { removed, failed }
 }
 
-export type { SessionFolder, SessionFolderListing, UndecidedSessionFolder }
+export type { KeptSessionFolder, SessionFolder, SessionFolderListing }
 export {
   claudeProjectsDirectory,
   listSessionFolders,

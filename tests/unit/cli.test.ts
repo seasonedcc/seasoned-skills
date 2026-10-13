@@ -453,7 +453,7 @@ describe('the CLI program', () => {
 
     it('sweep --sessions lists the expired folders and removes them only with --remove', async () => {
       transcript(KEPT)
-      const kept = recordedFolder(KEPT)
+      const resumable = recordedFolder(KEPT)
       const expired = expiredFolderOf(EXPIRED)
       const unrecorded = join(sessions, '33333333-3333-4333-8333-333333333333')
       mkdirSync(unrecorded)
@@ -465,7 +465,7 @@ describe('the CLI program', () => {
       expect(listing).toContain(
         `kept     ${unrecorded} (it records no projects directory)`,
       )
-      expect(listing).not.toContain(kept)
+      expect(listing).not.toContain(resumable)
       expect(existsSync(expired)).toBe(true)
 
       vi.mocked(console.log).mockClear()
@@ -475,20 +475,20 @@ describe('the CLI program', () => {
       expect(output).toContain('Expired: 0 of 2 session folders')
       expect(process.exitCode).toBeUndefined()
       expect(existsSync(expired)).toBe(false)
-      expect([kept, unrecorded].every(existsSync)).toBe(true)
+      expect([resumable, unrecorded].every(existsSync)).toBe(true)
     })
 
     it('sweep --sessions keeps, with the reason, a folder it cannot judge', async () => {
       const unmounted = join(root, 'unmounted', 'projects')
-      const undecided = recordedFolder(EXPIRED, unmounted)
+      const kept = recordedFolder(EXPIRED, unmounted)
 
       await run('sweep', '--sessions', '--remove')
 
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls.join('\n')).toContain(
-        `kept     ${undecided} (${unmounted} cannot be fully read`,
+        `kept     ${kept} (${unmounted} cannot be fully read`,
       )
-      expect(existsSync(undecided)).toBe(true)
+      expect(existsSync(kept)).toBe(true)
     })
 
     it('sweep --sessions exits 1 when an expired folder cannot be removed', async () => {
@@ -517,7 +517,7 @@ describe('the CLI program', () => {
 
     it('the session-end hook removes the expired folders quietly', async () => {
       transcript(KEPT)
-      const kept = recordedFolder(KEPT)
+      const resumable = recordedFolder(KEPT)
       const expired = expiredFolderOf(EXPIRED)
 
       await run('sweep', '--sessions', '--hook')
@@ -525,7 +525,7 @@ describe('the CLI program', () => {
 
       await run('sweep', '--sessions', '--remove', '--hook')
       expect(existsSync(expired)).toBe(false)
-      expect(existsSync(kept)).toBe(true)
+      expect(existsSync(resumable)).toBe(true)
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log)).not.toHaveBeenCalled()
     })
@@ -543,12 +543,12 @@ describe('the CLI program', () => {
 
     it('the session-end hook stays silent when it cannot remove or judge a folder', async () => {
       const expired = expiredFolderOf(EXPIRED)
-      const undecided = recordedFolder(KEPT, join(root, 'unmounted', 'projects'))
+      const kept = recordedFolder(KEPT, join(root, 'unmounted', 'projects'))
       chmodSync(sessions, 0o555)
 
       await run('sweep', '--sessions', '--remove', '--hook')
 
-      expect([expired, undecided].every(existsSync)).toBe(true)
+      expect([expired, kept].every(existsSync)).toBe(true)
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log)).not.toHaveBeenCalled()
       expect(vi.mocked(console.error)).not.toHaveBeenCalled()

@@ -209,9 +209,9 @@ describe('session folders', () => {
       const listing = listSessionFolders(linkedWorktree())
 
       expect(listing.sessionsDirectory).toBe(join(main, '.sessions'))
-      expect(listing.kept).toEqual([folder(FIRST)])
+      expect(listing.resumable).toEqual([folder(FIRST)])
       expect(listing.expired).toEqual([folder(SECOND), folder(EXPIRED)])
-      expect(listing.undecided).toEqual([])
+      expect(listing.kept).toEqual([])
     })
 
     it('keeps a folder whose transcript moved to another project directory', () => {
@@ -227,7 +227,7 @@ describe('session folders', () => {
       recordedFolder(FIRST)
       recordedFolder(SECOND)
 
-      expect(listSessionFolders(main).kept).toEqual([folder(FIRST), folder(SECOND)])
+      expect(listSessionFolders(main).resumable).toEqual([folder(FIRST), folder(SECOND)])
     })
 
     it('keeps a folder whose transcript moves while the sweep reads the projects directory', () => {
@@ -247,7 +247,7 @@ describe('session folders', () => {
       const listing = listSessionFolders(main)
 
       expect(listing.expired).toEqual([])
-      expect(listing.kept).toEqual([folder(FIRST)])
+      expect(listing.resumable).toEqual([folder(FIRST)])
     })
 
     it('passes over stray files and dangling links in the projects directory', () => {
@@ -270,7 +270,7 @@ describe('session folders', () => {
       const listing = listSessionFolders(main)
 
       expect(listing.expired).toEqual([])
-      expect(listing.undecided).toEqual([
+      expect(listing.kept).toEqual([
         { ...folder(FIRST), reason: expect.stringContaining('cannot be fully read') },
         { ...folder(SECOND), reason: 'it records no projects directory' },
         { ...folder(EXPIRED), reason: expect.stringContaining('cannot be fully read') },
@@ -285,8 +285,8 @@ describe('session folders', () => {
       expect(listSessionFolders(main)).toEqual({
         sessionsDirectory: join(main, '.sessions'),
         expired: [],
+        resumable: [],
         kept: [],
-        undecided: [],
       })
     })
 
@@ -310,7 +310,7 @@ describe('session folders', () => {
     it('removes exactly the expired folders', () => {
       transcript('-project', FIRST)
       unlinkSync(transcript('-project', EXPIRED))
-      const kept = recordedFolder(FIRST)
+      const resumable = recordedFolder(FIRST)
       const expired = recordedFolder(EXPIRED)
       const unrecorded = join(main, '.sessions', SECOND)
       mkdirSync(unrecorded)
@@ -322,7 +322,9 @@ describe('session folders', () => {
       expect(failed).toEqual([])
       expect(existsSync(expired)).toBe(false)
       expect(
-        [kept, unrecorded, join(main, '.sessions', 'shared-notes')].every(existsSync),
+        [resumable, unrecorded, join(main, '.sessions', 'shared-notes')].every(
+          existsSync,
+        ),
       ).toBe(true)
     })
 

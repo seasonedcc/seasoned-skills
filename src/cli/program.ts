@@ -443,20 +443,20 @@ function folderCount(count: number) {
 function reportSessionFolders({
   sessionsDirectory,
   expired,
+  resumable,
   kept,
-  undecided,
 }: SessionFolderListing) {
   for (const folder of expired) console.log(`  expired  ${folder.path}`)
-  for (const folder of undecided) {
+  for (const folder of kept) {
     console.log(`  kept     ${folder.path} (${folder.reason})`)
   }
-  const total = expired.length + kept.length + undecided.length
-  const undecidedNote =
-    undecided.length === 0
+  const total = expired.length + resumable.length + kept.length
+  const keptNote =
+    kept.length === 0
       ? ''
-      : ` ${undecided.length} kept because sweep cannot tell whether their transcript remains: delete one yourself once you no longer need it.`
+      : ` ${kept.length} kept because sweep cannot tell whether their transcript remains: delete one yourself once you no longer need it.`
   console.log(
-    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${undecidedNote} A folder expires once no project directory in the projects directory it recorded holds its session's transcript, and --remove removes only expired folders.`,
+    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${keptNote} A folder expires once no project directory in the projects directory it recorded holds its session's transcript, and --remove removes only expired folders.`,
   )
 }
 
