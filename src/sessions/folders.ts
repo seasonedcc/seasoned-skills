@@ -1,10 +1,10 @@
 import {
   type Dirent,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from 'node:fs'
 import { homedir } from 'node:os'
@@ -18,18 +18,15 @@ import { git } from '../provisioning/runtime.js'
  * it, and every linked worktree reaches the same folder by absolute path.
  * Subagents share their session's id and therefore its folder. A session can
  * be resumed for as long as Claude Code keeps its transcript, so its folder
- * lives exactly that long. The folder records the path of the transcript it
- * found and the identity of the projects directory holding it, which pins
- * where to look: Claude Code moves a live session's transcript between the
- * project directories in there, so the sweep removes the folder only once none
- * of them holds the transcript. A folder that recorded no transcript, one whose
- * projects directory is no longer the one it recorded, and one whose
- * transcript cannot be looked for everywhere it could be, are never removed.
+ * lives that long: the folder records the projects directory its transcript
+ * was found in, and the sweep removes it once two reads of that directory find
+ * the transcript in none of its project directories. When in doubt, a folder
+ * is kept.
  */
 
 const SESSIONS_DIRECTORY = '.sessions'
 
-const TRANSCRIPT_RECORD = '.transcript'
+const PROJECTS_RECORD = '.projects'
 
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
@@ -39,13 +36,11 @@ type UndecidedSessionFolder = SessionFolder & { reason: string }
 
 type SessionFolderListing = {
   sessionsDirectory: string
-  /** Folders whose session's transcript is gone from their projects directory. */
+  /** Folders whose transcript no project directory holds any more. */
   expired: SessionFolder[]
-  /** Folders whose session's transcript is still in their projects directory. */
+  /** Folders whose transcript a project directory still holds. */
   kept: SessionFolder[]
-  /** Folders that recorded no transcript, which the sweep never removes. */
-  unrecorded: SessionFolder[]
-  /** Folders kept because whether their transcript remains cannot be told. */
+  /** Folders kept because the sweep cannot tell whether their transcript remains. */
   undecided: UndecidedSessionFolder[]
 }
 
@@ -84,57 +79,41 @@ function claudeProjectsDirectory(environment: NodeJS.ProcessEnv) {
 }
 
 /**
- * Which directory a path names right now: its inode and birth time, which a
- * directory keeps when it moves, while one created in its place, even on the
- * inode a deleted one freed, is born later. The device number is left out
- * because some file systems hand out a new one on every boot. A file system
- * without birth times reports 0, which stays put; a kernel too old to report
- * them gives the change time instead, which only leaves folders undecided.
+ * The ids of the sessions whose transcript some project directory holds,
+ * following links to project directories and passing over dangling links and
+ * stray files. Anything else that cannot be read throws, since the transcript
+ * may be exactly there.
  */
-function identityOf(directory: string) {
-  const { ino, birthtimeNs } = statSync(directory, { bigint: true })
-  return `inode ${ino} born ${birthtimeNs}`
-}
-
-const IDENTITY = /^inode \d+ born \d+$/
-
-/**
- * The session's transcript in any project directory, reached through links
- * too, with the identity of the projects directory holding it. A directory
- * that cannot be read only means the transcript was not found there: a folder
- * that records nothing is never removed.
- */
-function findTranscript(projectsDirectory: string, sessionId: string) {
-  let identity: string
-  let projects: string[]
-  try {
-    identity = identityOf(projectsDirectory)
-    projects = readdirSync(projectsDirectory)
-  } catch {
-    return undefined
-  }
-  for (const project of projects.sort()) {
-    const candidate = join(projectsDirectory, project, `${sessionId}.jsonl`)
+function sessionsWithTranscripts(projectsDirectory: string) {
+  const sessions = new Set<string>()
+  for (const project of readdirSync(projectsDirectory)) {
+    let entries: string[]
     try {
-      if (statSync(candidate).isFile()) return { transcript: candidate, identity }
-    } catch {}
+      entries = readdirSync(join(projectsDirectory, project))
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'ENOENT' || code === 'ENOTDIR') continue
+      throw error
+    }
+    for (const entry of entries) {
+      if (entry.endsWith('.jsonl')) sessions.add(basename(entry, '.jsonl'))
+    }
   }
-  return undefined
+  return sessions
 }
 
-function readOrNothing(path: string) {
+function holdsTranscript(projectsDirectory: string, sessionId: string) {
   try {
-    return readFileSync(path, 'utf8')
+    return sessionsWithTranscripts(projectsDirectory).has(sessionId)
   } catch {
-    return undefined
+    return false
   }
 }
 
 /**
- * This session's folder in the main checkout, created when missing, with the
- * path of the session's transcript and the identity of its projects directory
- * recorded in it. The record changes only to another transcript that exists,
- * so no configuration can point it at nothing.
+ * This session's folder in the main checkout, created when missing. When a
+ * project directory holds the session's transcript, the folder records the
+ * projects directory, which is all the sweep needs to tell when it is gone.
  */
 function sessionFolder(
   projectDirectory: string,
@@ -153,15 +132,11 @@ function sessionFolder(
   }
   const path = join(sessionsDirectoryOf(projectDirectory), sessionId)
   mkdirSync(path, { recursive: true })
-  const record = join(path, TRANSCRIPT_RECORD)
-  const recorded = readOrNothing(record)
-  const found = findTranscript(projectsDirectory, sessionId)
-  if (found === undefined)
-    return { path, transcript: recorded?.split('\n')[0] || undefined }
-
-  const content = `${found.transcript}\n${found.identity}\n`
-  if (content !== recorded) writeFileSync(record, content)
-  return { path, transcript: found.transcript }
+  const record = join(path, PROJECTS_RECORD)
+  if (holdsTranscript(projectsDirectory, sessionId)) {
+    writeFileSync(record, `${projectsDirectory}\n`)
+  }
+  return { path, recorded: existsSync(record) }
 }
 
 function sessionFolderEntries(sessionsDirectory: string): Dirent[] {
@@ -173,164 +148,22 @@ function sessionFolderEntries(sessionsDirectory: string): Dirent[] {
   }
 }
 
-type Judgement =
-  | { verdict: 'expired' | 'kept' | 'unrecorded' }
-  | { verdict: 'undecided'; reason: string }
-
-function isMissing(error: unknown) {
-  return (error as NodeJS.ErrnoException).code === 'ENOENT'
-}
-
-type Pin = { projectsDirectory: string; identity: string }
-
-/** The projects directory a folder's record pins, or why the folder is judged without one. */
-function pinOf(folder: SessionFolder): Pin | Judgement {
-  const record = join(folder.path, TRANSCRIPT_RECORD)
-  let lines: string[]
+function recordedProjectsDirectory(folder: SessionFolder) {
   try {
-    lines = readFileSync(record, 'utf8').trimEnd().split('\n')
-  } catch (error) {
-    if (isMissing(error)) return { verdict: 'unrecorded' }
-    return {
-      verdict: 'undecided',
-      reason: `cannot read ${record}: ${(error as Error).message}`,
-    }
+    const recorded = readFileSync(join(folder.path, PROJECTS_RECORD), 'utf8').trim()
+    return isAbsolute(recorded) ? recorded : undefined
+  } catch {
+    return undefined
   }
-  const [recorded = '', identity] = lines
-  if (!isAbsolute(recorded)) {
-    return { verdict: 'undecided', reason: `${record} names no absolute path` }
-  }
-  if (basename(recorded) !== `${folder.sessionId}.jsonl`) {
-    return {
-      verdict: 'undecided',
-      reason: `${record} names ${recorded}, which is not this session's transcript`,
-    }
-  }
-  if (identity === undefined || !IDENTITY.test(identity) || lines.length > 2) {
-    return {
-      verdict: 'undecided',
-      reason: `${record} is not a transcript path and its projects directory's identity, one per line`,
-    }
-  }
-
-  return { projectsDirectory: dirname(dirname(recorded)), identity }
-}
-
-type ProjectsDirectoryScan =
-  | { unreadable: string }
-  | {
-      identity: string
-      projects: { path: string; entries: Set<string> }[]
-      problems: string[]
-    }
-
-/**
- * What every project directory of a projects directory holds, following links to
- * directories and passing over dangling ones. Anything else that cannot be
- * read is a problem, since the transcript may be exactly there.
- */
-function scanProjectsDirectory(projectsDirectory: string): ProjectsDirectoryScan {
-  let identity: string
-  let names: string[]
-  try {
-    identity = identityOf(projectsDirectory)
-    names = readdirSync(projectsDirectory)
-  } catch (error) {
-    return {
-      unreadable: `cannot read Claude Code's projects directory ${projectsDirectory}: ${(error as Error).message}`,
-    }
-  }
-  const projects: { path: string; entries: Set<string> }[] = []
-  const problems: string[] = []
-  for (const name of names) {
-    const path = join(projectsDirectory, name)
-    try {
-      if (statSync(path).isDirectory()) {
-        projects.push({ path, entries: new Set(readdirSync(path)) })
-      }
-    } catch (error) {
-      if (!isMissing(error)) {
-        problems.push(
-          `cannot read the project directory ${path}: ${(error as Error).message}`,
-        )
-      }
-    }
-  }
-  return { identity, projects, problems }
 }
 
 /**
- * Kept when a project directory holds the session's transcript, expired only when
- * none does and every place it could be was checked.
- */
-function judgeByScan(
-  scan: ProjectsDirectoryScan,
-  pin: Pin,
-  sessionId: string,
-): Judgement {
-  if ('unreadable' in scan) return { verdict: 'undecided', reason: scan.unreadable }
-  if (scan.identity !== pin.identity) {
-    return {
-      verdict: 'undecided',
-      reason: `the projects directory at ${pin.projectsDirectory} is not the one this folder recorded`,
-    }
-  }
-  const transcript = `${sessionId}.jsonl`
-  const problems = [...scan.problems]
-  for (const project of scan.projects) {
-    if (!project.entries.has(transcript)) continue
-    const candidate = join(project.path, transcript)
-    try {
-      statSync(candidate)
-      return { verdict: 'kept' }
-    } catch (error) {
-      if (!isMissing(error)) {
-        problems.push(
-          `cannot check the transcript ${candidate}: ${(error as Error).message}`,
-        )
-      }
-    }
-  }
-  if (problems.length > 0) return { verdict: 'undecided', reason: problems.join('; ') }
-  return { verdict: 'expired' }
-}
-
-/** A look through projects directories that reads each one only the first time it is needed. */
-function transcriptLook() {
-  const scans = new Map<string, ProjectsDirectoryScan>()
-  return (pin: Pin, sessionId: string) => {
-    let scan = scans.get(pin.projectsDirectory)
-    if (scan === undefined) {
-      scan = scanProjectsDirectory(pin.projectsDirectory)
-      scans.set(pin.projectsDirectory, scan)
-    }
-    return judgeByScan(scan, pin, sessionId)
-  }
-}
-
-type TranscriptLook = ReturnType<typeof transcriptLook>
-
-/** A folder about to expire is looked for once more, and the second look decides. */
-function judge(
-  folder: SessionFolder,
-  firstLook: TranscriptLook,
-  secondLook: TranscriptLook,
-): Judgement {
-  const pin = pinOf(folder)
-  if ('verdict' in pin) return pin
-  const judgement = firstLook(pin, folder.sessionId)
-  if (judgement.verdict !== 'expired') return judgement
-  return secondLook(pin, folder.sessionId)
-}
-
-/**
- * Every session folder in the main checkout, each judged by whether its
- * session's transcript is still in the projects directory its record pins.
- * The folders are listed before any is judged, so a session that starts
- * mid-sweep is never judged at all, and a folder about to expire is looked
- * for once more, so a transcript Claude Code was moving during the first look
- * keeps it. Only directories named like a session id are session folders;
- * anything else in `.sessions/` is never listed.
+ * Every session folder in the main checkout, listed before any is judged, so
+ * a session that starts mid-sweep is never judged at all. Each recorded
+ * projects directory is read twice, back to back, and a folder expires only
+ * when neither read finds its transcript, so one Claude Code was moving
+ * between project directories during the first read keeps it. Only
+ * directories named like a session id are session folders.
  */
 function listSessionFolders(projectDirectory: string): SessionFolderListing {
   const sessionsDirectory = sessionsDirectoryOf(projectDirectory)
@@ -343,17 +176,39 @@ function listSessionFolders(projectDirectory: string): SessionFolderListing {
     sessionsDirectory,
     expired: [],
     kept: [],
-    unrecorded: [],
     undecided: [],
   }
-  const firstLook = transcriptLook()
-  const secondLook = transcriptLook()
+  const reads = new Map<string, Set<string>[] | { reason: string }>()
+  function readTwice(projectsDirectory: string) {
+    let read = reads.get(projectsDirectory)
+    if (read === undefined) {
+      try {
+        read = [
+          sessionsWithTranscripts(projectsDirectory),
+          sessionsWithTranscripts(projectsDirectory),
+        ]
+      } catch (error) {
+        read = {
+          reason: `${projectsDirectory} cannot be fully read: ${(error as Error).message}`,
+        }
+      }
+      reads.set(projectsDirectory, read)
+    }
+    return read
+  }
   for (const folder of folders) {
-    const judgement = judge(folder, firstLook, secondLook)
-    if (judgement.verdict === 'undecided') {
-      listing.undecided.push({ ...folder, reason: judgement.reason })
+    const projectsDirectory = recordedProjectsDirectory(folder)
+    if (projectsDirectory === undefined) {
+      listing.undecided.push({ ...folder, reason: 'it records no projects directory' })
+      continue
+    }
+    const read = readTwice(projectsDirectory)
+    if ('reason' in read) {
+      listing.undecided.push({ ...folder, reason: read.reason })
+    } else if (read.some((sessions) => sessions.has(folder.sessionId))) {
+      listing.kept.push(folder)
     } else {
-      listing[judgement.verdict].push(folder)
+      listing.expired.push(folder)
     }
   }
   return listing

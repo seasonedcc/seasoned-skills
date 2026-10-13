@@ -9,11 +9,10 @@ import {
   realpathSync,
   renameSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
@@ -326,38 +325,23 @@ describe('the CLI program', () => {
       return worktree
     }
 
-    function identityOf(projectsDirectory: string) {
-      try {
-        const { ino, birthtimeNs } = statSync(projectsDirectory, { bigint: true })
-        return `inode ${ino} born ${birthtimeNs}`
-      } catch {
-        return 'inode 0 born 0'
-      }
-    }
-
-    function folderOf(sessionId: string, recordedTranscript?: string) {
+    /** A session folder as session-folder leaves it once it found the transcript. */
+    function recordedFolder(sessionId: string, recordedProjects = projects) {
       const folder = join(sessions, sessionId)
       mkdirSync(folder, { recursive: true })
-      if (recordedTranscript !== undefined) {
-        writeFileSync(
-          join(folder, '.transcript'),
-          `${recordedTranscript}\n${identityOf(dirname(dirname(recordedTranscript)))}\n`,
-        )
-      }
+      writeFileSync(join(folder, '.projects'), `${recordedProjects}\n`)
       return folder
     }
 
-    /** A folder whose recorded transcript Claude Code has since deleted. */
+    /** A folder whose transcript Claude Code has since deleted. */
     function expiredFolderOf(sessionId: string) {
-      const gone = transcript(sessionId)
-      const folder = folderOf(sessionId, gone)
-      rmSync(gone)
-      return folder
+      rmSync(transcript(sessionId))
+      return recordedFolder(sessionId)
     }
 
-    it("session-folder prints this session's folder, recording its transcript", async () => {
+    it("session-folder prints this session's folder, recording the projects directory", async () => {
       vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
-      const own = transcript(KEPT)
+      transcript(KEPT)
 
       await run('session-folder')
 
@@ -365,9 +349,7 @@ describe('the CLI program', () => {
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls).toEqual([[folder]])
       expect(vi.mocked(console.error)).not.toHaveBeenCalled()
-      expect(readFileSync(join(folder, '.transcript'), 'utf8')).toBe(
-        `${own}\n${identityOf(projects)}\n`,
-      )
+      expect(readFileSync(join(folder, '.projects'), 'utf8')).toBe(`${projects}\n`)
     })
 
     it('session-folder still prints the folder, and says so, when no transcript is found', async () => {
@@ -379,57 +361,26 @@ describe('the CLI program', () => {
       expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls).toEqual([[folder]])
       expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
-        'records no transcript',
+        'records no projects directory',
       )
-      expect(existsSync(join(folder, '.transcript'))).toBe(false)
+      expect(existsSync(join(folder, '.projects'))).toBe(false)
     })
 
-    it('session-folder says nothing is recorded when the folder holds an empty record', async () => {
+    it("another account's configuration neither rewrites nor expires a folder", async () => {
       vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
-      writeFileSync(join(folderOf(KEPT), '.transcript'), '')
-
-      await run('session-folder')
-
-      expect(process.exitCode).toBeUndefined()
-      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
-        'records no transcript',
-      )
-    })
-
-    it('keeps a folder when another configuration asks for it or sweeps it', async () => {
-      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
-      const own = transcript(KEPT)
+      transcript(KEPT)
       await run('session-folder')
       const folder = join(sessions, KEPT)
 
-      mkdirSync(join(root, 'other-config', 'projects'), { recursive: true })
+      const otherProjects = join(root, 'other-config', 'projects')
+      transcript(EXPIRED, otherProjects)
       vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'other-config'))
       await run('session-folder')
       vi.stubEnv('CLAUDE_CODE_SESSION_ID', '')
       await run('sweep', '--sessions', '--remove')
 
       expect(process.exitCode).toBeUndefined()
-      expect(readFileSync(join(folder, '.transcript'), 'utf8')).toBe(
-        `${own}\n${identityOf(projects)}\n`,
-      )
-      expect(existsSync(folder)).toBe(true)
-    })
-
-    it('keeps a folder whose configuration moved away while another took its place', async () => {
-      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
-      transcript(KEPT)
-      await run('session-folder')
-      const folder = join(sessions, KEPT)
-      renameSync(join(root, 'claude-config'), join(root, 'moved-config'))
-      vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'moved-config'))
-      transcript(EXPIRED)
-
-      await run('sweep', '--sessions', '--remove')
-
-      expect(process.exitCode).toBe(1)
-      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
-        `the projects directory at ${projects} is not the one this folder recorded`,
-      )
+      expect(readFileSync(join(folder, '.projects'), 'utf8')).toBe(`${projects}\n`)
       expect(existsSync(folder)).toBe(true)
     })
 
@@ -501,15 +452,19 @@ describe('the CLI program', () => {
     })
 
     it('sweep --sessions lists the expired folders and removes them only with --remove', async () => {
-      const kept = folderOf(KEPT, transcript(KEPT))
+      transcript(KEPT)
+      const kept = recordedFolder(KEPT)
       const expired = expiredFolderOf(EXPIRED)
-      const unrecorded = folderOf('33333333-3333-4333-8333-333333333333')
+      const unrecorded = join(sessions, '33333333-3333-4333-8333-333333333333')
+      mkdirSync(unrecorded)
 
       await run('sweep', '--sessions')
       const listing = vi.mocked(console.log).mock.calls.join('\n')
       expect(process.exitCode).toBeUndefined()
-      expect(listing).toContain(`expired     ${expired}`)
-      expect(listing).toContain(`unrecorded  ${unrecorded}`)
+      expect(listing).toContain(`expired  ${expired}`)
+      expect(listing).toContain(
+        `kept     ${unrecorded} (it records no projects directory)`,
+      )
       expect(listing).not.toContain(kept)
       expect(existsSync(expired)).toBe(true)
 
@@ -523,24 +478,15 @@ describe('the CLI program', () => {
       expect([kept, unrecorded].every(existsSync)).toBe(true)
     })
 
-    it('sweep --sessions exits 1 and removes nothing when a transcript cannot be checked', async () => {
-      const unmounted = join(
-        root,
-        'unmounted',
-        'projects',
-        '-project',
-        `${EXPIRED}.jsonl`,
-      )
-      const undecided = folderOf(EXPIRED, unmounted)
+    it('sweep --sessions keeps, with the reason, a folder it cannot judge', async () => {
+      const unmounted = join(root, 'unmounted', 'projects')
+      const undecided = recordedFolder(EXPIRED, unmounted)
 
       await run('sweep', '--sessions', '--remove')
 
-      expect(process.exitCode).toBe(1)
-      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
-        `cannot read Claude Code's projects directory ${join(root, 'unmounted', 'projects')}`,
-      )
+      expect(process.exitCode).toBeUndefined()
       expect(vi.mocked(console.log).mock.calls.join('\n')).toContain(
-        `undecided   ${undecided}`,
+        `kept     ${undecided} (${unmounted} cannot be fully read`,
       )
       expect(existsSync(undecided)).toBe(true)
     })
@@ -570,7 +516,8 @@ describe('the CLI program', () => {
     })
 
     it('the session-end hook removes the expired folders quietly', async () => {
-      const kept = folderOf(KEPT, transcript(KEPT))
+      transcript(KEPT)
+      const kept = recordedFolder(KEPT)
       const expired = expiredFolderOf(EXPIRED)
 
       await run('sweep', '--sessions', '--hook')
@@ -585,7 +532,7 @@ describe('the CLI program', () => {
 
     it('the session-end hook keeps the folder of a session whose transcript moved to another project directory', async () => {
       const recorded = transcript(KEPT)
-      const folder = folderOf(KEPT, recorded)
+      const folder = recordedFolder(KEPT)
       mkdirSync(join(projects, '-project-worktrees-lane-a'))
       renameSync(recorded, join(projects, '-project-worktrees-lane-a', `${KEPT}.jsonl`))
 
@@ -594,12 +541,9 @@ describe('the CLI program', () => {
       expect(existsSync(folder)).toBe(true)
     })
 
-    it('the session-end hook stays silent when it can remove or check nothing', async () => {
+    it('the session-end hook stays silent when it cannot remove or judge a folder', async () => {
       const expired = expiredFolderOf(EXPIRED)
-      const undecided = folderOf(
-        KEPT,
-        join(root, 'unmounted', 'projects', '-project', `${KEPT}.jsonl`),
-      )
+      const undecided = recordedFolder(KEPT, join(root, 'unmounted', 'projects'))
       chmodSync(sessions, 0o555)
 
       await run('sweep', '--sessions', '--remove', '--hook')
