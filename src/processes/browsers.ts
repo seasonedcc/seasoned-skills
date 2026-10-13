@@ -63,5 +63,5 @@ function killBrowserProcesses(browsers: (BrowserProcess & { ownership: Ownership
   return killed
 }
 
-export type { BrowserProcess, BrowserProcessKind }
+export type { BrowserProcess }
 export { browserProcessesFromPsOutput, killBrowserProcesses, listBrowserProcesses }
