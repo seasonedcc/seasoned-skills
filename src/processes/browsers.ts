@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { isKillable, type Ownership, ownProcessIds, withOwnership } from './ownership.js'
+import { isKillable, type Ownership, withOwnership } from './ownership.js'
 
 /**
  * The automated-browser sweep: this user's agent-browser daemons and the
@@ -43,11 +43,8 @@ function listBrowserProcesses() {
   const result = spawnSync('ps', ['-A', '-ww', '-o', 'pid=,uid=,etime=,command='], {
     encoding: 'utf8',
   })
-  const own = ownProcessIds()
   return withOwnership(
-    browserProcessesFromPsOutput(result.stdout ?? '', process.getuid?.() ?? -1).filter(
-      (browser) => !own.has(browser.processId),
-    ),
+    browserProcessesFromPsOutput(result.stdout ?? '', process.getuid?.() ?? -1),
   )
 }
 

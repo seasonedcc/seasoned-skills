@@ -4,7 +4,6 @@ import { createServer, type Server } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ownProcessIds } from '../../src/processes/ownership.js'
 import { resolveProvisioning } from '../../src/provisioning/common.js'
 import {
   listLaneProcesses,
@@ -37,6 +36,7 @@ import {
   spawnDummy,
   spawnOrphan,
   spawnOrphanMarkedByLaterProcess,
+  spawnParentWithRenamedChild,
   spawnSessionWithChild,
   stopDummies,
 } from './dummy-processes.js'
@@ -117,7 +117,6 @@ describe('provisioning runtime helpers', () => {
   })
 
   it('reads its own process identity through ps and lsof', () => {
-    expect(ownProcessIds().has(process.pid)).toBe(true)
     expect(commandLine(process.pid)).toContain('node')
     expect(processWorkingDirectory(process.pid)).toBe(process.cwd())
   })
@@ -326,6 +325,49 @@ describe('lane-process sweep ownership', () => {
     expect(
       [lane.mine, lane.ended, lane.recycled, lane.live, lane.unmarked].every(isRunning),
     ).toBe(true)
+  })
+
+  it('trusts its own marker only when it names a Claude Code instance it runs under', {
+    timeout: 30_000,
+  }, async () => {
+    const impostor = await spawnDummy(root)
+    vi.stubEnv('CLAUDE_PID', String(impostor.pid))
+    const marked = await spawnOrphan(lane, { marker: { claudeProcessId: impostor.pid } })
+
+    const listed = listLaneProcesses(repo, undefined)
+
+    expect(listed.find((entry) => entry.processId === marked.pid)?.ownership).toEqual({
+      kind: 'live-session',
+      claudeProcessId: impostor.pid,
+    })
+  })
+
+  it('finds the owner of a process that hides its environment through its ancestry', {
+    timeout: 30_000,
+  }, async () => {
+    vi.stubEnv('CLAUDE_PID', String(process.pid))
+    const [{ child: renamed }, unmarked, live] = await Promise.all([
+      spawnParentWithRenamedChild(lane, { claudeProcessId: process.pid }),
+      spawnOrphan(lane),
+      spawnSessionWithChild(lane, 'other-session'),
+    ])
+    if (process.platform === 'darwin') {
+      expect(
+        execFileSync('ps', ['-E', '-ww', '-o', 'command=', '-p', String(renamed.pid)], {
+          encoding: 'utf8',
+        }),
+      ).not.toContain('CLAUDE_PID=')
+    }
+
+    const listed = listLaneProcesses(repo, undefined)
+    expect(listed.find((entry) => entry.processId === renamed.pid)?.ownership).toEqual({
+      kind: 'mine',
+    })
+
+    sweepLaneProcesses(repo, undefined)
+    expect(await exits(renamed)).toBe(true)
+    expect(await exits(unmarked, 1000)).toBe(false)
+    expect(await exits(live.child, 1000)).toBe(false)
   })
 
   it("kills its own and ended sessions' lane processes, never another live session's or an unmarked one", {

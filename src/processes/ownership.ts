@@ -3,41 +3,51 @@ import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 
 /**
- * Which Claude Code instance a process belongs to. Claude Code puts its own
- * process id in CLAUDE_PID for every command it runs, and every descendant
- * inherits it, so a process's launch environment names the instance whose
- * session started it. Every kill this package performs asks here first, and
- * kills only the sweeper's own processes and those of sessions that ended.
+ * Which Claude Code instance a process belongs to. Every kill this package
+ * performs asks here first, and kills only the sweeper's own processes and
+ * those of sessions that ended.
  *
- * An instance counts as still running only while its pid belongs to a process
- * that started no later than the process it marks: Claude Code always exists
- * before what it starts, so a pid now held by a younger process can only be a
- * recycled one. That ordering errs only toward "still running" — at worst a
- * leftover is spared — and holds however Claude Code was installed or named.
- * A Claude Code process itself is always another live session.
+ * The owner is found from the process's ancestry first: a process started
+ * under a running Claude Code instance belongs to the nearest one above it.
+ * Failing that, its Claude Code marker decides: Claude Code puts its own
+ * process id in CLAUDE_PID for every command it runs, and every descendant
+ * inherits it, so the nearest launch environment along the ancestry that can
+ * be read and carries it names the instance whose session started the
+ * process. A process with neither is unmarked, and never killed.
+ *
+ * A marked instance counts as still running while its pid belongs to a
+ * process that started no later than the process it marks — Claude Code
+ * always exists before what it starts, so a pid now held by a younger process
+ * can only be a recycled one — or while that pid exists at all. Every
+ * uncertainty errs toward "still running", so at worst a leftover is spared.
  */
+
+type Holder = { claudeProcessId: number; sessionId?: string }
 
 type Ownership =
   | { kind: 'mine' }
-  | { kind: 'ended-session'; claudeProcessId: number; sessionId?: string }
-  | { kind: 'live-session'; claudeProcessId: number; sessionId?: string }
+  | ({ kind: 'ended-session' } & Holder)
+  | ({ kind: 'live-session' } & Holder)
   | { kind: 'unmarked' }
 
-type RunningProcess = { processId: number; command: string }
+type ProcessEntry = {
+  parentProcessId: number
+  /** In milliseconds since the epoch, at whole-second resolution. */
+  started: number
+  command: string
+}
 
 type ProcessSnapshot = {
-  /** When each running process started, in milliseconds since the epoch. */
-  startTimes: Map<number, number>
-  /** Launch environments of the processes asked about; absent when unreadable. */
-  environments: Map<number, Record<string, string>>
+  /** Every running process, by its pid. */
+  processes: Map<number, ProcessEntry>
+  /** The markers read from launch environments; absent when unreadable or unmarked. */
+  markers: Map<number, Holder>
+  /** Whether a pid belongs to any process, even one the table left out. */
+  processExists: (processId: number) => boolean
 }
 
 function parseProcessId(value: string | undefined) {
   return value !== undefined && /^[1-9]\d*$/.test(value) ? Number(value) : undefined
-}
-
-function sweeperClaudeProcessId(environment: Record<string, string | undefined>) {
-  return parseProcessId(environment.CLAUDE_PID)
 }
 
 function isClaudeCodeCommand(command: string) {
@@ -49,35 +59,77 @@ function isClaudeCodeCommand(command: string) {
   )
 }
 
+/** A process and its ancestors, nearest first, up to but excluding pid 1. */
+function lineage(processes: Map<number, ProcessEntry>, processId: number) {
+  const chain: number[] = []
+  let current: number | undefined = processId
+  while (current !== undefined && current > 1 && !chain.includes(current)) {
+    chain.push(current)
+    current = processes.get(current)?.parentProcessId
+  }
+  return chain
+}
+
+function holder(claudeProcessId: number, sessionId: string | undefined): Holder {
+  return sessionId ? { claudeProcessId, sessionId } : { claudeProcessId }
+}
+
+/**
+ * The nearest Claude Code instance above a process: the sweeper's own, a
+ * process whose command is Claude Code, or one a marker below it names. Being
+ * an ancestor of what it marks, a named pid cannot be a recycled one.
+ */
+function nearestInstance(chain: number[], snapshot: ProcessSnapshot, sweeper?: number) {
+  for (const [index, ancestor] of chain.entries()) {
+    if (index === 0) continue
+    const naming = chain
+      .slice(0, index)
+      .map((member) => snapshot.markers.get(member))
+      .find((marker) => marker?.claudeProcessId === ancestor)
+    if (
+      ancestor === sweeper ||
+      naming !== undefined ||
+      isClaudeCodeCommand(snapshot.processes.get(ancestor)?.command ?? '')
+    ) {
+      return holder(ancestor, naming?.sessionId)
+    }
+  }
+  return undefined
+}
+
 function classifyOwnership(
-  candidate: RunningProcess,
+  processId: number,
   snapshot: ProcessSnapshot,
   sweeper: number | undefined,
 ): Ownership {
-  if (isClaudeCodeCommand(candidate.command)) {
-    return { kind: 'live-session', claudeProcessId: candidate.processId }
+  if (isClaudeCodeCommand(snapshot.processes.get(processId)?.command ?? '')) {
+    return { kind: 'live-session', claudeProcessId: processId }
   }
-  const environment = snapshot.environments.get(candidate.processId)
-  const claudeProcessId = parseProcessId(environment?.CLAUDE_PID)
-  if (environment === undefined || claudeProcessId === undefined) {
-    return { kind: 'unmarked' }
+  const chain = lineage(snapshot.processes, processId)
+  const instance = nearestInstance(chain, snapshot, sweeper)
+  if (instance !== undefined) {
+    return instance.claudeProcessId === sweeper
+      ? { kind: 'mine' }
+      : { kind: 'live-session', ...instance }
   }
-  if (claudeProcessId === sweeper) return { kind: 'mine' }
-  const sessionId = environment.CLAUDE_CODE_SESSION_ID
-  const holder = sessionId ? { claudeProcessId, sessionId } : { claudeProcessId }
-  const claudeStarted = snapshot.startTimes.get(claudeProcessId)
-  const candidateStarted = snapshot.startTimes.get(candidate.processId)
+  const marked = chain.find((member) => snapshot.markers.has(member))
+  const marker = marked === undefined ? undefined : snapshot.markers.get(marked)
+  if (marked === undefined || marker === undefined) return { kind: 'unmarked' }
+  if (marker.claudeProcessId === sweeper) return { kind: 'mine' }
+  const claudeStarted = snapshot.processes.get(marker.claudeProcessId)?.started
+  const markedStarted = snapshot.processes.get(marked)?.started
   const ended =
-    claudeStarted === undefined ||
-    (candidateStarted !== undefined && claudeStarted > candidateStarted)
-  return { kind: ended ? 'ended-session' : 'live-session', ...holder }
+    claudeStarted === undefined
+      ? !snapshot.processExists(marker.claudeProcessId)
+      : markedStarted !== undefined && claudeStarted > markedStarted
+  return { kind: ended ? 'ended-session' : 'live-session', ...marker }
 }
 
 function isKillable(ownership: Ownership) {
   return ownership.kind === 'mine' || ownership.kind === 'ended-session'
 }
 
-function describeHolder(holder: { claudeProcessId: number; sessionId?: string }) {
+function describeHolder(holder: Holder) {
   return holder.sessionId
     ? `pid ${holder.claudeProcessId}, session ${holder.sessionId}`
     : `pid ${holder.claudeProcessId}`
@@ -111,18 +163,19 @@ const MONTHS = [
   'Dec',
 ]
 
-/** Parses `ps -A -o pid=,lstart=` run under TZ=UTC and the C locale. */
-function startTimesFromPsOutput(output: string) {
-  const startTimes = new Map<number, number>()
+/** Parses `ps -A -ww -o pid=,ppid=,lstart=,command=` run under TZ=UTC and the C locale. */
+function processesFromPsOutput(output: string) {
+  const processes = new Map<number, ProcessEntry>()
   for (const line of output.split('\n')) {
     const match = line.match(
-      /^\s*(\d+)\s+\w{3}\s+(\w{3})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+(\d{4})\s*$/,
+      /^\s*(\d+)\s+(\d+)\s+\w{3}\s+(\w{3})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+(\d{4})(?:\s(.*))?$/,
     )
     if (!match) continue
-    const [, processId, month, day, hours, minutes, seconds, year] = match
-    startTimes.set(
-      Number(processId),
-      Date.UTC(
+    const [, processId, parentProcessId, month, day, hours, minutes, seconds, year] =
+      match
+    processes.set(Number(processId), {
+      parentProcessId: Number(parentProcessId),
+      started: Date.UTC(
         Number(year),
         MONTHS.indexOf(month ?? ''),
         Number(day),
@@ -130,29 +183,35 @@ function startTimesFromPsOutput(output: string) {
         Number(minutes),
         Number(seconds),
       ),
-    )
+      command: (match[9] ?? '').trim(),
+    })
   }
-  return startTimes
+  return processes
 }
 
-function firstValueWins(entries: [string, string][]) {
-  const environment: Record<string, string> = {}
-  for (const [key, value] of entries) {
-    if (!(key in environment)) environment[key] = value
-  }
-  return environment
+function markerFromValues(
+  claudeProcessIds: string[],
+  sessionIds: string[],
+): Holder | undefined {
+  const [claudeProcessId, ...others] = new Set(claudeProcessIds)
+  const parsed = others.length === 0 ? parseProcessId(claudeProcessId) : undefined
+  if (parsed === undefined) return undefined
+  const [sessionId, ...otherSessions] = new Set(sessionIds)
+  return holder(parsed, otherSessions.length === 0 ? sessionId : undefined)
 }
 
-/** Parses a Linux `/proc/<pid>/environ` file. */
-function environmentFromProcFile(contents: string) {
-  return firstValueWins(
-    contents
-      .split('\0')
-      .filter((entry) => entry.includes('='))
-      .map((entry) => {
-        const separator = entry.indexOf('=')
-        return [entry.slice(0, separator), entry.slice(separator + 1)]
-      }),
+/**
+ * Reads the marker from a Linux `/proc/<pid>/environ` file. Its entries are
+ * NUL-separated, so each is read exactly; a repeated variable keeps its first
+ * value, as the process itself reads it.
+ */
+function markerFromProcFile(contents: string) {
+  const entries = contents.split('\0')
+  const first = (key: string) =>
+    entries.find((entry) => entry.startsWith(`${key}=`))?.slice(key.length + 1)
+  return markerFromValues(
+    [first('CLAUDE_PID')].filter((value) => value !== undefined),
+    [first('CLAUDE_CODE_SESSION_ID')].filter((value) => value !== undefined),
   )
 }
 
@@ -166,118 +225,115 @@ function linesByProcessId(output: string) {
 }
 
 /**
- * Parses the macOS environment listing: `ps -E` appends the launch
- * environment to the command line, so what it adds beyond the plain listing is
- * the environment. A process whose environment ps hides — Apple's own
- * binaries — adds nothing and stays unread.
+ * Reads the markers from the macOS environment listing: `ps -E` appends the
+ * launch environment to the command line, space-separated, so what it adds
+ * beyond the plain listing is the environment. A process whose environment ps
+ * hides — Apple's own binaries, and any process that renamed itself — adds
+ * nothing and stays unread. Spaces inside values make the entries ambiguous,
+ * so each marker variable is matched as a whole word, and a variable found
+ * with conflicting values — one of them inside another variable's value —
+ * reads as no marker at all.
  */
-function environmentsFromPsOutput(
-  commandsOutput: string,
-  withEnvironmentsOutput: string,
-) {
+function markersFromPsOutput(commandsOutput: string, withEnvironmentsOutput: string) {
   const commands = linesByProcessId(commandsOutput)
-  const environments = new Map<number, Record<string, string>>()
+  const markers = new Map<number, Holder>()
   for (const [processId, line] of linesByProcessId(withEnvironmentsOutput)) {
     const command = commands.get(processId)
     if (command === undefined || !line.startsWith(command)) continue
-    const text = line.slice(command.length)
-    const keys = [...text.matchAll(/\s([A-Za-z_][A-Za-z0-9_]*)=/g)]
-    if (keys.length === 0) continue
-    environments.set(
-      processId,
-      firstValueWins(
-        keys.map((key, index) => [
-          key[1] ?? '',
-          text.slice(key.index + key[0].length, keys[index + 1]?.index ?? text.length),
-        ]),
-      ),
+    const environment = line.slice(command.length)
+    const values = (key: string) =>
+      [...environment.matchAll(new RegExp(`(?<=\\s)${key}=(\\S*)(?=\\s|$)`, 'g'))].map(
+        (match) => match[1] ?? '',
+      )
+    const marker = markerFromValues(
+      values('CLAUDE_PID'),
+      values('CLAUDE_CODE_SESSION_ID'),
     )
+    if (marker !== undefined) markers.set(processId, marker)
   }
-  return environments
+  return markers
 }
 
-function readStartTimes() {
-  const result = spawnSync('ps', ['-A', '-o', 'pid=,lstart='], {
+function readProcessTable() {
+  const result = spawnSync('ps', ['-A', '-ww', '-o', 'pid=,ppid=,lstart=,command='], {
     encoding: 'utf8',
     env: { ...process.env, TZ: 'UTC', LC_ALL: 'C' },
   })
-  const startTimes = startTimesFromPsOutput(result.stdout ?? '')
-  if (!startTimes.has(process.pid)) {
+  const processes = processesFromPsOutput(result.stdout ?? '')
+  if (!processes.has(process.pid)) {
     throw new Error(
-      'cannot read the process table, so no process can be told apart from another session’s; nothing was killed',
+      'cannot read the process table, so no process can be told apart from another session’s; no further process was killed',
     )
   }
-  return startTimes
+  return processes
 }
 
-function readEnvironments(processIds: number[], platform: NodeJS.Platform) {
-  if (platform === 'linux') {
-    const environments = new Map<number, Record<string, string>>()
+function readMarkers(processIds: number[]) {
+  if (process.platform === 'linux') {
+    const markers = new Map<number, Holder>()
     for (const processId of processIds) {
       try {
-        environments.set(
-          processId,
-          environmentFromProcFile(readFileSync(`/proc/${processId}/environ`, 'utf8')),
+        const marker = markerFromProcFile(
+          readFileSync(`/proc/${processId}/environ`, 'utf8'),
         )
+        if (marker !== undefined) markers.set(processId, marker)
       } catch {}
     }
-    return environments
+    return markers
   }
   const list = processIds.join(',')
   const listing = (extra: string[]) =>
     spawnSync('ps', [...extra, '-ww', '-o', 'pid=,command=', '-p', list], {
       encoding: 'utf8',
     }).stdout ?? ''
-  return environmentsFromPsOutput(listing([]), listing(['-E']))
+  return markersFromPsOutput(listing([]), listing(['-E']))
 }
 
-function readProcessSnapshot(
-  processIds: number[],
-  platform: NodeJS.Platform = process.platform,
-): ProcessSnapshot {
-  return {
-    startTimes: readStartTimes(),
-    environments:
-      processIds.length === 0 ? new Map() : readEnvironments(processIds, platform),
+function processExists(processId: number) {
+  try {
+    process.kill(processId, 0)
+    return true
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== 'ESRCH'
   }
 }
 
-/** This process and its ancestors — never candidates for a sweep. */
-function ownProcessIds() {
-  const ids = new Set<number>()
-  let current = process.pid
-  while (current > 1 && !ids.has(current)) {
-    ids.add(current)
-    const result = spawnSync('ps', ['-o', 'ppid=', '-p', String(current)], {
-      encoding: 'utf8',
-    })
-    current = Number(result.stdout?.trim())
-  }
-  return ids
-}
-
-/** Each process with its ownership, judged from one snapshot of the process table. */
-function withOwnership<Candidate extends RunningProcess>(candidates: Candidate[]) {
+/**
+ * Each process with its ownership, judged from one snapshot of the process
+ * table. The sweeper's own marker counts only when it names a Claude Code
+ * instance the sweeper runs under — a shell that merely inherited another
+ * session's marker owns nothing. This process and its ancestors are never
+ * candidates.
+ */
+function withOwnership<Candidate extends { processId: number }>(candidates: Candidate[]) {
   if (candidates.length === 0) return []
-  const snapshot = readProcessSnapshot(candidates.map((candidate) => candidate.processId))
-  const sweeper = sweeperClaudeProcessId(process.env)
-  return candidates.map((candidate) => ({
+  const processes = readProcessTable()
+  const own = new Set(lineage(processes, process.pid))
+  const claimed = parseProcessId(process.env.CLAUDE_PID)
+  const sweeper = claimed !== undefined && own.has(claimed) ? claimed : undefined
+  const kept = candidates.filter((candidate) => !own.has(candidate.processId))
+  if (kept.length === 0) return []
+  const snapshot: ProcessSnapshot = {
+    processes,
+    markers: readMarkers([
+      ...new Set(kept.flatMap((candidate) => lineage(processes, candidate.processId))),
+    ]),
+    processExists,
+  }
+  return kept.map((candidate) => ({
     ...candidate,
-    ownership: classifyOwnership(candidate, snapshot, sweeper),
+    ownership: classifyOwnership(candidate.processId, snapshot, sweeper),
   }))
 }
 
-export type { Ownership, ProcessSnapshot, RunningProcess }
+export type { Ownership, ProcessSnapshot }
 export {
   classifyOwnership,
   describeHolder,
   describeOwnership,
-  environmentFromProcFile,
-  environmentsFromPsOutput,
   isKillable,
-  ownProcessIds,
-  readProcessSnapshot,
-  startTimesFromPsOutput,
-  sweeperClaudeProcessId,
+  markerFromProcFile,
+  markersFromPsOutput,
+  processesFromPsOutput,
   withOwnership,
 }

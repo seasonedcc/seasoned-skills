@@ -2,50 +2,57 @@ import { describe, expect, it } from 'vitest'
 import {
   classifyOwnership,
   describeOwnership,
-  environmentFromProcFile,
-  environmentsFromPsOutput,
   isKillable,
+  markerFromProcFile,
+  markersFromPsOutput,
   type ProcessSnapshot,
-  startTimesFromPsOutput,
-  sweeperClaudeProcessId,
+  processesFromPsOutput,
 } from './ownership.js'
 
 const SECOND = 1000
 
+type TableEntry = { parent?: number; started: number; command?: string }
+
 function snapshot(
-  startTimes: Record<number, number>,
-  environments: Record<number, Record<string, string>>,
+  processes: Record<number, TableEntry>,
+  markers: Record<number, { claudeProcessId: number; sessionId?: string }> = {},
+  processExists: (processId: number) => boolean = () => false,
 ): ProcessSnapshot {
   return {
-    startTimes: new Map(
-      Object.entries(startTimes).map(([processId, started]) => [
+    processes: new Map(
+      Object.entries(processes).map(([processId, entry]) => [
         Number(processId),
-        started,
+        {
+          parentProcessId: entry.parent ?? 1,
+          started: entry.started,
+          command: entry.command ?? 'node server.js',
+        },
       ]),
     ),
-    environments: new Map(
-      Object.entries(environments).map(([processId, environment]) => [
-        Number(processId),
-        environment,
-      ]),
+    markers: new Map(
+      Object.entries(markers).map(([processId, marker]) => [Number(processId), marker]),
     ),
+    processExists,
   }
 }
 
 const sweeper = 100
 const otherClaude = 200
-const candidate = { processId: 500, command: 'node server.js' }
+const candidate = 500
 
-describe('classifyOwnership', () => {
+describe('classifyOwnership by marker', () => {
   it("owns a process marked with the sweeper's own Claude Code instance", () => {
-    const table = snapshot({ 100: 0, 500: 10 * SECOND }, { 500: { CLAUDE_PID: '100' } })
+    const table = snapshot(
+      { 100: { started: 0, command: 'claude' }, 500: { started: 10 * SECOND } },
+      { 500: { claudeProcessId: sweeper } },
+    )
     expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'mine' })
   })
 
   it('attributes a process to another instance that still runs', () => {
     const table = snapshot(
-      { 200: 0, 500: 10 * SECOND },
-      { 500: { CLAUDE_PID: '200', CLAUDE_CODE_SESSION_ID: 'session-b' } },
+      { 200: { started: 0 }, 500: { started: 10 * SECOND } },
+      { 500: { claudeProcessId: otherClaude, sessionId: 'session-b' } },
     )
     expect(classifyOwnership(candidate, table, sweeper)).toEqual({
       kind: 'live-session',
@@ -56,16 +63,16 @@ describe('classifyOwnership', () => {
 
   it('counts an instance started in the same second as the process as still running', () => {
     const table = snapshot(
-      { 200: 10 * SECOND, 500: 10 * SECOND },
-      { 500: { CLAUDE_PID: '200' } },
+      { 200: { started: 10 * SECOND }, 500: { started: 10 * SECOND } },
+      { 500: { claudeProcessId: otherClaude } },
     )
     expect(classifyOwnership(candidate, table, sweeper).kind).toBe('live-session')
   })
 
-  it('attributes a process to an ended session when its instance no longer runs', () => {
+  it('attributes a process to an ended session when its instance no longer exists', () => {
     const table = snapshot(
-      { 500: 10 * SECOND },
-      { 500: { CLAUDE_PID: '200', CLAUDE_CODE_SESSION_ID: 'session-b' } },
+      { 500: { started: 10 * SECOND } },
+      { 500: { claudeProcessId: otherClaude, sessionId: 'session-b' } },
     )
     expect(classifyOwnership(candidate, table, sweeper)).toEqual({
       kind: 'ended-session',
@@ -74,10 +81,22 @@ describe('classifyOwnership', () => {
     })
   })
 
+  it('counts an instance missing from the process table that still exists as running', () => {
+    const table = snapshot(
+      { 500: { started: 10 * SECOND } },
+      { 500: { claudeProcessId: otherClaude } },
+      () => true,
+    )
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({
+      kind: 'live-session',
+      claudeProcessId: otherClaude,
+    })
+  })
+
   it('reads a recycled pid — one started after the process it marks — as an ended session', () => {
     const table = snapshot(
-      { 200: 11 * SECOND, 500: 10 * SECOND },
-      { 500: { CLAUDE_PID: '200' } },
+      { 200: { started: 11 * SECOND }, 500: { started: 10 * SECOND } },
+      { 500: { claudeProcessId: otherClaude } },
     )
     expect(classifyOwnership(candidate, table, sweeper)).toEqual({
       kind: 'ended-session',
@@ -85,43 +104,26 @@ describe('classifyOwnership', () => {
     })
   })
 
-  it('leaves a process without the marker unmarked', () => {
-    const table = snapshot({ 500: 10 * SECOND }, { 500: { PATH: '/usr/bin' } })
+  it('leaves an orphan without a readable marker unmarked', () => {
+    const table = snapshot({ 500: { started: 10 * SECOND } })
     expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'unmarked' })
-  })
-
-  it('leaves a process whose environment cannot be read unmarked', () => {
-    const table = snapshot({ 500: 10 * SECOND }, {})
-    expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'unmarked' })
-  })
-
-  it('leaves a process with a malformed marker unmarked', () => {
-    for (const marker of ['', '0', '-4', '12abc']) {
-      const table = snapshot({ 500: 10 * SECOND }, { 500: { CLAUDE_PID: marker } })
-      expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'unmarked' })
-    }
   })
 
   it('owns nothing when the sweeper runs outside Claude Code', () => {
-    const table = snapshot({ 100: 0, 500: 10 * SECOND }, { 500: { CLAUDE_PID: '100' } })
-    expect(classifyOwnership(candidate, table, undefined)).toEqual({
-      kind: 'live-session',
-      claudeProcessId: sweeper,
-    })
+    const marked = { 500: { claudeProcessId: sweeper } }
     expect(
       classifyOwnership(
         candidate,
-        snapshot({ 500: 0 }, { 500: { CLAUDE_PID: '100' } }),
+        snapshot({ 100: { started: 0 }, 500: { started: 10 * SECOND } }, marked),
         undefined,
       ),
-    ).toEqual({
-      kind: 'ended-session',
-      claudeProcessId: sweeper,
-    })
+    ).toEqual({ kind: 'live-session', claudeProcessId: sweeper })
+    expect(
+      classifyOwnership(candidate, snapshot({ 500: { started: 0 } }, marked), undefined),
+    ).toEqual({ kind: 'ended-session', claudeProcessId: sweeper })
   })
 
-  it('counts a Claude Code instance itself as a live session, whatever its environment', () => {
-    const table = snapshot({ 600: 0 }, { 600: { CLAUDE_PID: '100' } })
+  it('counts a Claude Code instance itself as a live session, whatever its marker', () => {
     for (const command of [
       'claude',
       'claude --model opus',
@@ -129,11 +131,117 @@ describe('classifyOwnership', () => {
       '/Users/dev/.local/share/claude/versions/2.1.296 --resume',
       'node /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js',
     ]) {
-      expect(classifyOwnership({ processId: 600, command }, table, sweeper)).toEqual({
+      const table = snapshot(
+        { 600: { started: 0, command } },
+        { 600: { claudeProcessId: sweeper } },
+      )
+      expect(classifyOwnership(600, table, sweeper)).toEqual({
         kind: 'live-session',
         claudeProcessId: 600,
       })
     }
+  })
+})
+
+describe('classifyOwnership by ancestry', () => {
+  it("owns a process that hides its environment when it runs under the sweeper's instance", () => {
+    const table = snapshot({
+      100: { started: 0, command: 'claude' },
+      300: { parent: 100, started: 5 * SECOND, command: '/bin/zsh -c next dev' },
+      500: { parent: 300, started: 10 * SECOND, command: 'next-server (v15.0.0)' },
+    })
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'mine' })
+  })
+
+  it("owns a renamed child of a process marked with the sweeper's instance", () => {
+    const table = snapshot(
+      {
+        100: { started: 0, command: 'claude' },
+        400: { started: 5 * SECOND },
+        500: { parent: 400, started: 10 * SECOND, command: 'next-server (v15.0.0)' },
+      },
+      { 400: { claudeProcessId: sweeper } },
+    )
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'mine' })
+  })
+
+  it('gives a process under another running Claude Code instance to that session', () => {
+    const table = snapshot({
+      200: { started: 0, command: '/Users/dev/.local/bin/claude' },
+      300: { parent: 200, started: 5 * SECOND, command: '/bin/zsh' },
+      500: { parent: 300, started: 10 * SECOND, command: 'next-server (v15.0.0)' },
+    })
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({
+      kind: 'live-session',
+      claudeProcessId: otherClaude,
+    })
+  })
+
+  it('recognizes an instance by the marker of a process below it, naming its session', () => {
+    const table = snapshot(
+      {
+        200: { started: 0, command: 'node /opt/agent/cli.js' },
+        500: { parent: 200, started: 10 * SECOND },
+      },
+      { 500: { claudeProcessId: otherClaude, sessionId: 'session-b' } },
+    )
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({
+      kind: 'live-session',
+      claudeProcessId: otherClaude,
+      sessionId: 'session-b',
+    })
+  })
+
+  it("never kills a process under another live instance, even one carrying the sweeper's marker", () => {
+    const table = snapshot(
+      {
+        100: { started: 0, command: 'claude' },
+        200: { started: 0, command: 'claude' },
+        500: { parent: 200, started: 10 * SECOND },
+      },
+      { 500: { claudeProcessId: sweeper } },
+    )
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({
+      kind: 'live-session',
+      claudeProcessId: otherClaude,
+    })
+  })
+
+  it('gives a process the marker of its nearest marked ancestor', () => {
+    const table = snapshot(
+      {
+        400: { started: 5 * SECOND },
+        450: { parent: 400, started: 6 * SECOND },
+        500: { parent: 450, started: 10 * SECOND, command: 'next-server (v15.0.0)' },
+      },
+      {
+        400: { claudeProcessId: 300 },
+        450: { claudeProcessId: otherClaude, sessionId: 'session-b' },
+      },
+    )
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({
+      kind: 'ended-session',
+      claudeProcessId: otherClaude,
+      sessionId: 'session-b',
+    })
+  })
+
+  it('stops at pid 1 and survives a cycle in the parent links', () => {
+    const table = snapshot(
+      {
+        400: { parent: 500, started: 5 * SECOND },
+        500: { parent: 400, started: 10 * SECOND },
+      },
+      { 1: { claudeProcessId: otherClaude } },
+    )
+    expect(classifyOwnership(candidate, table, sweeper)).toEqual({ kind: 'unmarked' })
+    expect(
+      classifyOwnership(
+        candidate,
+        snapshot({ 500: { started: 10 * SECOND } }, { 1: { claudeProcessId: sweeper } }),
+        sweeper,
+      ),
+    ).toEqual({ kind: 'unmarked' })
   })
 })
 
@@ -159,82 +267,104 @@ describe('describeOwnership', () => {
   })
 })
 
-describe('sweeperClaudeProcessId', () => {
-  it("reads the sweeper's own marker, and nothing from outside Claude Code", () => {
-    expect(sweeperClaudeProcessId({ CLAUDE_PID: '4242' })).toBe(4242)
-    expect(sweeperClaudeProcessId({})).toBeUndefined()
-    expect(sweeperClaudeProcessId({ CLAUDE_PID: 'nope' })).toBeUndefined()
-  })
-})
-
-describe('startTimesFromPsOutput', () => {
-  it('parses UTC start times at whole-second resolution', () => {
+describe('processesFromPsOutput', () => {
+  it('parses parents, UTC start times at whole-second resolution, and commands', () => {
     const output = [
-      '    1 Mon Aug 31 21:25:36 2026    ',
-      '96511 Tue Oct  6 16:10:35 2026',
+      '    1     0 Mon Aug 31 21:25:36 2026 /sbin/launchd',
+      '96511 95549 Tue Oct  6 16:10:35 2026 claude --resume   ',
       '',
     ].join('\n')
-    expect(startTimesFromPsOutput(output)).toEqual(
+    expect(processesFromPsOutput(output)).toEqual(
       new Map([
-        [1, Date.UTC(2026, 7, 31, 21, 25, 36)],
-        [96511, Date.UTC(2026, 9, 6, 16, 10, 35)],
+        [
+          1,
+          {
+            parentProcessId: 0,
+            started: Date.UTC(2026, 7, 31, 21, 25, 36),
+            command: '/sbin/launchd',
+          },
+        ],
+        [
+          96511,
+          {
+            parentProcessId: 95549,
+            started: Date.UTC(2026, 9, 6, 16, 10, 35),
+            command: 'claude --resume',
+          },
+        ],
       ]),
     )
   })
 })
 
-describe('environmentFromProcFile', () => {
-  it('splits the NUL-separated environment at the first equals sign', () => {
-    expect(environmentFromProcFile('CLAUDE_PID=42\0OPTIONS=a=b\0EMPTY=\0')).toEqual({
-      CLAUDE_PID: '42',
-      OPTIONS: 'a=b',
-      EMPTY: '',
-    })
+describe('markerFromProcFile', () => {
+  it('reads the marker from the NUL-separated environment', () => {
+    expect(
+      markerFromProcFile('PATH=/usr/bin\0CLAUDE_PID=42\0CLAUDE_CODE_SESSION_ID=abc\0'),
+    ).toEqual({ claudeProcessId: 42, sessionId: 'abc' })
   })
 
   it('keeps the first of a repeated variable, as the process itself reads it', () => {
-    expect(environmentFromProcFile('CLAUDE_PID=1\0CLAUDE_PID=2\0')).toEqual({
-      CLAUDE_PID: '1',
+    expect(markerFromProcFile('CLAUDE_PID=1\0CLAUDE_PID=2\0')).toEqual({
+      claudeProcessId: 1,
     })
+  })
+
+  it('reads no marker from an environment without a well-formed one', () => {
+    expect(markerFromProcFile('PATH=/usr/bin\0')).toBeUndefined()
+    for (const marker of ['', '0', '-4', '12abc']) {
+      expect(markerFromProcFile(`CLAUDE_PID=${marker}\0`)).toBeUndefined()
+    }
   })
 })
 
-describe('environmentsFromPsOutput', () => {
-  it('takes what the environment listing adds after each command line', () => {
+describe('markersFromPsOutput', () => {
+  it('reads the markers in what the environment listing adds after each command line', () => {
     const commands = [
       '  500 node server.js --port 3000',
       '  600 /bin/sleep 100',
+      '  700 node worker.js',
       '',
     ].join('\n')
     const withEnvironments = [
       '  500 node server.js --port 3000 PATH=/usr/bin CLAUDE_PID=42 CLAUDE_CODE_SESSION_ID=abc HOME=/Users/dev',
       '  600 /bin/sleep 100',
+      '  700 node worker.js PATH=/usr/bin HOME=/Users/dev',
       '',
     ].join('\n')
-    expect(environmentsFromPsOutput(commands, withEnvironments)).toEqual(
-      new Map([
-        [
-          500,
-          {
-            PATH: '/usr/bin',
-            CLAUDE_PID: '42',
-            CLAUDE_CODE_SESSION_ID: 'abc',
-            HOME: '/Users/dev',
-          },
-        ],
-      ]),
+    expect(markersFromPsOutput(commands, withEnvironments)).toEqual(
+      new Map([[500, { claudeProcessId: 42, sessionId: 'abc' }]]),
     )
   })
 
   it('does not mistake an argument for an environment variable', () => {
     const commands = '  500 env-runner CLAUDE_PID=99\n'
     const withEnvironments = '  500 env-runner CLAUDE_PID=99 CLAUDE_PID=42\n'
-    expect(environmentsFromPsOutput(commands, withEnvironments).get(500)).toEqual({
-      CLAUDE_PID: '42',
+    expect(markersFromPsOutput(commands, withEnvironments).get(500)).toEqual({
+      claudeProcessId: 42,
     })
   })
 
+  it('reads the marker exactly, whatever entry follows it', () => {
+    const commands = '  500 node server.js\n'
+    const withEnvironments =
+      '  500 node server.js PATH=/usr/bin CLAUDE_PID=42 BASH_FUNC_f%%=() { echo; } CLAUDE_CODE_SESSION_ID=abc\n'
+    expect(markersFromPsOutput(commands, withEnvironments).get(500)).toEqual({
+      claudeProcessId: 42,
+      sessionId: 'abc',
+    })
+  })
+
+  it("reads no marker when another variable's value holds a conflicting one", () => {
+    const commands = '  500 node server.js\n'
+    const withEnvironments = [
+      '  500 node server.js PROMPT=echo CLAUDE_PID=7 CLAUDE_PID=42 HOME=/Users/dev',
+      '',
+    ].join('\n')
+    expect(markersFromPsOutput(commands, withEnvironments).get(500)).toBeUndefined()
+  })
+
   it('reads nothing for a process that exited between the two listings', () => {
-    expect(environmentsFromPsOutput('  500 node a\n', '')).toEqual(new Map())
+    expect(markersFromPsOutput('  500 node a\n', '')).toEqual(new Map())
   })
 })

@@ -2,12 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { userInfo } from 'node:os'
 import { basename } from 'node:path'
 import type { ProvisioningConfig } from '../config/types.js'
-import {
-  isKillable,
-  type Ownership,
-  ownProcessIds,
-  withOwnership,
-} from '../processes/ownership.js'
+import { isKillable, type Ownership, withOwnership } from '../processes/ownership.js'
 import {
   assertLaneName,
   defaultDatabasePrefix,
@@ -84,11 +79,11 @@ function lanesProcesses(roots: string[], commands: string[]) {
       `lsof could not list the processes running from inside lanes: ${reason}`,
     )
   }
-  const own = ownProcessIds()
   return withOwnership(
-    laneProcessesFromLsofOutput(result.stdout ?? '', roots)
-      .filter((candidate) => !own.has(candidate.processId))
-      .map((candidate) => ({ ...candidate, command: commandLine(candidate.processId) })),
+    laneProcessesFromLsofOutput(result.stdout ?? '', roots).map((candidate) => ({
+      ...candidate,
+      command: commandLine(candidate.processId),
+    })),
   )
 }
 

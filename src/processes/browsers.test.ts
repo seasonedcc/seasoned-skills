@@ -1,5 +1,14 @@
-import { type ChildProcess, spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  endedProcessId,
+  exits,
+  isRunning,
+  spawnDummy,
+  spawnOrphan,
+  spawnSessionWithChild,
+  stopDummies,
+} from '../../tests/unit/dummy-processes.js'
 import {
   browserProcessesFromPsOutput,
   killBrowserProcesses,
@@ -36,53 +45,45 @@ describe('browserProcessesFromPsOutput', () => {
 })
 
 describe('the browser sweep against real processes', () => {
-  const dummies: ChildProcess[] = []
-
   afterEach(() => {
-    for (const dummy of dummies) if (dummy.exitCode === null) dummy.kill('SIGKILL')
-    dummies.length = 0
+    stopDummies()
     vi.unstubAllEnvs()
   })
-
-  function spawnFakeDaemon(claudeProcessId?: number) {
-    const environment = { ...process.env }
-    delete environment.CLAUDE_PID
-    if (claudeProcessId !== undefined) environment.CLAUDE_PID = String(claudeProcessId)
-    const child = spawn(
-      process.execPath,
-      [
-        '-e',
-        "process.stdout.write('ready\\n'); setInterval(() => {}, 1000)",
-        'agent-browser-linux-x64',
-      ],
-      { env: environment, stdio: ['ignore', 'pipe', 'ignore'] },
-    )
-    dummies.push(child)
-    return new Promise<ChildProcess>((resolveChild) =>
-      child.stdout?.once('data', () => resolveChild(child)),
-    )
-  }
 
   it('classifies each browser process and kills only the killable ones', {
     timeout: 30_000,
   }, async () => {
     vi.stubEnv('CLAUDE_PID', String(process.pid))
-    const mine = await spawnFakeDaemon(process.pid)
-    const unmarked = await spawnFakeDaemon()
-    const ours = new Set([mine.pid, unmarked.pid])
+    const label = 'agent-browser-linux-x64'
+    const endedSession = await endedProcessId()
+    const [mine, ended, live, unmarked] = await Promise.all([
+      spawnDummy(tmpdir(), { label, marker: { claudeProcessId: process.pid } }),
+      spawnOrphan(tmpdir(), { label, marker: { claudeProcessId: endedSession } }),
+      spawnSessionWithChild(tmpdir(), 'other-session', { label }),
+      spawnOrphan(tmpdir(), { label }),
+    ])
+    const ours = new Set([mine.pid, ended.pid, live.child.pid, unmarked.pid])
 
     const listed = listBrowserProcesses().filter((browser) => ours.has(browser.processId))
     expect(
       Object.fromEntries(listed.map((browser) => [browser.processId, browser.ownership])),
     ).toEqual({
-      [mine.pid as number]: { kind: 'mine' },
-      [unmarked.pid as number]: { kind: 'unmarked' },
+      [mine.pid]: { kind: 'mine' },
+      [ended.pid]: { kind: 'ended-session', claudeProcessId: endedSession },
+      [live.child.pid]: {
+        kind: 'live-session',
+        claudeProcessId: live.session.pid,
+        sessionId: 'other-session',
+      },
+      [unmarked.pid]: { kind: 'unmarked' },
     })
     expect(listed.every((browser) => browser.kind === 'agent-browser daemon')).toBe(true)
 
     const killed = killBrowserProcesses(listed)
-    expect(killed.map((browser) => browser.processId)).toEqual([mine.pid])
-    await new Promise((resolveExit) => mine.once('exit', resolveExit))
-    expect(unmarked.exitCode).toBeNull()
+    expect(killed.map((browser) => browser.processId).sort()).toEqual(
+      [mine.pid, ended.pid].sort(),
+    )
+    expect(await Promise.all([exits(mine), exits(ended)])).toEqual([true, true])
+    expect([live.child, unmarked].every(isRunning)).toBe(true)
   })
 })
