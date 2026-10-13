@@ -225,17 +225,22 @@ export function buildProgram(): Command {
   program
     .command('session-folder')
     .description(
-      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording the projects directory that keeps the session's transcript. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
+      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording the path of the session's transcript in it. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
     )
     .action(() => {
       try {
-        console.log(
-          sessionFolder(
-            process.cwd(),
-            process.env.CLAUDE_CODE_SESSION_ID,
-            claudeProjectsDirectory(process.env),
-          ),
+        const projectsDirectory = claudeProjectsDirectory(process.env)
+        const folder = sessionFolder(
+          process.cwd(),
+          process.env.CLAUDE_CODE_SESSION_ID,
+          projectsDirectory,
         )
+        console.log(folder.path)
+        if (folder.transcript === undefined) {
+          console.error(
+            `No transcript of this session is in ${projectsDirectory}, so the folder records no transcript: the sweep never removes it, and it is yours to delete once you no longer need it.`,
+          )
+        }
       } catch (error) {
         console.error((error as Error).message)
         process.exitCode = 1
@@ -254,7 +259,7 @@ export function buildProgram(): Command {
     .option('--lane-processes', 'list the processes running from inside worktree lanes')
     .option(
       '--sessions',
-      "list the session folders whose session's transcript is gone from the projects directory each recorded; exits 1 when a folder cannot be judged",
+      'list the session folders whose recorded transcript is gone; exits 1 when a folder cannot be judged or removed',
     )
     .option(
       '--kill',
@@ -439,29 +444,32 @@ function reportSessionFolders({
   sessionsDirectory,
   expired,
   kept,
+  unrecorded,
   undecided,
 }: SessionFolderListing) {
-  for (const reason of new Set(undecided.map((folder) => folder.reason))) {
-    console.error(reason)
-  }
-  for (const folder of expired) console.log(`  expired    ${folder.path}`)
-  for (const folder of undecided) console.log(`  undecided  ${folder.path}`)
-  const total = expired.length + kept.length + undecided.length
-  const undecidedNote =
+  for (const folder of undecided) console.error(folder.reason)
+  for (const folder of expired) console.log(`  expired     ${folder.path}`)
+  for (const folder of unrecorded) console.log(`  unrecorded  ${folder.path}`)
+  for (const folder of undecided) console.log(`  undecided   ${folder.path}`)
+  const total = expired.length + kept.length + unrecorded.length + undecided.length
+  const notes = [
+    unrecorded.length === 0
+      ? ''
+      : ` ${unrecorded.length} unrecorded, never removed: delete one yourself once you no longer need it.`,
     undecided.length === 0
       ? ''
-      : ` ${undecided.length} undecided, kept because their transcripts cannot be read.`
+      : ` ${undecided.length} undecided, kept because their transcript cannot be checked.`,
+  ].join('')
   console.log(
-    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${undecidedNote} A folder expires once Claude Code no longer keeps its session's transcript in the projects directory the folder recorded, and --remove removes only expired folders.`,
+    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${notes} A folder expires once the transcript it recorded is gone from a projects directory that can still be read, and --remove removes only expired folders.`,
   )
   if (undecided.length > 0) process.exitCode = 1
 }
 
 function sweepSessionFolders(options: { remove?: boolean; hook?: boolean }) {
-  const projectsDirectory = claudeProjectsDirectory(process.env)
   if (options.hook) {
     try {
-      if (options.remove) removeExpiredSessionFolders(process.cwd(), projectsDirectory)
+      if (options.remove) removeExpiredSessionFolders(process.cwd())
     } catch {
       // Silent by contract.
     }
@@ -469,17 +477,14 @@ function sweepSessionFolders(options: { remove?: boolean; hook?: boolean }) {
   }
   try {
     if (options.remove) {
-      const { removed, failed } = removeExpiredSessionFolders(
-        process.cwd(),
-        projectsDirectory,
-      )
+      const { removed, failed } = removeExpiredSessionFolders(process.cwd())
       for (const folder of removed) console.log(`removed ${folder.path}`)
       for (const { folder, reason } of failed) {
         console.error(`could not remove ${folder.path}: ${reason}`)
         process.exitCode = 1
       }
     }
-    reportSessionFolders(listSessionFolders(process.cwd(), projectsDirectory))
+    reportSessionFolders(listSessionFolders(process.cwd()))
   } catch (error) {
     console.error((error as Error).message)
     process.exitCode = 1

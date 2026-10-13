@@ -28,7 +28,7 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "teardown",
     },
     {
-      "description": "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording the projects directory that keeps the session's transcript. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
+      "description": "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording the path of the session's transcript in it. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
       "name": "session-folder",
     },
     {

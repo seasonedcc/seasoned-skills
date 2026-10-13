@@ -10,6 +10,7 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  unlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs'
@@ -25,10 +26,10 @@ import {
 
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
-  return { ...actual, readdirSync: vi.fn(actual.readdirSync) }
+  return { ...actual, statSync: vi.fn(actual.statSync) }
 })
 
-const { readdirSync: realReaddirSync } =
+const { statSync: realStatSync } =
   await vi.importActual<typeof import('node:fs')>('node:fs')
 
 const FIRST = '11111111-1111-4111-8111-111111111111'
@@ -55,9 +56,13 @@ describe('session folders', () => {
   })
 
   afterEach(() => {
-    vi.mocked(readdirSync).mockImplementation(realReaddirSync)
-    vi.mocked(readdirSync).mockClear()
-    for (const directory of [projects, join(projects, '-elsewhere')]) {
+    vi.mocked(statSync).mockImplementation(realStatSync)
+    for (const directory of [
+      projects,
+      join(projects, '-elsewhere'),
+      join(main, '.sessions'),
+      join(main, '.sessions', FIRST),
+    ]) {
       if (existsSync(directory)) chmodSync(directory, 0o755)
     }
     rmSync(scratch, { recursive: true, force: true })
@@ -112,49 +117,93 @@ describe('session folders', () => {
 
   function transcript(projectFolder: string, sessionId: string, root = projects) {
     mkdirSync(join(root, projectFolder), { recursive: true })
-    writeFileSync(join(root, projectFolder, `${sessionId}.jsonl`), '{}\n')
+    const path = join(root, projectFolder, `${sessionId}.jsonl`)
+    writeFileSync(path, '{}\n')
+    return path
   }
 
-  function folderOf(sessionId: string, recordedProjects?: string) {
+  function folderOf(sessionId: string, recordedTranscript?: string) {
     const folder = join(main, '.sessions', sessionId)
     mkdirSync(folder, { recursive: true })
     writeFileSync(join(folder, 'ledger.md'), 'state\n')
-    if (recordedProjects !== undefined) {
-      writeFileSync(join(folder, '.projects-directory'), `${recordedProjects}\n`)
+    if (recordedTranscript !== undefined) {
+      writeFileSync(join(folder, '.transcript'), `${recordedTranscript}\n`)
     }
     return folder
   }
 
-  function judged(sessionId: string, recordedProjects = projects) {
-    return {
-      sessionId,
-      path: join(main, '.sessions', sessionId),
-      projectsDirectory: recordedProjects,
-    }
+  function folder(sessionId: string) {
+    return { sessionId, path: join(main, '.sessions', sessionId) }
+  }
+
+  function ids(folders: { sessionId: string }[]) {
+    return folders.map((each) => each.sessionId)
   }
 
   describe('sessionFolder', () => {
     it("creates the session's folder in the main checkout, even from a linked worktree", () => {
-      const folder = sessionFolder(linkedWorktree(), FIRST, projects)
+      transcript('-project', FIRST)
+      const created = sessionFolder(linkedWorktree(), FIRST, projects)
 
-      expect(folder).toBe(join(main, '.sessions', FIRST))
-      expect(existsSync(folder)).toBe(true)
-      expect(sessionFolder(main, FIRST, projects)).toBe(folder)
+      expect(created.path).toBe(join(main, '.sessions', FIRST))
+      expect(existsSync(created.path)).toBe(true)
+      expect(sessionFolder(main, FIRST, projects).path).toBe(created.path)
     })
 
-    it('records the projects directory that keeps the session transcript', () => {
-      const folder = sessionFolder(main, FIRST, projects)
-      const marker = join(folder, '.projects-directory')
-      expect(readFileSync(marker, 'utf8')).toBe(`${projects}\n`)
+    it("records the path of the session's own transcript, searched across every project", () => {
+      transcript('-project', SECOND)
+      const own = transcript('-elsewhere', FIRST)
 
+      const created = sessionFolder(main, FIRST, projects)
+
+      expect(created.transcript).toBe(own)
+      expect(readFileSync(join(created.path, '.transcript'), 'utf8')).toBe(`${own}\n`)
+    })
+
+    it('finds the transcript through a linked project directory', () => {
+      const linked = join(scratch, 'linked-project')
+      mkdirSync(linked)
+      writeFileSync(join(linked, `${FIRST}.jsonl`), '{}\n')
+      mkdirSync(projects, { recursive: true })
+      symlinkSync(linked, join(projects, '-linked'))
+
+      expect(sessionFolder(main, FIRST, projects).transcript).toBe(
+        join(projects, '-linked', `${FIRST}.jsonl`),
+      )
+    })
+
+    it('rewrites the record only when the transcript found is another one', () => {
+      const own = transcript('-project', FIRST)
+      const created = sessionFolder(main, FIRST, projects)
+      const record = join(created.path, '.transcript')
       const longAgo = new Date('2020-01-01T00:00:00Z')
-      utimesSync(marker, longAgo, longAgo)
-      sessionFolder(main, FIRST, projects)
-      expect(statSync(marker).mtime).toEqual(longAgo)
+      utimesSync(record, longAgo, longAgo)
 
-      const moved = join(scratch, 'moved', 'projects')
-      sessionFolder(main, FIRST, moved)
-      expect(readFileSync(marker, 'utf8')).toBe(`${moved}\n`)
+      sessionFolder(main, FIRST, projects)
+      expect(statSync(record).mtime).toEqual(longAgo)
+
+      const emptyProjects = join(scratch, 'experimental', 'projects')
+      mkdirSync(emptyProjects, { recursive: true })
+      expect(sessionFolder(main, FIRST, emptyProjects).transcript).toBe(own)
+      expect(readFileSync(record, 'utf8')).toBe(`${own}\n`)
+
+      unlinkSync(own)
+      const moved = transcript('-moved', FIRST)
+      sessionFolder(main, FIRST, projects)
+      expect(readFileSync(record, 'utf8')).toBe(`${moved}\n`)
+    })
+
+    it('records nothing when no transcript can be found', () => {
+      transcript('-elsewhere', FIRST)
+      chmodSync(join(projects, '-elsewhere'), 0o000)
+
+      const created = sessionFolder(main, FIRST, projects)
+      const elsewhere = sessionFolder(main, FIRST, join(scratch, 'missing', 'projects'))
+
+      expect(created.transcript).toBeUndefined()
+      expect(elsewhere.transcript).toBeUndefined()
+      expect(existsSync(created.path)).toBe(true)
+      expect(existsSync(join(created.path, '.transcript'))).toBe(false)
     })
 
     it('refuses a missing session id', () => {
@@ -204,176 +253,126 @@ describe('session folders', () => {
   })
 
   describe('listSessionFolders', () => {
-    it('lists as expired only the folders whose transcript no project directory keeps', () => {
-      transcript('-project', FIRST)
-      transcript('-elsewhere', SECOND)
-      folderOf(FIRST)
-      folderOf(SECOND)
-      folderOf(EXPIRED)
+    it('expires a folder once its recorded transcript is gone and the projects directory is readable', () => {
+      const kept = transcript('-project', FIRST)
+      const removedByClaudeCode = transcript('-project', EXPIRED)
+      const projectGone = transcript('-elsewhere', SECOND)
+      folderOf(FIRST, kept)
+      folderOf(EXPIRED, removedByClaudeCode)
+      folderOf(SECOND, projectGone)
+      unlinkSync(removedByClaudeCode)
+      rmSync(join(projects, '-elsewhere'), { recursive: true })
 
-      const listing = listSessionFolders(linkedWorktree(), projects)
+      const listing = listSessionFolders(linkedWorktree())
 
       expect(listing.sessionsDirectory).toBe(join(main, '.sessions'))
-      expect(listing.expired).toEqual([judged(EXPIRED)])
-      expect(listing.kept).toEqual([judged(FIRST), judged(SECOND)])
+      expect(listing.kept).toEqual([folder(FIRST)])
+      expect(listing.expired).toEqual([folder(SECOND), folder(EXPIRED)])
+      expect(listing.unrecorded).toEqual([])
       expect(listing.undecided).toEqual([])
     })
 
-    it("judges each folder against the projects directory it recorded, not the sweep's", () => {
-      const otherProjects = join(scratch, 'other-account', 'projects')
-      transcript('-project', FIRST, otherProjects)
-      folderOf(FIRST, otherProjects)
-      folderOf(EXPIRED, otherProjects)
-      transcript('-project', SECOND)
+    it('keeps a folder with no record, whatever the transcripts say', () => {
+      folderOf(EXPIRED)
 
-      const listing = listSessionFolders(main, projects)
+      const listing = listSessionFolders(main)
 
-      expect(listing.kept).toEqual([judged(FIRST, otherProjects)])
-      expect(listing.expired).toEqual([judged(EXPIRED, otherProjects)])
+      expect(listing.unrecorded).toEqual([folder(EXPIRED)])
+      expect(listing.expired).toEqual([])
+      expect(listing.undecided).toEqual([])
     })
 
-    it('keeps, undecided, a folder whose recorded projects directory cannot be read', () => {
-      transcript('-project', FIRST)
-      const gone = join(scratch, 'gone', 'projects')
-      folderOf(EXPIRED, gone)
-      folderOf(SECOND, 'not/an/absolute/path')
+    it('keeps, undecided, a folder whose projects directory is missing or unreadable', () => {
+      const unmounted = join(
+        scratch,
+        'unmounted',
+        'projects',
+        '-project',
+        `${FIRST}.jsonl`,
+      )
+      folderOf(FIRST, unmounted)
+      const locked = transcript('-project', SECOND)
+      folderOf(SECOND, locked)
+      unlinkSync(locked)
+      chmodSync(projects, 0o100)
 
-      const listing = listSessionFolders(main, projects)
+      const listing = listSessionFolders(main)
 
       expect(listing.expired).toEqual([])
       expect(listing.undecided).toEqual([
         {
-          ...judged(SECOND, 'not/an/absolute/path'),
-          reason: expect.stringContaining('records no absolute projects directory'),
+          ...folder(FIRST),
+          reason: expect.stringContaining(join(scratch, 'unmounted', 'projects')),
         },
-        {
-          ...judged(EXPIRED, gone),
-          reason: expect.stringContaining(
-            `cannot read Claude Code's session transcripts in ${gone}`,
-          ),
-        },
+        { ...folder(SECOND), reason: expect.stringContaining(projects) },
       ])
     })
 
-    it('reads each recorded projects directory once', () => {
-      const otherProjects = join(scratch, 'other-account', 'projects')
-      transcript('-project', FIRST, otherProjects)
-      folderOf(FIRST, otherProjects)
-      folderOf(SECOND, otherProjects)
-      folderOf(EXPIRED, otherProjects)
+    it('keeps, undecided, a folder whose transcript cannot be checked', () => {
+      const behindLockedProject = transcript('-elsewhere', FIRST)
+      folderOf(FIRST, behindLockedProject)
+      chmodSync(join(projects, '-elsewhere'), 0o000)
 
-      listSessionFolders(main, projects)
+      const listing = listSessionFolders(main)
 
-      const reads = vi
-        .mocked(readdirSync)
-        .mock.calls.filter(([path]) => path === otherProjects)
-      expect(reads).toHaveLength(1)
+      expect(listing.expired).toEqual([])
+      expect(ids(listing.undecided)).toEqual([FIRST])
     })
 
-    it('never counts as expired a folder created while the transcripts are being read', () => {
-      transcript('-project', FIRST)
-      folderOf(FIRST)
-      vi.mocked(readdirSync).mockImplementation(((path, options) => {
-        const entries = realReaddirSync(path, options as { withFileTypes: true })
-        if (
-          path === join(projects, '-project') &&
-          !existsSync(join(main, '.sessions', LATE))
-        ) {
-          transcript('-project', LATE)
-          folderOf(LATE)
-        }
-        return entries
-      }) as typeof readdirSync)
+    it('keeps, undecided, a folder whose record cannot be read or names no absolute path', () => {
+      folderOf(FIRST, 'relative/transcript.jsonl')
+      const unreadable = folderOf(SECOND, '/anywhere/transcript.jsonl')
+      chmodSync(join(unreadable, '.transcript'), 0o000)
 
-      const listing = listSessionFolders(main, projects)
+      const listing = listSessionFolders(main)
+
+      expect(listing.expired).toEqual([])
+      expect(listing.undecided).toEqual([
+        { ...folder(FIRST), reason: expect.stringContaining('names no absolute path') },
+        { ...folder(SECOND), reason: expect.stringContaining('cannot read') },
+      ])
+    })
+
+    it('never judges a folder created while the records are being checked', () => {
+      const own = transcript('-project', FIRST)
+      folderOf(FIRST, own)
+      const gone = join(projects, '-project', `${LATE}.jsonl`)
+      vi.mocked(statSync).mockImplementation(((path, options) => {
+        if (path === own && !existsSync(join(main, '.sessions', LATE)))
+          folderOf(LATE, gone)
+        return realStatSync(path, options)
+      }) as typeof statSync)
+
+      const listing = listSessionFolders(main)
 
       expect(listing.expired).toEqual([])
       expect(existsSync(join(main, '.sessions', LATE))).toBe(true)
     })
 
     it('leaves alone every entry that is not a session folder', () => {
-      transcript('-project', FIRST)
       mkdirSync(join(main, '.sessions', 'shared-notes'), { recursive: true })
       writeFileSync(join(main, '.sessions', 'README.md'), 'notes\n')
       writeFileSync(join(main, '.sessions', EXPIRED), 'a file named like a session\n')
 
-      const listing = listSessionFolders(main, projects)
-
-      expect(listing.expired).toEqual([])
-      expect(listing.kept).toEqual([])
-    })
-
-    it('lists nothing, and reads no transcripts, when no session has a folder yet', () => {
-      expect(listSessionFolders(main, projects)).toEqual({
+      expect(listSessionFolders(main)).toEqual({
         sessionsDirectory: join(main, '.sessions'),
         expired: [],
         kept: [],
+        unrecorded: [],
         undecided: [],
       })
-      expect(vi.mocked(readdirSync).mock.calls.map(([path]) => path)).not.toContain(
-        projects,
-      )
     })
 
-    it('keeps, undecided, every unmarked folder when the projects directory does not exist', () => {
-      folderOf(EXPIRED)
-
-      const listing = listSessionFolders(main, projects)
-
-      expect(listing.expired).toEqual([])
-      expect(listing.undecided).toEqual([
-        {
-          ...judged(EXPIRED),
-          reason: expect.stringContaining(
-            `cannot read Claude Code's session transcripts in ${projects}`,
-          ),
-        },
-      ])
-    })
-
-    it('reads the transcripts of a project directory reached through a link', () => {
-      transcript('-project', FIRST)
-      const linked = join(scratch, 'linked-project')
-      mkdirSync(linked)
-      writeFileSync(join(linked, `${SECOND}.jsonl`), '{}\n')
-      symlinkSync(linked, join(projects, '-linked'))
-      folderOf(SECOND)
-
-      const listing = listSessionFolders(main, projects)
-
-      expect(listing.expired).toEqual([])
-      expect(listing.kept).toEqual([judged(SECOND)])
-    })
-
-    it('passes over a link in the projects directory that leads to no directory', () => {
-      transcript('-project', FIRST)
-      symlinkSync(join(scratch, 'nowhere'), join(projects, '-dangling'))
-      symlinkSync(join(projects, '-project', `${FIRST}.jsonl`), join(projects, '-file'))
+    it('fails when the sessions directory itself cannot be read', () => {
       folderOf(FIRST)
-      folderOf(EXPIRED)
+      chmodSync(join(main, '.sessions'), 0o000)
 
-      const listing = listSessionFolders(main, projects)
-
-      expect(listing.kept).toEqual([judged(FIRST)])
-      expect(listing.expired).toEqual([judged(EXPIRED)])
-      expect(listing.undecided).toEqual([])
-    })
-
-    it('keeps everything undecided when a project directory inside it cannot be read', () => {
-      transcript('-project', FIRST)
-      transcript('-elsewhere', SECOND)
-      chmodSync(join(projects, '-elsewhere'), 0o000)
-      folderOf(SECOND)
-
-      const listing = listSessionFolders(main, projects)
-
-      expect(listing.expired).toEqual([])
-      expect(listing.undecided.map((folder) => folder.sessionId)).toEqual([SECOND])
+      expect(() => listSessionFolders(main)).toThrow('EACCES')
     })
 
     it('refuses a checkout whose git directory lives outside it', () => {
       for (const checkout of checkoutsWithoutAMainCheckout()) {
-        expect(() => listSessionFolders(checkout, projects)).toThrow(
+        expect(() => listSessionFolders(checkout)).toThrow(
           'has no main checkout to keep session folders in',
         )
       }
@@ -382,35 +381,40 @@ describe('session folders', () => {
 
   describe('removeExpiredSessionFolders', () => {
     it('removes exactly the expired folders', () => {
-      transcript('-project', FIRST)
-      transcript('-elsewhere', SECOND)
-      const first = folderOf(FIRST)
-      const second = folderOf(SECOND)
-      const expired = folderOf(EXPIRED)
-      const undecided = folderOf(LATE, join(scratch, 'gone', 'projects'))
+      const kept = folderOf(FIRST, transcript('-project', FIRST))
+      const goneTranscript = transcript('-project', EXPIRED)
+      const expired = folderOf(EXPIRED, goneTranscript)
+      unlinkSync(goneTranscript)
+      const unrecorded = folderOf(SECOND)
+      const undecided = folderOf(
+        LATE,
+        join(scratch, 'gone', 'projects', '-p', `${LATE}.jsonl`),
+      )
       mkdirSync(join(main, '.sessions', 'shared-notes'))
 
-      const { removed, failed } = removeExpiredSessionFolders(main, projects)
+      const { removed, failed } = removeExpiredSessionFolders(main)
 
-      expect(removed).toEqual([judged(EXPIRED)])
+      expect(removed).toEqual([folder(EXPIRED)])
       expect(failed).toEqual([])
       expect(existsSync(expired)).toBe(false)
       expect(
-        [first, second, undecided, join(main, '.sessions', 'shared-notes')].every(
+        [kept, unrecorded, undecided, join(main, '.sessions', 'shared-notes')].every(
           existsSync,
         ),
       ).toBe(true)
     })
 
-    it('removes nothing when the transcripts cannot be read', () => {
-      const expired = folderOf(EXPIRED)
+    it('reports a folder it could not remove', () => {
+      const goneTranscript = transcript('-project', FIRST)
+      const expired = folderOf(FIRST, goneTranscript)
+      unlinkSync(goneTranscript)
+      chmodSync(join(main, '.sessions'), 0o555)
 
-      expect(removeExpiredSessionFolders(main, projects).removed).toEqual([])
-      mkdirSync(projects, { recursive: true })
-      chmodSync(projects, 0o000)
-      expect(removeExpiredSessionFolders(main, projects).removed).toEqual([])
+      const { removed, failed } = removeExpiredSessionFolders(main)
 
-      expect(existsSync(join(expired, 'ledger.md'))).toBe(true)
+      expect(removed).toEqual([])
+      expect(failed).toEqual([{ folder: folder(FIRST), reason: expect.any(String) }])
+      expect(existsSync(expired)).toBe(true)
     })
   })
 })
