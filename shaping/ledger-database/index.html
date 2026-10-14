@@ -299,6 +299,72 @@
           record as plain text whenever a person wants to read it.
         </p>
 
+        <h3>The record</h3>
+        <p>
+          Each conversation gets one record: a single database file in its session
+          folder, the same folder where the ledger file lives today, so it survives a
+          reboot and is cleaned up with the folder when Claude Code forgets the
+          conversation. The first write creates it. Every agent in the conversation
+          &mdash; in the main checkout or in any worktree &mdash; reaches the same
+          record without naming it, the way <code>session-folder</code> already finds
+          the folder.
+        </p>
+        <p>
+          We use the SQLite that Node ships built in, so the package takes on no new
+          dependency. That raises the package's lowest supported Node from 22.0 to 22.13,
+          the first Node 22 with SQLite available without a flag. Node 22 announces the
+          feature as experimental on every run, so our commands hide that one warning
+          and let every other warning through.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Spike</span>
+            The file, the runtime, and several writers at once
+          </summary>
+          <div class="technical-body">
+            <ul>
+              <li>
+                <p>
+                  The record lives at <code>.sessions/&lt;session id&gt;/ledger.db</code>
+                  in the main checkout, resolved exactly as <code>session-folder</code>
+                  resolves the folder (<code>CLAUDE_CODE_SESSION_ID</code>, then
+                  <code>git rev-parse --git-common-dir</code> for the main checkout).
+                  Outside a Claude Code session every <code>ledger</code> command fails
+                  the way <code>session-folder</code> does. The folder sweep already
+                  removes everything in the folder, the database's
+                  <code>-wal</code> and <code>-shm</code> companions included, so it needs
+                  no change.
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>node:sqlite</code>: no flag and no warning on Node 24.21 (SQLite
+                  3.53); unflagged since 22.13 and still printing
+                  <code>ExperimentalWarning: SQLite is an experimental feature</code> on
+                  22.19 and 22.22. FTS5, JSON functions, and <code>STRICT</code> tables
+                  work on both. <code>engines.node</code> becomes
+                  <code>&gt;=22.13.0</code>. The warning filter replaces Node's
+                  <code>warning</code> listener with one that drops only the SQLite
+                  experimental warning and prints everything else.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Several writers: twelve processes appending 200 entries each, every
+                  entry on a fresh connection like separate command runs. With a
+                  5-second busy timeout, all 2,400 landed; with none, 90 to 99 percent
+                  failed with <code>database is locked</code>. So every connection sets
+                  <code>PRAGMA busy_timeout</code> (the pragma also works on Node 22
+                  versions older than the <code>timeout</code> option). WAL mode lets
+                  reads run while a write is open.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </details>
+
         <h3>Entries</h3>
         <p>
           Every entry is one of three kinds, and the kind decides what it has to carry.
