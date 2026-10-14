@@ -404,6 +404,39 @@
           they do today.
         </p>
 
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Schema</span>
+            An entry
+          </summary>
+          <div class="technical-body">
+            <p>
+              One table, <code>STRICT</code>. The integer primary key is the only unique
+              constraint: any other <code>UNIQUE</code> column would open a way for
+              <code>INSERT OR REPLACE</code> to delete a row without firing a delete
+              guard, which the spike showed with a unique <code>replaces</code> column.
+              Rules that need uniqueness are enforced by <code>BEFORE INSERT</code>
+              triggers instead.
+            </p>
+            <pre><code>entries(
+  id          integer primary key,
+  kind        text  -- 'decision' | 'finding' | 'progress'
+  body        text  -- the entry, verbatim as written
+  decided_by  text  -- 'person' | 'agent'; required on a decision, absent otherwise
+  source      text  -- required on a finding, absent otherwise
+  written_by  text  -- 'orchestrator', or the subagent's task name
+  replaces    integer references entries(id)
+  written_at  text  -- UTC, from the database clock, never from the writer
+)</code></pre>
+            <p>
+              Refused on insert: a <code>replaces</code> pointing at a progress entry, at
+              an entry of another kind, at an entry that does not exist yet, or at an entry something already
+              replaced. In force means: a decision or finding no later entry replaces.
+            </p>
+          </div>
+        </details>
+
         <h3>The guards</h3>
         <p>
           The database itself refuses to change or remove an entry, whoever asks and
@@ -631,69 +664,111 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
           </div>
         </details>
 
-        <details class="technical" open>
-          <summary>
-            <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Schema</span>
-            An entry
-          </summary>
-          <div class="technical-body">
-            <p>
-              One table, <code>STRICT</code>. The integer primary key is the only unique
-              constraint: any other <code>UNIQUE</code> column would open a way for
-              <code>INSERT OR REPLACE</code> to delete a row without firing a delete
-              guard, which the spike showed with a unique <code>replaces</code> column.
-              Rules that need uniqueness are enforced by <code>BEFORE INSERT</code>
-              triggers instead.
-            </p>
-            <pre><code>entries(
-  id          integer primary key,
-  kind        text  -- 'decision' | 'finding' | 'progress'
-  body        text  -- the entry, verbatim as written
-  decided_by  text  -- 'person' | 'agent'; required on a decision, absent otherwise
-  source      text  -- required on a finding, absent otherwise
-  written_by  text  -- 'orchestrator', or the subagent's task name
-  replaces    integer references entries(id)
-  written_at  text  -- UTC, from the database clock, never from the writer
-)</code></pre>
-            <p>
-              Refused on insert: a <code>replaces</code> pointing at a progress entry, at
-              an entry of another kind, at an entry that does not exist yet, or at an entry something already
-              replaced. In force means: a decision or finding no later entry replaces.
-            </p>
-          </div>
-        </details>
-
-        <figure class="drawing">
-          <div class="drawing-canvas shaping-drawing-frame">
-            <!-- Draw here with the drawing library: ShapingDrawing, loaded from
-                 ../assets/drawing/. Hand-drawn and lo-fi — boxes and arrows. -->
-          </div>
-          <figcaption>One line saying what this drawing shows.</figcaption>
-        </figure>
-
+        <h3>After a compaction</h3>
         <p>
-          Keep going in prose. Where a claim rests on something technical, attach the
-          detail right here, next to it, as a note the reader can open or ignore.
+          We'll add a hook that runs every time a conversation is compacted and puts the
+          decisions in force back in front of the agent, word for word, before it takes
+          its next step. Nobody has to remember to look: in the one session we followed
+          end to end, the agent never opened its ledger after any of five compactions and
+          found its way back from the summary alone. A summary paraphrases, and the
+          records show what happens next &mdash; the paraphrase of a ruling becomes the
+          ruling. With the hook, the person's decisions come back in the person's own
+          words every time.
+        </p>
+        <p>
+          The hook only shows; it never makes the agent read anything else. Searching
+          for findings stays the agent's call, when a question comes back. When the
+          conversation has no record yet, the hook prints nothing, and it can never stop
+          a compaction.
         </p>
 
-        <!-- The technical affordance. Anchor one beside whatever it defines: a
-             paragraph, a list item, a drawing's caption. Copy this block as often as
-             you need. The kind label is free text — SCHEMA, CONTRACT, SPIKE, DATA. -->
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Schema</span>
-            What this note defines
+            <span class="technical-kind">Contract</span>
+            The compaction hook
           </summary>
           <div class="technical-body">
-            <p>The technical detail behind the sentence above. Short. Concrete.</p>
-            <pre><code>table_or_signature(
-  field  type,
-  field  type
-)</code></pre>
+            <ul>
+              <li>
+                <p>
+                  A managed <code>SessionStart</code> hook with the <code>compact</code>
+                  matcher, shipped in <code>runtime/hooks/</code> and registered beside
+                  the session-end hook. It runs the in-force view and prints it as plain
+                  text, which Claude Code adds to the agent's context. It always exits 0.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Claude Code caps what a hook can add at 10,000 characters; past that it
+                  saves the text to a file and shows only a 2,000-character preview. So
+                  the hook's view is built to fit: decisions in force newest first, as
+                  many as fit whole, then &ldquo;N older decisions in force: run
+                  <code>pnpm exec seasoned-skills ledger</code>&rdquo;, then the last
+                  progress entries. A decision is never cut mid-text.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Claude Code's hooks documentation does not say whether
+                  <code>SessionStart</code> fires when a subagent compacts. The hook is
+                  built for the orchestrator, where the person's decisions live; a
+                  subagent can always run <code>ledger</code> itself.
+                </p>
+              </li>
+            </ul>
           </div>
         </details>
+
+        <h3>What changes in the way we work</h3>
+        <p>
+          The rules agents follow change with the record, so no agent keeps writing a
+          markdown file out of habit.
+        </p>
+        <ul>
+          <li>
+            <p>
+              The orchestration rule in each project's instructions stops saying
+              &ldquo;keep a ledger file&rdquo; and says to keep the session's ledger with
+              the <code>ledger</code> commands. The advice after it stays, reworded: after
+              a compaction the decisions in force are already in front of the agent, and
+              going back to the real sources before the next step still applies.
+            </p>
+          </li>
+          <li>
+            <p>
+              The orchestration skill's ledger section loses the rules for keeping a
+              summary at the top of the file, moving old summaries to an archive, and
+              reading the file by byte ranges. It gains short rules for what to record and
+              when: a finding the moment it is learned, with its source; a decision the
+              moment it is made, in the person's own words when it is theirs; progress only
+              after its result has been read, never chained behind the command that
+              produces it; and a change of mind always as a replacement.
+            </p>
+          </li>
+          <li>
+            <p>
+              Instructions to subagents stop forbidding them from touching the ledger.
+              Each one gives the subagent its <code>--as</code> name and tells it to
+              record its findings with their sources.
+            </p>
+          </li>
+          <li>
+            <p>
+              Smaller mentions follow: a launched task's id is found by searching the
+              record, review fixes record the person's rulings as decisions, the
+              self-improvement pass reads the ledger with <code>ledger print</code>, and
+              quick mode still keeps no ledger.
+            </p>
+          </li>
+          <li>
+            <p>
+              The pages people read &mdash; the way of working, running a session, the
+              command reference, and the list of files the package manages &mdash;
+              describe the ledger as it now is.
+            </p>
+          </li>
+        </ul>
 
         <h3>Walkthrough</h3>
         <p>
