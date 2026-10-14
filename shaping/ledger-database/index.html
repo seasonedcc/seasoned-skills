@@ -61,43 +61,199 @@
 
         <h3>The struggling moment</h3>
         <p>
-          Tell the story of one real moment where someone got stuck: who they are, what
-          they were trying to get done, what they reached for, and what it cost them.
-          Name the day, the shift, the order — the concrete details are what make people
-          say &ldquo;yes, that is exactly it&rdquo; or &ldquo;no, that is not how it works
-          here.&rdquo;
+          Late in August, deep into a long shaping session, the person running it told the
+          agent that the conversation was about to be compacted: summarized, to free room
+          for more work, with everything not in the summary gone from the agent's memory.
+          The agent had been keeping a ledger all along &mdash; the running file where a
+          session writes down what was decided, what it learned, and where the work
+          stands, so it can find its way back after a compaction. To get ready, the agent
+          rewrote that ledger into a short summary of the current state, and in doing so
+          deleted the history it had built up over the session.
         </p>
 
         <figure class="quote">
           <blockquote>
-            <p>
-              Quote the person word for word. Verbatim, not tidied up — their phrasing is
-              the evidence.
-            </p>
+            <p>If it is a ledger, why did you remove the history?</p>
           </blockquote>
           <figcaption>
-            <a href="#">Where this came from</a>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/159"
+              >The person who caught it, in issue #159</a
+            >
           </figcaption>
         </figure>
 
+        <p>
+          The person also named why this is the worst possible moment to rewrite anything.
+          An agent whose memory is nearly full is at its least capable, so the rewrite is a
+          summary made by the weakest version of the agent, under exactly the strain the
+          ledger exists to protect against. Whatever it drops is gone for good once the
+          compaction lands. Nothing in the file stopped the rewrite, and nothing afterwards
+          would have shown that it had happened.
+        </p>
+
         <h3>Today's way, and where it breaks</h3>
         <p>
-          Describe how the work gets done right now, end to end, including the parts that
-          happen outside any system. Then say precisely where it breaks, and what people
-          do to cope when it does.
+          Today a ledger is a plain text file in the session's own folder. Agents add to
+          it with ordinary shell commands, one line at a time, and read it the same way. In
+          one session we followed from start to finish, the ledger was written 198 times
+          and only ever read by its last few lines. It holds three kinds of things: what
+          the person decided, what the session learned about the product while researching
+          it, and where the work stands &mdash; what is running, on which branch, with
+          which result.
+        </p>
+        <p>It breaks in four places.</p>
+        <ul>
+          <li>
+            <p>
+              <strong>Anything can rewrite it.</strong> A file accepts any edit, so
+              history gets replaced, as in the story above. When agents are told never to
+              rewrite, the summary at the top goes stale instead: one ledger reached a
+              size where its top section still described work from five days earlier.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  The ledger had reached 1,484 lines and 1.15 MB. Its head, titled as the
+                  live roster and next actions, still described the first wave of the
+                  first goal from five days earlier
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/486"
+                  >Issue #486</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <p>
+              <strong>Writing it can do damage.</strong> Because every entry goes in
+              through the shell, the shell reads it first. One entry quoted four commands
+              as a note for later: mark a pull request ready, merge it, tear down its
+              workspace, remove a worktree.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  The shell ran all four. [&hellip;] The write that was supposed to make
+                  compaction safe was one <code>cd</code> away from an unauthorized merge.
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/418"
+                  >Issue #418</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <p>
+              <strong>Its times are made up.</strong> Agents type each entry's time from
+              memory, and the times drift: minutes, hours, once a whole day. Writing the
+              rule down did not help.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  the stamp-from-the-clock rule was restated four times in the ledger and
+                  the drift still reached 6h45m ahead of the machine clock
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/383"
+                  >Issue #383</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <p>
+              <strong>Finding anything gets more expensive every day.</strong> A
+              finding from research sits somewhere in a long log, between launch notes and
+              test results. Getting it back means searching a file that keeps growing, and
+              reading the file costs more of the agent's memory the longer the session
+              runs.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  had filled 19% of a fresh context window before any work started
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/199"
+                  >Issue #199</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+        </ul>
+        <p>
+          To cope, agents restate rules inside the ledger, read it by byte offsets once it
+          outgrows a single read, and repair it by hand when a write goes wrong. None of
+          it makes the record trustworthy again.
         </p>
 
         <h3>The outcome test</h3>
+        <ol>
+          <li>
+            <p>
+              <strong
+                >Nothing written can be changed or removed by accident, and nothing can be
+                changed quietly.</strong
+              >
+              An edit or a delete is refused by the database itself, not by a rule the
+              agent is asked to follow. If someone goes around the database &mdash;
+              removes its guards, rewrites or deletes the file &mdash; the next read says
+              the record is no longer whole.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>What we learn about the product stays learned.</strong> A finding
+              from research &mdash; how a piece of functionality behaves, why the code is
+              the way it is, a premise that turned out false &mdash; is recorded the moment
+              we have it, with where it came from. When the same question comes up later in
+              the effort, the session finds the finding instead of researching it again.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong
+                >Whenever the session consults the record, it gets back exactly what was
+                written.</strong
+              >
+              What the person decided, what the session learned, and where the work stands
+              each come back in their original words, stamped with the real time they were
+              written. What is still in force is shown apart from what was later
+              superseded or corrected, and the superseded entries stay readable.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>Consulting the record costs the same on day one as on day ten.</strong>
+              Finding an entry, or reading what is in force, takes the same small amount of
+              reading however large the record grows.
+            </p>
+          </li>
+        </ol>
         <p>
-          What has to be true afterwards for this to have worked. Write it so anyone can
-          check it without asking us — an observable difference in someone's day, not a
-          feature list.
+          Nobody forces the session to read the record at a fixed moment, such as right
+          after a compaction. Agents already reach for the ledger when they need it; the
+          record has to be there, whole and quick to search, when they do.
         </p>
 
         <h3>Why now</h3>
         <p>
-          What changed to make this worth doing this month rather than next year. Growth,
-          a deadline, a cost that keeps climbing, a promise already made.
+          Two things changed this week. Ledgers moved out of a temporary folder the
+          computer could wipe and into each project's own session folder, so the file now
+          survives. Compaction now happens on its own, whenever the agent's memory fills,
+          rather than when someone announces it &mdash; so there is no longer a moment to
+          prepare, and what the session wrote down along the way is all it gets back. The
+          ledger is now the one record every long session leans on, and the remaining
+          question is whether it still says what was written. This pays in time: every
+          lost or doubtful entry is research done twice, or a session spent rebuilding
+          state.
         </p>
 
         <h3>The big hire and the little hires</h3>
