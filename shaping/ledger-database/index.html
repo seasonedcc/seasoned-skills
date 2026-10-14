@@ -199,13 +199,10 @@
           <li>
             <p>
               <strong
-                >Nothing written can be changed or removed by accident, and nothing can be
-                changed quietly.</strong
+                >Nothing written can be changed or removed through the database.</strong
               >
-              An edit or a delete is refused by the database itself, not by a rule the
-              agent is asked to follow. If someone goes around the database &mdash;
-              removes its guards, rewrites or deletes the file &mdash; the next read says
-              the record is no longer whole.
+              Every edit or delete is refused by the database itself, not by a rule the
+              agent is asked to follow.
             </p>
           </li>
           <li>
@@ -340,6 +337,62 @@
           conversation, and lessons about how we work go to the self-improvement pass, as
           they do today.
         </p>
+
+        <h3>The guards</h3>
+        <p>
+          The database itself refuses to change or remove an entry, whoever asks and
+          through whatever tool: our own commands, a stray script, or someone typing into
+          SQLite by hand. Every failure in the records was an accident under load &mdash;
+          a rewrite before compaction, a note the shell ran, a scripted edit &mdash; and
+          each of them took one ordinary command against a text file. Against a database
+          none of them can happen by accident: there is nothing to overwrite with a
+          redirect, and an edit or a delete is refused. Getting around the guards takes
+          deliberate steps nobody takes by mistake, and we won't build anything to catch
+          those (see the no-gos).
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Spike</span>
+            What the guards refuse, and what escapes them
+          </summary>
+          <div class="technical-body">
+            <p>
+              Proven on a throwaway database under Node 24.21, Node 22.22, and the
+              <code>sqlite3</code> command line. Three <code>BEFORE</code> triggers, each
+              ending in <code>RAISE(ABORT, …)</code>:
+            </p>
+            <ul>
+              <li>
+                <p>
+                  <code>BEFORE UPDATE</code> refuses every edit, upserts
+                  (<code>ON CONFLICT DO UPDATE</code>) included.
+                </p>
+              </li>
+              <li>
+                <p><code>BEFORE DELETE</code> refuses every delete, whole-table included.</p>
+              </li>
+              <li>
+                <p>
+                  <code>BEFORE INSERT … WHEN EXISTS (an entry with NEW.id)</code> refuses
+                  <code>INSERT OR REPLACE</code> and <code>REPLACE INTO</code>. Without it,
+                  a replace silently swaps the row: its implicit delete fires no delete
+                  trigger while <code>recursive_triggers</code> is off, which is SQLite's
+                  default and a per-connection setting nobody else's connection will turn
+                  on. This is also why the primary key is the only unique constraint.
+                </p>
+              </li>
+            </ul>
+            <p>
+              What escapes, deliberately out of scope: <code>DROP TRIGGER</code>,
+              <code>DROP TABLE</code>, renaming and recreating the table, editing the
+              schema through <code>PRAGMA writable_schema</code> (refused on Node 24's
+              defensive default, allowed by the <code>sqlite3</code> command line), and
+              deleting the file.
+            </p>
+          </div>
+        </details>
 
         <h3>Who writes</h3>
         <p>
@@ -604,6 +657,12 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
             is open or done, and never asks anyone to start or close anything. A decision
             from an earlier piece of work stays in force until something replaces it,
             and its time and writer show how old it is.
+          </li>
+          <li>
+            <strong>No defense against deliberate tampering.</strong> Someone who drops
+            the database's guards on purpose, or deletes the file, can do it, and we
+            won't build fingerprints, receipts, or checks to catch it. The guards exist
+            for the accidents the records actually show.
           </li>
         </ul>
       </section>
