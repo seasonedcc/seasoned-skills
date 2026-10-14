@@ -1,13 +1,11 @@
 # Commands
 
 Eight commands, all through one binary. The package is installed as a
-dependency of your project, not globally, so the binary is not on your PATH: run
-every command through pnpm from the project's root, where its dependencies are
-installed, as `pnpm exec seasoned-skills <command>`. From a folder below the
-root, or from a checkout whose dependencies were never installed, pnpm does not
-find it. Three of them work on a lane. A lane is one named workspace for one piece of
-work, with its own worktree, ports, databases, and env files, so two pieces of
-work never collide on this machine.
+dependency of your project, not globally, so the binary is not on your PATH. Run
+every command from your project's root as `pnpm exec seasoned-skills <command>`.
+In a new worktree, run `pnpm install` first. Three of them work on a lane. A
+lane is one named workspace for one piece of work, with its own worktree, ports,
+databases, and env files, so two pieces of work never collide on this machine.
 
 | Command | What it does |
 | --- | --- |
