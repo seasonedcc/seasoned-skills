@@ -7,7 +7,7 @@ description: Install, configure, upgrade, and repair the seasoned-skills workflo
 
 This project's workflow — the doctrine file, the generated skills, the hooks, the status line, the provisioning — comes from the `seasoned-skills` npm package. Everything generated is rebuilt by `pnpm exec seasoned-skills sync` and is gitignored: never edit a generated file, because the next sync rewrites it. What the project owns, and what git carries, are the configuration (`seasoned-skills.config.ts`), the content directory it points at, and the committed artifacts the workflow reads (registers, shaping documents, meeting records).
 
-The package is a project dependency, so its binary is never on PATH: run every command as `pnpm exec seasoned-skills <command>` from the project's root. From a directory below the root, pnpm cannot find the binary and answers `Command "seasoned-skills" not found`.
+The package is a project dependency, so its binary is never on PATH: run every command as `pnpm exec seasoned-skills <command>` from the root of the project's main checkout. Anywhere else — a directory below the root, or a checkout whose dependencies were never installed — pnpm cannot find the binary and answers `Command "seasoned-skills" not found`.
 
 ## The moving parts
 

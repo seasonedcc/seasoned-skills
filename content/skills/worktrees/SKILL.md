@@ -11,7 +11,7 @@ Each worktree is an isolated lane: its own git checkout, and — for every resou
 
 ### Create
 
-Run every lane command from the root of the project's main checkout: the binary is a project dependency, and `pnpm exec` finds it only from a project root.
+Run every lane command from the root of the project's main checkout: the binary is a project dependency, and `pnpm exec` finds it only from the root of a checkout whose dependencies are installed.
 
 ```bash
 pnpm exec seasoned-skills provision <lane>

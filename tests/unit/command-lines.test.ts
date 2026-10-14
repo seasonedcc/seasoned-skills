@@ -15,8 +15,6 @@ import { SYNC_COMMAND } from '../../src/footprint/scripts.js'
  * golden tier pins — for a command written without it. The subcommands come
  * from the CLI itself, so a new command is covered the day it lands.
  */
-const INVOCATION = 'pnpm exec'
-
 const SHIPPED = [
   'content',
   'workflow-content',
@@ -45,29 +43,32 @@ describe('shipped command lines', () => {
   const program = buildProgram()
   const subcommands = program.commands.map((command) => command.name())
   const bareCommand = new RegExp(
-    `(?<!${INVOCATION} )\\b${program.name()} (${subcommands.join('|')})\\b`,
+    `(?<!pnpm\\s+exec\\s+)\\b${program.name()}\\s+(${subcommands.join('|')})\\b`,
+    'g',
   )
-  const lines = SHIPPED.flatMap(shippedFiles).flatMap(linesToRead)
+  const files = SHIPPED.flatMap(shippedFiles).flatMap(textToRead)
 
   it('runs every command through the package manager', () => {
-    const bare = lines
-      .filter(({ text }) => bareCommand.test(withoutWrittenBare(text)))
-      .map(({ path, number, text }) => `${path}:${number}: ${text.trim()}`)
+    const bare = files.flatMap(({ path, text }) =>
+      [...withoutWrittenBare(text).matchAll(bareCommand)].map(
+        (match) =>
+          `${path}:${text.slice(0, match.index).split('\n').length}: ${match[0]}`,
+      ),
+    )
     expect(subcommands).not.toEqual([])
     expect(bare).toEqual([])
   })
 
   it('still finds every text a bare command is right in', () => {
     const unused = WRITTEN_BARE.filter(
-      (allowed) => !lines.some(({ text }) => text.includes(allowed)),
+      (allowed) => !files.some(({ text }) => text.includes(allowed)),
     )
     expect(unused).toEqual([])
   })
 })
 
-interface Line {
+interface ShippedText {
   path: string
-  number: number
   text: string
 }
 
@@ -80,28 +81,29 @@ function shippedFiles(entry: string): string[] {
 }
 
 /**
- * A file's lines, minus the markdown headings — a heading names a command, as
- * the commands reference does section by section, and is never run.
+ * A file's text with its markdown headings blanked — a heading names a
+ * command, as the commands reference does section by section, and is never
+ * run. A blanked line keeps its place, so every match keeps its line number.
  */
-function linesToRead(file: string): Line[] {
+function textToRead(file: string): ShippedText[] {
   const contents = readFileSync(file)
   if (contents.includes(0)) return []
-  const path = relative(root, file)
   const markdown = file.endsWith('.md')
   let fenced = false
-  return contents
+  const text = contents
     .toString('utf8')
     .split('\n')
-    .flatMap((text, index) => {
-      if (markdown && text.trim().startsWith('```')) fenced = !fenced
-      if (markdown && !fenced && /^#{1,6} /.test(text)) return []
-      return [{ path, number: index + 1, text }]
+    .map((line) => {
+      if (markdown && line.trim().startsWith('```')) fenced = !fenced
+      return markdown && !fenced && /^#{1,6} /.test(line) ? '' : line
     })
+    .join('\n')
+  return [{ path: relative(root, file), text }]
 }
 
 function withoutWrittenBare(text: string): string {
   return WRITTEN_BARE.reduce(
-    (remaining, allowed) => remaining.replaceAll(allowed, ''),
+    (remaining, allowed) => remaining.replaceAll(allowed, ' '.repeat(allowed.length)),
     text,
   )
 }
