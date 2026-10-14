@@ -576,6 +576,18 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   command is recorded rather than refused.
                 </p>
               </li>
+              <li>
+                <p>
+                  The <code>ledger</code> commands are the command line's first nested
+                  commands. The reference test in
+                  <code>tests/unit/reference-docs.test.ts</code> reads only
+                  <code>program.commands</code> and the options under it, so it would
+                  never notice an undocumented <code>ledger search</code> or flag. It
+                  will walk the command tree to any depth, with each command's flags
+                  under a heading that carries its full name, before the
+                  <code>ledger</code> commands land.
+                </p>
+              </li>
             </ul>
           </div>
         </details>
@@ -876,9 +888,25 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
         </header>
 
         <div class="goal" data-goal>
-<pre class="goal-text" data-goal-text>Write the goal here, in the second person, addressed to whoever picks up the build.
+<pre class="goal-text" data-goal-text>Build the ledger database: each session's ledger becomes a database that refuses every edit and every delete, so what was decided, learned, and done comes back exactly as it was written.
 
-Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, to be read raw and whole with its drawings, and name the boundaries the build must not cross.</pre>
+Before anything else, you and every builder read shaping/ledger-database/index.html raw and whole, drawings included. It is the single source of truth for this build.
+
+What to build, exactly as the document shapes it: the record (one database per conversation in its session folder, on Node's built-in SQLite), its entries and their three kinds, the guards, the write commands, the four reads, the compaction hook, and every change to the standing instructions and the pages people read. Every Contract, Schema, and Spike note is binding, and so are the no-gos. This repository's standing rules are binding too.
+
+Work branches from main.
+
+Done means, in order:
+
+1. The framing's outcome test holds in the shipped package, each of its four points shown with evidence: an edit and a delete refused by the database itself, through our commands and through the sqlite3 command line; a finding found by search with its source; the in-force view keeping replaced entries apart and readable, with real times; and the in-force view and a search costing the same on a record of thousands of entries as on a record of ten.
+
+2. The walkthrough replayed for real: a session that records decisions and findings, replaces one, compacts, gets its decisions in force back from the hook, and finds a finding by search. Record what you saw at each step.
+
+3. The closing audit: audit the complete implementation against the document, section by section (every element, every technical note, every no-go) and fix every shortfall before calling the goal met. The audit is part of this goal, never a follow-up.
+
+4. The pull request closes every open issue the build solves. Start from #159, #383, #418, #486, and #199, and re-derive the full list from the issue tracker.
+
+5. Flip this document's built bit when it ships.</pre>
           <div class="goal-footer">
             <div class="goal-meter" aria-hidden="true">
               <div class="goal-meter-fill" data-goal-meter-fill></div>
