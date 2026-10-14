@@ -732,7 +732,9 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
               &ldquo;keep a ledger file&rdquo; and says to keep the session's ledger with
               the <code>ledger</code> commands. The advice after it stays, reworded: after
               a compaction the decisions in force are already in front of the agent, and
-              going back to the real sources before the next step still applies.
+              going back to the real sources before the next step still applies. It also
+              says that a session older than the upgrade may have a markdown ledger
+              beside the record, to be read as history.
             </p>
           </li>
           <li>
@@ -804,6 +806,15 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
             the database's guards on purpose, or deletes the file, can do it, and we
             won't build fingerprints, receipts, or checks to catch it. The guards exist
             for the accidents the records actually show.
+          </li>
+          <li>
+            <strong>No import of old markdown ledgers.</strong> A markdown ledger has
+            no kinds, no sources, and no reliable times, so an importer would have to
+            invent all three, and the record would start its life with made-up
+            provenance. A session that is running when its project upgrades keeps its
+            markdown file where it is, readable as history, and writes every new entry
+            to the database. Session folders go away when Claude Code forgets the
+            conversation, so these old files disappear on their own.
           </li>
         </ul>
       </section>
