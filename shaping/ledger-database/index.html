@@ -233,9 +233,9 @@
           </li>
           <li>
             <p>
-              <strong>Consulting the record costs the same on day one as on day ten.</strong>
-              Finding an entry, or reading what is in force, takes the same small amount of
-              reading however large the record grows.
+              <strong>The history never gets in the way.</strong> However long the session
+              runs, the agent reads only what still applies, and finds anything else by
+              searching.
             </p>
           </li>
         </ol>
@@ -634,9 +634,8 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
 
         <h3>Reading it back</h3>
         <p>
-          We'll add four ways to read. Three of them cost the same however long the
-          session runs, because consulting the record on day ten must take no more
-          reading than on day one.
+          We'll add four ways to read. Three of them keep the history out of the
+          agent's way: it reads only what still applies, and searches for the rest.
         </p>
         <ul>
           <li>
@@ -935,8 +934,8 @@ ledger print              [--session &lt;id&gt;]</code></pre>
             <p>
               Later, a question the subagent already answered comes back. The agent
               searches the record for a few words from the question, finds the finding
-              with its source, and goes on. Nobody researches it twice, and the search
-              costs the same as it would have on the first day.
+              with its source, and goes on. Nobody researches it twice, and none of the
+              day's history got in the way.
             </p>
           </li>
           <li>
@@ -1001,7 +1000,7 @@ Work branches from main.
 
 Done means, in order:
 
-1. The framing's outcome test holds in the shipped package, each of its four points shown with evidence: an edit and a delete refused by the database itself, both on the package's own database connection and through the sqlite3 command line; a finding found by search with its source; the in-force view keeping replaced entries apart and readable, with real times; and the in-force view and a search costing the same on a record of thousands of entries as on a record of ten.
+1. The framing's outcome test holds in the shipped package, each of its four points shown with evidence: an edit and a delete refused by the database itself, both on the package's own database connection and through the sqlite3 command line; a finding found by search with its source; the in-force view keeping replaced entries apart and readable, with real times; and the history never getting in the way: on a record of thousands of entries, the in-force view shows only what still applies and a search prints at most 20 matches.
 
 2. The document's walkthrough replayed for real in a live session, every step of it. Record what you saw at each step.
 
@@ -1099,7 +1098,7 @@ Done means, in order:
           callouts: [
             'Every agent writes to the same record, and every entry says who wrote it. The text goes in untouched, and the time comes from the database’s clock.',
             'The database refuses every edit and every delete. A change of mind is a new entry that replaces an old one, and the old one stays.',
-            'Four ways back out. Three of them cost the same on the tenth day as on the first; printing everything is for people.',
+            'Four ways back out. Three of them show only what still applies or what you searched for; printing everything is for people.',
             'Every compaction puts the decisions in force back in front of the orchestrator, in the words they were written in.'
           ],
           caption: 'One record per conversation: many writers, no edits, four ways to read it.'
