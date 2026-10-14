@@ -335,8 +335,9 @@
                   in the main checkout, resolved exactly as <code>session-folder</code>
                   resolves the folder (<code>CLAUDE_CODE_SESSION_ID</code>, then
                   <code>git rev-parse --git-common-dir</code> for the main checkout).
-                  Outside a Claude Code session every <code>ledger</code> command fails
-                  the way <code>session-folder</code> does. The folder sweep already
+                  Outside a Claude Code session every write fails the way
+                  <code>session-folder</code> does, and a read needs
+                  <code>--session</code> (see the read commands). The folder sweep already
                   removes everything in the folder, the database's
                   <code>-wal</code> and <code>-shm</code> companions included, so it needs
                   no change, as long as the ledger commands create the folder through
@@ -352,10 +353,12 @@
                   <code>ExperimentalWarning: SQLite is an experimental feature</code> on
                   22.19 and 22.22. FTS5, JSON functions, and <code>STRICT</code> tables
                   work on both. <code>engines.node</code> becomes
-                  <code>&gt;=22.13.0</code>. The warning filter replaces Node's
-                  <code>warning</code> listener with one that drops only the SQLite
-                  experimental warning and prints everything else, so the floor moves
-                  up from <code>&gt;=22.0.0</code>.
+                  <code>&gt;=22.13.0</code>, up from <code>&gt;=22.0.0</code>. A new
+                  warning filter replaces Node's <code>warning</code> listener with one
+                  that drops only the SQLite experimental warning and prints everything
+                  else. It is installed in <code>bin/seasoned-skills.js</code> before the
+                  command line is loaded with a dynamic <code>import()</code>, so it is in
+                  place before anything imports <code>node:sqlite</code>.
                 </p>
               </li>
               <li>
@@ -543,8 +546,8 @@ ENTRY</code></pre>
         </p>
         <p>
           We'll take the text of an entry in a way that never lets the computer run any
-          of it as a command, however it is written. A check that already watches every
-          command agents run will refuse a ledger write that skips that protection, so a
+          of it as a command, however it is written. A new check on every command agents
+          run will refuse a ledger write that skips that protection, so a
           note that quotes a command can never run it again.
         </p>
 
@@ -593,25 +596,45 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
               </li>
               <li>
                 <p>
-                  Empty standard input, or a terminal instead of a pipe, is refused: an
-                  entry always has text.
+                  Empty or whitespace-only standard input, or a terminal instead of a
+                  pipe, is refused: an entry always has text. The text is stored exactly
+                  as it arrives, less the one trailing newline the heredoc adds.
+                  <code>--replaces</code> takes a number with or without a leading
+                  <code>#</code>, and the standing instructions teach the bare number.
                 </p>
               </li>
               <li>
                 <p>
-                  A new managed <code>PreToolUse</code> hook on <code>Bash</code>,
-                  beside <code>runtime/hooks/block-git-stash.sh</code> (today the only
-                  hook that reads Bash commands), refuses a ledger write whose text does
-                  not arrive through <code>&lt;&lt;'ENTRY'</code>, which also refuses
-                  <code>echo &hellip; |</code> and a missing heredoc. It also refuses a
+                  A new managed <code>PreToolUse</code> hook on <code>Bash</code>
+                  (timeout 10 seconds, like the stash hook), beside
+                  <code>runtime/hooks/block-git-stash.sh</code>, today the only hook
+                  that reads Bash commands. A ledger write is a command whose own words,
+                  outside quotes and heredoc bodies, run <code>seasoned-skills ledger
+                  decision</code>, <code>finding</code>, or <code>progress</code>; a
+                  commit message or PR body that only mentions one is not a write. The
+                  hook refuses a write whose text does not arrive through
+                  <code>&lt;&lt;'ENTRY'</code>, which also refuses
+                  <code>echo &hellip; |</code> and a missing heredoc. It refuses a
                   <code>--source</code> holding a backtick or <code>$(</code> unless it
                   is single-quoted, since a source is often a command and what it
-                  printed. Guard hooks that match on command text, the stash hook
-                  included, skip a ledger write's body, from the
-                  <code>&lt;&lt;'ENTRY'</code> line to the line <code>ENTRY</code>, so an
-                  entry that mentions a forbidden command is recorded rather than
-                  refused. Whatever follows that line in the same command is checked as
-                  usual. Hooks a project registers on its own are outside the package's
+                  printed. And it refuses any <code>ledger</code> command with an
+                  unquoted word starting with <code>#</code>: the shell reads
+                  <code>--replaces #47 &lt;&lt;'ENTRY'</code> as a comment from
+                  <code>#</code> on, the heredoc disappears, and every line of the entry
+                  runs as a command, exactly the #418 failure.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Guard hooks that match on command text, the stash hook included, skip
+                  a ledger write's body: the lines after the one holding
+                  <code>&lt;&lt;'ENTRY'</code>, up to the line <code>ENTRY</code>. The
+                  line holding <code>&lt;&lt;'ENTRY'</code> and everything after the
+                  closing <code>ENTRY</code> are checked as usual, so
+                  <code>&hellip; &lt;&lt;'ENTRY' &amp;&amp; git stash</code> is still
+                  refused. Only a ledger write's heredoc is skipped, never any other.
+                  An entry that mentions a forbidden command is recorded rather than
+                  refused. Hooks a project registers on its own are outside the package's
                   reach and keep reading the whole command.
                 </p>
               </li>
@@ -625,7 +648,9 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   <code>ledger search</code>, its words, or its flags. It will walk the
                   command tree to any depth, checking each command's flags and positional
                   arguments under a heading that carries its full name, before the
-                  <code>ledger</code> commands land.
+                  <code>ledger</code> commands land. The golden command-line test
+                  (<code>tests/golden/cli-surface.test.ts</code>) pins only top-level
+                  names and descriptions, and gets the same walk.
                 </p>
               </li>
             </ul>
@@ -671,8 +696,9 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
               <strong><code>ledger print</code></strong> prints the whole record as plain
               text, in order, for a person who wants to read it end to end, copy it, or
               keep it, and for the review at the end of a task, which reads everything on
-              purpose. It is the one read that grows with the session, and the agent never
-              uses it to find its way back.
+              purpose. Every replaced entry says what replaced it, and every replacement
+              says what it replaced. It is the one read that grows with the session, and
+              the agent never uses it to find its way back.
             </p>
           </li>
         </ul>
@@ -696,36 +722,68 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
             The read commands
           </summary>
           <div class="technical-body">
-            <pre><code>ledger                    [--session &lt;id&gt;]
+            <pre><code>ledger                    [--session &lt;id&gt;] [--hook]
 ledger search &lt;words...&gt;  [--session &lt;id&gt;]
 ledger show &lt;number&gt;      [--session &lt;id&gt;]
 ledger print              [--session &lt;id&gt;]</code></pre>
             <ul>
               <li>
                 <p>
-                  Inside a Claude Code session the record is the session's own. Outside
-                  one, a read needs <code>--session &lt;id&gt;</code>, the name of a
-                  folder under <code>.sessions/</code>, so a person in their own terminal
-                  can print today's record or yesterday's. Without it, a read fails the
-                  way <code>session-folder</code> does. Writes never take
-                  <code>--session</code>.
+                  <code>--session &lt;id&gt;</code> names a folder under
+                  <code>.sessions/</code> and wins over the environment, so a person in
+                  their own terminal, or an agent in today's session, can read today's
+                  record or yesterday's. Without it, a read uses the current session, and
+                  outside a Claude Code session it fails the way
+                  <code>session-folder</code> does. The id is checked against the
+                  session-id pattern in <code>src/sessions/folders.ts</code>, so nothing
+                  like <code>../</code> gets through. Reads resolve the folder without
+                  creating it, unlike <code>sessionFolder()</code>, which always creates
+                  one; a mistyped id must never leave behind a folder the sweep would keep
+                  forever. Writes never take <code>--session</code>. Each read command
+                  declares its own <code>--session</code>, with positional options turned
+                  on for <code>ledger</code>, since Commander otherwise hands a
+                  subcommand's flag to the parent.
+                </p>
+              </li>
+              <li>
+                <p>
+                  A read with no record yet prints &ldquo;No ledger yet in this
+                  session.&rdquo; and exits 0. <code>show</code> takes a number with or
+                  without a leading <code>#</code>.
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>ledger</code> shows only what is in force. Replaced entries never
+                  appear in it; search, show, and print mark them.
                 </p>
               </li>
               <li>
                 <p>
                   Times are stored in UTC and shown in the machine's local time: the
-                  full stamp with its offset where one entry is printed, the time of day
-                  in the lists.
+                  full stamp with its offset where one entry is printed; in the lists,
+                  the time of day for today's entries and the date and time for older
+                  ones, so a decision from five days ago shows its age.
                 </p>
               </li>
               <li>
                 <p>
                   Search takes plain words, never FTS5 syntax. Each word is quoted as a
                   plain term, so <code>node:sqlite</code>, <code>#418</code>, a hyphen,
-                  or an uppercase <code>OR</code> is just text. The terms are joined with
-                  <code>OR</code> and ranked with <code>bm25</code>, so the entries
-                  matching the most words come first. It prints the 20 best matches,
-                  then &ldquo;N more: add words to narrow&rdquo;.
+                  or an uppercase <code>OR</code> is just text. It covers each entry's
+                  text and its source. The terms are joined with <code>OR</code>; results
+                  are ordered by how many of the words they match, then by
+                  <code>bm25</code>. It prints the 20 best matches, then &ldquo;N more
+                  not shown&rdquo;.
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>--hook</code> is the compaction hook's mode, like
+                  <code>sweep --hook</code>: it reads the hook's JSON payload from
+                  standard input, takes the session from its <code>session_id</code>,
+                  fits the view under the hook's budget, prints nothing when there is no
+                  record, and always exits 0.
                 </p>
               </li>
               <li>
@@ -749,7 +807,7 @@ ledger print              [--session &lt;id&gt;]</code></pre>
           <div class="technical-body">
             <p>
               Proven on a throwaway database under Node 24.21 and 22.22. Search is an FTS5
-              external-content index over the entry text, fed by an <code>AFTER INSERT</code>
+              external-content index over the entry text and source, fed by an <code>AFTER INSERT</code>
               trigger, ranked with <code>bm25</code> and excerpted with
               <code>snippet</code>; the <code>porter unicode61</code> tokenizer matches
               &ldquo;lanes&rdquo; on &ldquo;lane&rdquo;. In force is a view: a decision or
@@ -799,13 +857,13 @@ ledger print              [--session &lt;id&gt;]</code></pre>
               <li>
                 <p>
                   A managed <code>SessionStart</code> hook with the <code>compact</code>
-                  matcher, shipped in <code>runtime/hooks/</code> and registered beside
-                  the session-end hook. Like the session-end hook, it starts with
-                  <code>cd "$CLAUDE_PROJECT_DIR"</code>, and it takes the session id
-                  from its JSON payload's <code>session_id</code> and passes it as
-                  <code>--session</code>, rather than trusting the environment of a hook
-                  process. It prints the in-force view as plain text, which Claude Code
-                  adds to the agent's context. It always exits 0.
+                  matcher (timeout 10 seconds), shipped in <code>runtime/hooks/</code>
+                  and registered beside the session-end hook. Like the session-end hook,
+                  it starts with <code>cd "$CLAUDE_PROJECT_DIR"</code>, then pipes its
+                  payload to <code>pnpm exec seasoned-skills ledger --hook</code>, which
+                  takes the session from the payload rather than trusting a hook
+                  process's environment. It prints the in-force view as plain text, which
+                  Claude Code adds to the agent's context. It always exits 0.
                 </p>
               </li>
               <li>
@@ -815,10 +873,11 @@ ledger print              [--session &lt;id&gt;]</code></pre>
                   the hook prints the same view as <code>ledger</code>, fitted under
                   9,500 characters. The findings line and the last ten progress entries,
                   each cut to its first line and 200 characters, are set aside first.
-                  Decisions in force fill the rest, newest first and only whole, followed
-                  by &ldquo;N older decisions in force: run
-                  <code>pnpm exec seasoned-skills ledger</code>&rdquo; when some don't
-                  fit. A decision is never cut mid-text.
+                  Decisions in force fill the rest, newest first and only whole, stopping
+                  at the first one that doesn't fit, followed by &ldquo;N older decisions
+                  in force: run <code>pnpm exec seasoned-skills ledger</code>&rdquo;. A
+                  decision is never cut mid-text, and none is skipped to fit an older
+                  one.
                 </p>
               </li>
               <li>
@@ -874,9 +933,10 @@ ledger print              [--session &lt;id&gt;]</code></pre>
             <p>
               Smaller mentions follow: the agent finds a launched task's number by
               searching the record; when the person rules on review comments, those
-              rulings are recorded as decisions; the end-of-task review reads the whole
-              record with <code>ledger print</code> and no longer looks for ledgers kept
-              by subagents; and the lightweight mode for small fixes still keeps no
+              rulings are recorded as decisions; the end-of-task review writes
+              <code>ledger print</code> to a file in the session folder and reads it the
+              way it reads the conversation, in slices, never whole into its context,
+              and no longer looks for ledgers kept by subagents; and the lightweight mode for small fixes still keeps no
               ledger.
             </p>
           </li>
