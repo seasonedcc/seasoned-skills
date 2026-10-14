@@ -166,7 +166,7 @@ The corpus spans years and the vocabulary evolved. Every document's front matter
 - `references/02-demand-side-sales-101/` — _Demand-Side Sales 101_ by Bob Moesta with Greg Engle: jobs to be done and the customer's struggle, chapter per file.
 - `references/03-articles/` — Ryan Singer's posts, one file per post, spanning 2004 to today: the thinking on shaping, framing, and demand that led to the book, and how it moved afterward.
 
-The corpus is built on each machine by `seasoned-skills corpus` and is never committed: the freely published sources are fetched from their authors' own sites, and the commercial book is vendored only from the user's own compiled copy — when none is given, `02-demand-side-sales-101/` instead carries the workflow's distilled account of the book's method, in our own words.
+The corpus is built on each machine by `pnpm exec seasoned-skills corpus` and is never committed: the freely published sources are fetched from their authors' own sites, and the commercial book is vendored only from the user's own compiled copy — when none is given, `02-demand-side-sales-101/` instead carries the workflow's distilled account of the book's method, in our own words.
 
 ## The shaping folder
 

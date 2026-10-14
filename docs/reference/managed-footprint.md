@@ -104,7 +104,8 @@ asked about. The plain paths beside it still are.
 Sync asserts one `package.json` script on every run: `prepare`. An empty
 `prepare` becomes `seasoned-skills sync`; an existing one becomes
 `<your command> && seasoned-skills sync`; one that already mentions the command
-is left exactly as it is.
+is left exactly as it is. The command is written without `pnpm exec` there,
+because pnpm puts the project's binaries on the PATH of every script it runs.
 
 It is deliberately your own script rather than a package lifecycle hook, because
 pnpm blocks a dependency's lifecycle scripts by default, and a sync that

@@ -24,7 +24,7 @@ export interface InstallInterview {
 export class InstallInterviewAborted extends Error {
   constructor(readonly question: string) {
     super(
-      `the install interview ended before it was answered: "${question}". Run \`seasoned-skills install\` in a terminal, or pipe one line for every question it asks.`,
+      `the install interview ended before it was answered: "${question}". Run \`pnpm exec seasoned-skills install\` in a terminal, or pipe one line for every question it asks.`,
     )
     this.name = 'InstallInterviewAborted'
   }

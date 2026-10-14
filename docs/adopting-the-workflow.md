@@ -25,7 +25,7 @@ place first, or leave the matching option off until it exists.
   writes a minimal manifest when the repository has none. The package is
   pinned at an exact version (the `-E` in the install command below, and
   the premise pre-1.0 upgrades rely on), and sync keeps one managed
-  script entry, `prepare`, that re-runs `seasoned-skills sync`.
+  script entry, `prepare`, that re-runs the sync on every install.
 - **Gates a continuous-integration run can execute.** Gates are the lint,
   typecheck, and test commands you declare in the configuration; they
   must actually run and actually block a failing change. A test suite
@@ -94,8 +94,8 @@ service starter (`docker` by default) and `redis-cli` where provisioning
 declares services and a cache store. A project with needs of its own adds
 them to `machinePrerequisites` in its configuration.
 
-Run `seasoned-skills doctor` for the mechanical version of this list,
-derived from your configuration, with install pointers for anything
+Run `pnpm exec seasoned-skills doctor` for the mechanical version of this
+list, derived from your configuration, with install pointers for anything
 missing. Doctor never blocks; enforcement lives in the gates that need the
 tools.
 
@@ -120,9 +120,9 @@ empty answer takes the distilled account instead) and builds the library
 before finishing. It ends by running a sync and printing the doctor
 report.
 
-After that, `seasoned-skills sync` is what turns the configuration and
-content into the workflow your agents read: it regenerates every
-generated file,
+After that, `pnpm exec seasoned-skills sync` is what turns the
+configuration and content into the workflow your agents read: it
+regenerates every generated file,
 deletes whatever a configuration change stops generating, and manages
 exactly two files and one script entry in your project's own space: the
 ignore entries (verified through git itself), the settings keys the
@@ -155,7 +155,7 @@ the first time. To rebuild it, on a new machine or after an upgrade that
 moved things:
 
 ```sh
-seasoned-skills corpus
+pnpm exec seasoned-skills corpus
 ```
 
 It fetches the freely published sources from their authors' own sites and

@@ -51,5 +51,5 @@ fi
 
 echo
 echo "Ready. Narrate a line:"
-echo "  folder=\$(seasoned-skills session-folder)"
-echo "  ./narrate.sh --text 'The recipe list opens on drafts.' --out \"\$folder/line.wav\""
+echo "  folder=\$(pnpm exec seasoned-skills session-folder)"
+echo "  .claude/skills/demo-videos/scripts/narrate.sh --text 'The recipe list opens on drafts.' --out \"\$folder/line.wav\""

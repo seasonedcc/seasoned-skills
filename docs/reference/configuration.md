@@ -5,7 +5,8 @@ everything the workflow generates for your project. Differences between projects
 are configuration, never forks, so this file is where every difference lives.
 
 The install writes it once, stating every option explicitly. After that it is
-yours: edit it, run `seasoned-skills sync`, and the generated workflow follows.
+yours: edit it, run `pnpm exec seasoned-skills sync`, and the generated workflow
+follows.
 
 An option exists here only where a real, durable difference between projects
 demands one. If two projects would always answer the same way, there is no
