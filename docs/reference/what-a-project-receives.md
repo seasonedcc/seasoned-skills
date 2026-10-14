@@ -33,7 +33,7 @@ The last three are the whole managed footprint, and
 | `.claude/skills/shaping/references/` | The shaping reference library, woven in from this machine's cache. Absent until that cache exists: the install builds it, and `seasoned-skills corpus` rebuilds it. |
 | `.claude/skills/requests-from-meetings/scripts/verify.py` | Verifies a parsed meeting record against its transcript. |
 | `.claude/skills/demo-videos/scripts/` | The rig that films and narrates demo videos. |
-| `.claude/hooks/` | Three hooks: one blocks `git stash`, one guards worktree isolation, one kills the lane processes a session left running when that session ends, never another live session's. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files. |
+| `.claude/hooks/` | Three hooks: one blocks `git stash`, one guards worktree isolation, and one runs when a session ends: it kills the lane processes that session left running, never another live session's, and removes the session folders whose transcript is gone. A lane is one named workspace for one piece of work, with its own worktree, ports, databases, and env files. |
 | `.claude/statusline.sh` | The status line, including the context bar that shows how full the session is. |
 | `.claude/seasoned-skills-manifest.json` | The list of every generated path, which is how the next sync knows what to delete. |
 | `shaping/assets/` | The stylesheet, script, drawing tools, and page template that shaping documents load. |

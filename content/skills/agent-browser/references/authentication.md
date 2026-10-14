@@ -41,11 +41,11 @@ agent-browser get url --session auth  # Should be dashboard, not login
 
 ## Saving Authentication State
 
-After logging in, save state for reuse. Always pass `state save`/`state load` an **absolute path in the scratchpad directory** — never a relative one. Relative paths resolve against the CLI's own working directory, not yours, and have landed state files full of session cookies inside repository checkouts.
+After logging in, save state for reuse. Always pass `state save`/`state load` an **absolute path in the scratchpad directory** — never a relative one. Relative paths resolve against the CLI's own working directory, not yours, and have landed state files full of session cookies inside repository checkouts. Below, `<scratchpad>` stands for the scratchpad directory your system prompt names: Claude Code sets no variable for it, so write its absolute path out.
 
 ```bash
 # Login first (see above), then save authenticated state
-agent-browser state save "$SCRATCHPAD/auth-state.json" --session auth
+agent-browser state save "<scratchpad>/auth-state.json" --session auth
 ```
 
 ## Restoring Authentication
@@ -54,7 +54,7 @@ Skip login by loading saved state:
 
 ```bash
 # Load saved auth state
-agent-browser state load "$SCRATCHPAD/auth-state.json" --session auth
+agent-browser state load "<scratchpad>/auth-state.json" --session auth
 
 # Navigate directly to protected page
 agent-browser open https://app.example.com/dashboard --session auth
@@ -85,7 +85,7 @@ agent-browser click @e4 --session auth  # Sign in
 
 # Wait for redirect back
 agent-browser wait --url "**/app.example.com**" --session auth
-agent-browser state save "$SCRATCHPAD/oauth-state.json" --session auth
+agent-browser state save "<scratchpad>/oauth-state.json" --session auth
 ```
 
 ## Two-Factor Authentication
@@ -105,7 +105,7 @@ echo "Complete 2FA in the browser window..."
 agent-browser wait --url "**/dashboard" --timeout 120000 --session auth
 
 # Save state after 2FA
-agent-browser state save "$SCRATCHPAD/2fa-state.json" --session auth
+agent-browser state save "<scratchpad>/2fa-state.json" --session auth
 ```
 
 ## HTTP Basic Auth
@@ -137,7 +137,7 @@ agent-browser open https://app.example.com/dashboard --session auth
 For sessions with expiring tokens:
 
 ```bash
-STATE_FILE="$SCRATCHPAD/auth-state.json"
+STATE_FILE="<scratchpad>/auth-state.json"
 
 # Try loading existing state
 if [[ -f "$STATE_FILE" ]]; then
@@ -175,7 +175,7 @@ fi
 3. **Clean up after automation**
    ```bash
    agent-browser cookies clear --session auth
-   rm -f "$SCRATCHPAD/auth-state.json"
+   rm -f "<scratchpad>/auth-state.json"
    agent-browser close --session auth
    ```
 

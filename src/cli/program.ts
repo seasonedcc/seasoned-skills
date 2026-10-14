@@ -22,6 +22,13 @@ import {
   sweepLaneProcesses,
   teardownLane,
 } from '../provisioning/index.js'
+import {
+  claudeProjectsDirectory,
+  listSessionFolders,
+  removeExpiredSessionFolders,
+  type SessionFolderListing,
+  sessionFolder,
+} from '../sessions/folders.js'
 import { degrade, sync } from '../sync/sync.js'
 
 const require = createRequire(import.meta.url)
@@ -216,9 +223,34 @@ export function buildProgram(): Command {
     })
 
   program
+    .command('session-folder')
+    .description(
+      "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording in it the projects directory that holds the session's transcript. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
+    )
+    .action(() => {
+      try {
+        const projectsDirectory = claudeProjectsDirectory(process.env)
+        const folder = sessionFolder(
+          process.cwd(),
+          process.env.CLAUDE_CODE_SESSION_ID,
+          projectsDirectory,
+        )
+        console.log(folder.path)
+        if (!folder.recorded) {
+          console.error(
+            `No transcript of this session is in ${projectsDirectory}, so the folder records no projects directory: sweep keeps it, and it is yours to delete once you no longer need it.`,
+          )
+        }
+      } catch (error) {
+        console.error((error as Error).message)
+        process.exitCode = 1
+      }
+    })
+
+  program
     .command('sweep')
     .description(
-      "List leftover workflow processes — automated browsers, or processes running from inside provisioning lanes — with the Claude Code session each belongs to, and with --kill, kill the ones this session may: its own and those of ended sessions, never another live session's or an unmarked process.",
+      "List what sessions leave behind — automated browsers, processes running from inside provisioning lanes, or session folders whose transcript Claude Code no longer keeps. With --kill, kill the processes this session may: its own and those of ended sessions, never another live session's or an unmarked process. With --remove, remove the expired session folders.",
     )
     .option(
       '--browsers',
@@ -226,22 +258,38 @@ export function buildProgram(): Command {
     )
     .option('--lane-processes', 'list the processes running from inside worktree lanes')
     .option(
+      '--sessions',
+      'list the session folders whose transcript Claude Code no longer keeps; exits 1 when an expired folder cannot be removed or .sessions/ cannot be read',
+    )
+    .option(
       '--kill',
       "kill the listed processes this session may kill — its own and ended sessions' — each by its exact pid",
+    )
+    .option(
+      '--remove',
+      'with --sessions: remove the expired session folders, then list again',
     )
     .option('--lane <lane>', "with --lane-processes: only that lane's processes")
     .option(
       '--hook',
-      'with --lane-processes: run quietly as the session-end hook, acting only when the session is truly over; without --kill it does nothing, and the generated hook passes --kill',
+      'with --lane-processes or --sessions: run quietly as the session-end hook, never blocking session end, the lane-process sweep acting only when the session is truly over; without --kill (lane processes) or --remove (session folders) it does nothing, and the generated hook passes them',
     )
     .action(
       async (options: {
         browsers?: boolean
         kill?: boolean
         laneProcesses?: boolean
+        sessions?: boolean
+        remove?: boolean
         lane?: string
         hook?: boolean
       }) => {
+        const refusal = sweepFlagRefusal(options)
+        if (refusal !== undefined) {
+          console.error(refusal)
+          process.exitCode = 1
+          return
+        }
         if (options.browsers) {
           try {
             await sweepBrowsers(options.kill === true)
@@ -287,7 +335,13 @@ export function buildProgram(): Command {
           }
           return
         }
-        console.error('Specify what to sweep: --browsers or --lane-processes.')
+        if (options.sessions) {
+          sweepSessionFolders(options)
+          return
+        }
+        console.error(
+          'Specify what to sweep: --browsers, --lane-processes, or --sessions.',
+        )
         process.exitCode = 1
       },
     )
@@ -355,6 +409,80 @@ function reportLaneSweep(
   console.log(
     `Terminated ${terminated.size} of ${processCount(candidates.length)} found in lanes. ${KEPT_EXPLANATION}`,
   )
+}
+
+/** Why a combination of sweep flags cannot run, or nothing when it can. */
+function sweepFlagRefusal(options: {
+  browsers?: boolean
+  laneProcesses?: boolean
+  sessions?: boolean
+  kill?: boolean
+  remove?: boolean
+  lane?: string
+}) {
+  const targets = [options.browsers, options.laneProcesses, options.sessions]
+  if (targets.filter(Boolean).length > 1) {
+    return 'Sweep one of --browsers, --lane-processes, or --sessions at a time.'
+  }
+  if (options.sessions && options.kill) {
+    return '--kill kills processes; session folders are removed with --remove.'
+  }
+  if (options.sessions && options.lane !== undefined) {
+    return '--lane applies to --lane-processes, not to --sessions.'
+  }
+  if (!options.sessions && options.remove) {
+    return '--remove applies to --sessions; processes are killed with --kill.'
+  }
+  return undefined
+}
+
+function folderCount(count: number) {
+  return `${count} session ${count === 1 ? 'folder' : 'folders'}`
+}
+
+function reportSessionFolders({
+  sessionsDirectory,
+  expired,
+  resumable,
+  kept,
+}: SessionFolderListing) {
+  for (const folder of expired) console.log(`  expired  ${folder.path}`)
+  for (const folder of kept) {
+    console.log(`  kept     ${folder.path} (${folder.reason})`)
+  }
+  const total = expired.length + resumable.length + kept.length
+  const keptNote =
+    kept.length === 0
+      ? ''
+      : ` ${kept.length} kept because sweep cannot tell whether their transcript remains: delete one yourself once you no longer need it.`
+  console.log(
+    `Expired: ${expired.length} of ${folderCount(total)} in ${sessionsDirectory}.${keptNote} A folder expires once no project directory in the projects directory it recorded holds its session's transcript, and --remove removes only expired folders.`,
+  )
+}
+
+function sweepSessionFolders(options: { remove?: boolean; hook?: boolean }) {
+  if (options.hook) {
+    try {
+      if (options.remove) removeExpiredSessionFolders(process.cwd())
+    } catch {
+      // Silent by contract.
+    }
+    return
+  }
+  try {
+    if (options.remove) {
+      const { removed, failed } = removeExpiredSessionFolders(process.cwd())
+      for (const folder of removed) console.log(`removed ${folder.path}`)
+      for (const { folder, reason } of failed) {
+        console.error(`could not remove ${folder.path}: ${reason}`)
+        process.exitCode = 1
+      }
+    }
+    reportSessionFolders(listSessionFolders(process.cwd()))
+  } catch (error) {
+    console.error((error as Error).message)
+    process.exitCode = 1
+  }
 }
 
 function reportBrowsers(browsers: ClassifiedBrowser[]) {

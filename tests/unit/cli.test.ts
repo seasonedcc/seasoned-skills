@@ -1,11 +1,13 @@
 import { execFileSync } from 'node:child_process'
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -266,6 +268,290 @@ describe('the CLI program', () => {
       await run('sweep', '--lane-processes', '--kill', '--hook')
 
       expect(await exits(mine, 1000)).toBe(false)
+    })
+  })
+
+  describe('session folders', () => {
+    const KEPT = '11111111-1111-4111-8111-111111111111'
+    const EXPIRED = '22222222-2222-4222-8222-222222222222'
+    let projects: string
+    let sessions: string
+
+    beforeEach(() => {
+      execFileSync('git', ['init', '--quiet'], { cwd: root })
+      const configDirectory = join(root, 'claude-config')
+      projects = join(configDirectory, 'projects')
+      sessions = join(realpathSync(root), '.sessions')
+      vi.stubEnv('CLAUDE_CONFIG_DIR', configDirectory)
+    })
+
+    afterEach(() => {
+      for (const directory of [projects, sessions]) {
+        if (existsSync(directory)) chmodSync(directory, 0o755)
+      }
+    })
+
+    function transcript(sessionId: string, inProjects = projects) {
+      mkdirSync(join(inProjects, '-project'), { recursive: true })
+      const path = join(inProjects, '-project', `${sessionId}.jsonl`)
+      writeFileSync(path, '{}\n')
+      return path
+    }
+
+    /** A worktree of a bare repository: a checkout with no main checkout behind it. */
+    function bareRepositoryWorktree() {
+      const origin = join(root, 'origin')
+      mkdirSync(origin)
+      execFileSync('git', ['init', '--quiet'], { cwd: origin })
+      execFileSync(
+        'git',
+        [
+          '-c',
+          'user.email=t@example.com',
+          '-c',
+          'user.name=T',
+          'commit',
+          '--allow-empty',
+          '--quiet',
+          '-m',
+          'root',
+        ],
+        { cwd: origin },
+      )
+      const bare = join(root, 'bare.git')
+      execFileSync('git', ['clone', '--quiet', '--bare', origin, bare])
+      const worktree = join(root, 'bare-worktree')
+      execFileSync('git', ['worktree', 'add', '--quiet', worktree], { cwd: bare })
+      return worktree
+    }
+
+    /** A session folder as session-folder leaves it once it found the transcript. */
+    function recordedFolder(sessionId: string, recordedProjects = projects) {
+      const folder = join(sessions, sessionId)
+      mkdirSync(folder, { recursive: true })
+      writeFileSync(join(folder, '.projects'), `${recordedProjects}\n`)
+      return folder
+    }
+
+    /** A folder whose transcript Claude Code has since deleted. */
+    function expiredFolderOf(sessionId: string) {
+      rmSync(transcript(sessionId))
+      return recordedFolder(sessionId)
+    }
+
+    it("session-folder prints this session's folder, recording the projects directory", async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      transcript(KEPT)
+
+      await run('session-folder')
+
+      const folder = join(sessions, KEPT)
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log).mock.calls).toEqual([[folder]])
+      expect(vi.mocked(console.error)).not.toHaveBeenCalled()
+      expect(readFileSync(join(folder, '.projects'), 'utf8')).toBe(`${projects}\n`)
+    })
+
+    it('session-folder still prints the folder, and says so, when no transcript is found', async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+
+      await run('session-folder')
+
+      const folder = join(sessions, KEPT)
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log).mock.calls).toEqual([[folder]])
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'records no projects directory',
+      )
+      expect(existsSync(join(folder, '.projects'))).toBe(false)
+    })
+
+    it("another account's configuration neither rewrites nor expires a folder", async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      transcript(KEPT)
+      await run('session-folder')
+      const folder = join(sessions, KEPT)
+
+      const otherProjects = join(root, 'other-config', 'projects')
+      transcript(EXPIRED, otherProjects)
+      vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'other-config'))
+      await run('session-folder')
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', '')
+      await run('sweep', '--sessions', '--remove')
+
+      expect(process.exitCode).toBeUndefined()
+      expect(readFileSync(join(folder, '.projects'), 'utf8')).toBe(`${projects}\n`)
+      expect(existsSync(folder)).toBe(true)
+    })
+
+    it('session-folder exits 1 in a checkout with no main checkout behind it', async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', KEPT)
+      const worktree = bareRepositoryWorktree()
+      process.chdir(worktree)
+
+      await run('session-folder')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'has no main checkout to keep session folders in',
+      )
+      expect(existsSync(join(root, '.sessions'))).toBe(false)
+    })
+
+    it('the session-end hook stays silent in a checkout with no main checkout behind it', async () => {
+      process.chdir(bareRepositoryWorktree())
+
+      await run('sweep', '--sessions', '--remove', '--hook')
+
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
+      expect(vi.mocked(console.error)).not.toHaveBeenCalled()
+    })
+
+    it('sweep refuses flags that do not apply to what it sweeps', async () => {
+      const expired = expiredFolderOf(EXPIRED)
+      const refusals: [string[], string][] = [
+        [['--sessions', '--kill'], '--kill'],
+        [['--sessions', '--lane', 'lane-a'], '--lane'],
+        [['--sessions', '--remove', '--lane-processes'], 'one of'],
+        [['--lane-processes', '--remove'], '--remove'],
+        [['--browsers', '--remove'], '--remove'],
+        [['--browsers', '--sessions'], 'one of'],
+      ]
+      for (const [flags, named] of refusals) {
+        process.exitCode = undefined
+        vi.mocked(console.error).mockClear()
+
+        await run('sweep', ...flags)
+
+        expect(process.exitCode, flags.join(' ')).toBe(1)
+        expect(vi.mocked(console.error).mock.calls.join('\n'), flags.join(' ')).toContain(
+          named,
+        )
+      }
+      expect(existsSync(expired)).toBe(true)
+    })
+
+    it('session-folder exits 1 outside a Claude Code session', async () => {
+      await run('session-folder')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        'CLAUDE_CODE_SESSION_ID is not set',
+      )
+      expect(existsSync(join(root, '.sessions'))).toBe(false)
+    })
+
+    it('session-folder exits 1 for an id that is not a session id', async () => {
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', '../escape')
+
+      await run('session-folder')
+
+      expect(process.exitCode).toBe(1)
+      expect(existsSync(join(root, '.sessions'))).toBe(false)
+    })
+
+    it('sweep --sessions lists the expired folders and removes them only with --remove', async () => {
+      transcript(KEPT)
+      const resumable = recordedFolder(KEPT)
+      const expired = expiredFolderOf(EXPIRED)
+      const unrecorded = join(sessions, '33333333-3333-4333-8333-333333333333')
+      mkdirSync(unrecorded)
+
+      await run('sweep', '--sessions')
+      const listing = vi.mocked(console.log).mock.calls.join('\n')
+      expect(process.exitCode).toBeUndefined()
+      expect(listing).toContain(`expired  ${expired}`)
+      expect(listing).toContain(
+        `kept     ${unrecorded} (it records no projects directory)`,
+      )
+      expect(listing).not.toContain(resumable)
+      expect(existsSync(expired)).toBe(true)
+
+      vi.mocked(console.log).mockClear()
+      await run('sweep', '--sessions', '--remove')
+      const output = vi.mocked(console.log).mock.calls.join('\n')
+      expect(output).toContain(`removed ${expired}`)
+      expect(output).toContain('Expired: 0 of 2 session folders')
+      expect(process.exitCode).toBeUndefined()
+      expect(existsSync(expired)).toBe(false)
+      expect([resumable, unrecorded].every(existsSync)).toBe(true)
+    })
+
+    it('sweep --sessions keeps, with the reason, a folder it cannot judge', async () => {
+      const unmounted = join(root, 'unmounted', 'projects')
+      const kept = recordedFolder(EXPIRED, unmounted)
+
+      await run('sweep', '--sessions', '--remove')
+
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log).mock.calls.join('\n')).toContain(
+        `kept     ${kept} (${unmounted} cannot be fully read`,
+      )
+      expect(existsSync(kept)).toBe(true)
+    })
+
+    it('sweep --sessions exits 1 when an expired folder cannot be removed', async () => {
+      const expired = expiredFolderOf(EXPIRED)
+      chmodSync(sessions, 0o555)
+
+      await run('sweep', '--sessions', '--remove')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain(
+        `could not remove ${expired}`,
+      )
+      expect(existsSync(expired)).toBe(true)
+    })
+
+    it('sweep --sessions exits 1 when the sessions directory cannot be read', async () => {
+      expiredFolderOf(EXPIRED)
+      chmodSync(sessions, 0o000)
+
+      await run('sweep', '--sessions')
+
+      expect(process.exitCode).toBe(1)
+      expect(vi.mocked(console.error).mock.calls.join('\n')).toContain('EACCES')
+      expect(vi.mocked(console.log).mock.calls.join('\n')).not.toContain('Expired:')
+    })
+
+    it('the session-end hook removes the expired folders quietly', async () => {
+      transcript(KEPT)
+      const resumable = recordedFolder(KEPT)
+      const expired = expiredFolderOf(EXPIRED)
+
+      await run('sweep', '--sessions', '--hook')
+      expect(existsSync(expired)).toBe(true)
+
+      await run('sweep', '--sessions', '--remove', '--hook')
+      expect(existsSync(expired)).toBe(false)
+      expect(existsSync(resumable)).toBe(true)
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
+    })
+
+    it('the session-end hook keeps the folder of a session whose transcript moved to another project directory', async () => {
+      const recorded = transcript(KEPT)
+      const folder = recordedFolder(KEPT)
+      mkdirSync(join(projects, '-project-worktrees-lane-a'))
+      renameSync(recorded, join(projects, '-project-worktrees-lane-a', `${KEPT}.jsonl`))
+
+      await run('sweep', '--sessions', '--remove', '--hook')
+
+      expect(existsSync(folder)).toBe(true)
+    })
+
+    it('the session-end hook stays silent when it cannot remove or judge a folder', async () => {
+      const expired = expiredFolderOf(EXPIRED)
+      const kept = recordedFolder(KEPT, join(root, 'unmounted', 'projects'))
+      chmodSync(sessions, 0o555)
+
+      await run('sweep', '--sessions', '--remove', '--hook')
+
+      expect([expired, kept].every(existsSync)).toBe(true)
+      expect(process.exitCode).toBeUndefined()
+      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
+      expect(vi.mocked(console.error)).not.toHaveBeenCalled()
     })
   })
 

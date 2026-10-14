@@ -28,7 +28,11 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "name": "teardown",
     },
     {
-      "description": "List leftover workflow processes — automated browsers, or processes running from inside provisioning lanes — with the Claude Code session each belongs to, and with --kill, kill the ones this session may: its own and those of ended sessions, never another live session's or an unmarked process.",
+      "description": "Print the absolute path of this Claude Code session's folder — .sessions/<session id>/ in the project's main checkout, where the session keeps its ledger and its working files — creating it when missing and recording in it the projects directory that holds the session's transcript. Fails outside a Claude Code session, and in a checkout whose git directory lives outside it.",
+      "name": "session-folder",
+    },
+    {
+      "description": "List what sessions leave behind — automated browsers, processes running from inside provisioning lanes, or session folders whose transcript Claude Code no longer keeps. With --kill, kill the processes this session may: its own and those of ended sessions, never another live session's or an unmarked process. With --remove, remove the expired session folders.",
       "name": "sweep",
     },
   ],

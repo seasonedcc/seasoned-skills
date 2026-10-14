@@ -1,6 +1,6 @@
 # Commands
 
-Seven commands, all through one binary. In a project that has the package
+Eight commands, all through one binary. In a project that has the package
 installed, run them with your package manager: `pnpm exec seasoned-skills sync`.
 Three of them work on a lane. A lane is one named workspace for one piece of
 work, with its own worktree, ports, databases, and env files, so two pieces of
@@ -14,7 +14,8 @@ work never collide on this machine.
 | `corpus` | Build the shaping reference library into this machine's cache. |
 | `provision` | Set up an isolated worktree lane. |
 | `teardown` | Remove a lane and everything it owns. |
-| `sweep` | List leftover browsers or lane processes, and kill only the ones your Claude Code session or an ended one started. |
+| `session-folder` | Print the folder where this Claude Code session keeps its files, creating it. |
+| `sweep` | List leftover browsers, lane processes, or session folders, and clean up only what your Claude Code session or an ended one left behind. |
 
 ## seasoned-skills
 
@@ -163,16 +164,59 @@ name you provisioned it with.
 | --- | --- |
 | `--force` | Remove the lane even when a worktree has uncommitted changes or another live session is using it. That session's processes are still left running. |
 
+## seasoned-skills session-folder
+
+Print the absolute path of this session's folder, creating it when it is
+missing. A long session's ledger, its scratch files, and its logs have to
+outlive a reboot, and the temporary directory Claude Code offers for them does
+not: the operating system empties it on restart and ages old files out of it
+in between. So every session keeps its ledger and its working files in
+`.sessions/<session id>/` inside your project's main checkout, the one your
+worktrees branch from. Run from a worktree, the command still prints the
+folder in the main checkout, so every lane of one session writes to the same
+place. The helper agents a session delegates to share its session id, and so
+its folder.
+
+Run it from your project's own checkout or one of its worktrees. In a lane
+that spans other repositories, a checkout of another repository resolves to
+that repository's main checkout instead. A repository whose git directory
+lives outside its checkout, as a submodule, a bare repository with worktrees,
+or a separate git directory does, has no main checkout to hold the folder, so
+the command prints why and exits 1.
+
+The session id comes from the `CLAUDE_CODE_SESSION_ID` variable Claude Code
+sets for every command it runs. Outside a Claude Code session, or with a value
+that is not a session id, the command prints why and exits 1 without creating
+anything.
+
+`.sessions/` is in the managed ignore block, so nothing in it ever enters your
+history. A folder lives as long as Claude Code keeps the session's transcript,
+the file a session is resumed from, because a session can be picked up again
+weeks later. Claude Code keeps transcripts in its projects directory,
+`projects/` inside `$CLAUDE_CONFIG_DIR` or `~/.claude` without it, which holds
+one project directory per working directory. When the command finds this
+session's transcript in one of them, it writes the projects directory's path
+into the folder, in a `.projects` file, so `sweep --sessions` knows where to
+look.
+
+When no transcript turns up, because the session keeps none or the
+configuration is not the one Claude Code is using, the command still creates
+the folder and prints its path, and says on stderr that the folder records no
+projects directory. Sweep keeps a folder like that, so delete it yourself once
+you no longer need it.
+
 ## seasoned-skills sweep
 
-Find what sessions left running, and kill what this session may. Sweep covers
-two kinds of leftovers, and it needs to be told which: with neither
-`--browsers` nor `--lane-processes` it prints what to choose and exits 1.
+Find what sessions left behind, and clean up what this session may. Sweep
+covers three kinds of leftovers, and it needs to be told which: with none of
+`--browsers`, `--lane-processes`, or `--sessions` it prints what to choose and
+exits 1.
 
-Sweep finds its candidates first: the automated browsers your user account
-runs, by a pattern scoped to the `.agent-browser` install, and every process
-your user account runs from inside a lane's worktree, whatever its name. Then
-it works out which Claude Code session each one belongs to.
+The first two are processes. Sweep finds its candidates first: the automated
+browsers your user account runs, by a pattern scoped to the `.agent-browser`
+install, and every process your user account runs from inside a lane's
+worktree, whatever its name. Then it works out which Claude Code session each
+one belongs to.
 
 It looks at the process's ancestry first: the process that started it, the one
 that started that, and so on up. A process running anywhere under a Claude Code
@@ -212,13 +256,37 @@ own only when it runs under that session, so from a plain terminal, or a shell
 that merely inherited some session's mark, nothing counts as mine and only
 what ended sessions left behind is killed.
 
+The third is session folders, the ones `session-folder` creates. Claude Code
+deletes old transcripts on its own schedule, and once a session's transcript is
+gone, the session can no longer be resumed. Sweep lists a folder as expired
+once none of the project directories in the projects directory its `.projects`
+file names holds the transcript, wherever in there Claude Code moved it, as it
+does when a session enters or leaves a worktree. Sweep reads that projects
+directory twice, so a transcript caught in the middle of a move keeps its
+folder, and `--remove` removes exactly the expired folders. Whenever sweep
+cannot tell, because a folder records no projects directory or a place the
+transcript could be cannot be read, it keeps the folder and lists it with the
+reason, leaving it to you. Sweep looks at nothing in `.sessions/` but folders
+named like a session id, so anything else you keep there stays.
+
+One limit comes from trusting the recorded path. If you move Claude Code's
+configuration directory and a fresh one later appears at the old path, sweep
+removes the folders of sessions that have not asked for their folder since the
+move. A session that asks again records the new location.
+
+Each flag belongs to one kind of leftover, and sweep refuses a combination it
+cannot honor instead of ignoring part of it: two kinds at once, `--kill` or
+`--lane` with `--sessions`, or `--remove` without it all print why and exit 1.
+
 | Flag | What it does |
 | --- | --- |
 | `--browsers` | List the automated-browser processes your user account runs, with their ages and kinds. Exits 1 while any of your session's or an ended session's are alive, or when they cannot be listed. |
 | `--lane-processes` | List every process your user account runs from inside a lane's worktree, whatever its name. Exits 1 when they cannot be listed. |
+| `--sessions` | List the session folders whose transcript Claude Code no longer keeps, and the ones sweep keeps because it cannot tell, each with the reason. Exits 1 when an expired folder cannot be removed, when `.sessions/` cannot be read, or when the checkout has no main checkout to hold session folders. |
 | `--kill` | Kill your session's own processes and those of ended sessions, each by its exact process id. Browsers are listed again afterwards. |
+| `--remove` | With `--sessions`: remove the expired session folders, then list again. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes, named by its directory name. |
-| `--hook` | With `--lane-processes`: run quietly as the session-end hook. Reads the hook payload, acts only when the session is truly over, and never blocks the session from ending. Without `--kill` it does nothing; the generated hook passes `--kill`. |
+| `--hook` | With `--lane-processes` or `--sessions`: run quietly as the session-end hook, never blocking the session from ending. For lane processes it reads the hook payload and acts only when the session is truly over; session folders are removed whenever any session ends, since an expired folder belongs to no session that could come back. Without `--kill` (lane processes) or `--remove` (session folders) it does nothing; the generated hook passes them. |
 
 ## Where to go next
 

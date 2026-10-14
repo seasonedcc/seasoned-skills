@@ -206,12 +206,14 @@ function isManagedPath(path: string): boolean {
 
 /**
  * The entries the managed block carries beyond the generated paths: the
- * per-user meeting configuration and the finished demo video every assembly
- * copies beside its screenplay. Neither is generated, and the generated skills
- * promise both are kept out of the project's history — so the ignore manager
- * is what has to keep that promise true.
+ * per-user meeting configuration, the finished demo video every assembly
+ * copies beside its screenplay, and the folder each session keeps its working
+ * files in. None is generated, and the generated doctrine and skills promise
+ * all three are kept out of the project's history — so the ignore manager is
+ * what has to keep that promise true.
  */
 const PROMISED_ENTRIES = [
+  '.sessions/',
   '/demo-videos/*/*.mp4',
   'requests-from-meetings/config.local.json',
 ]
