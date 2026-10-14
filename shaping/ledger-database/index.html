@@ -359,6 +359,72 @@
           simply never lost.
         </p>
 
+        <h3>Writing an entry</h3>
+        <p>
+          We'll add one command per kind: <code>ledger decision</code>,
+          <code>ledger finding</code>, and <code>ledger progress</code>. Each asks only for
+          what its kind has to carry, and every one of them says who is writing. A real
+          finding from the session that shaped this document looks like this:
+        </p>
+        <pre><code>pnpm exec seasoned-skills ledger finding --as sqlite-research --source "node -e on Node 22.22" &lt;&lt;'EOF'
+node:sqlite prints an ExperimentalWarning on every run on Node 22; Node 24.21 prints none.
+EOF</code></pre>
+        <p>
+          The command answers with the entry's number, kind, and time &mdash;
+          <code>#41 finding, 2026-10-14T15:02:11Z</code> &mdash; and nothing else. The
+          time comes from the database's clock, never from the agent.
+        </p>
+        <p>
+          The text only ever arrives on the command's standard input, never as an
+          argument. The shell reads a command line before running it, and inside a
+          double-quoted argument it runs anything written between backticks or inside
+          <code>$( )</code>. That is exactly how a note once merged a pull request it was
+          only quoting. Text fed through a quoted heredoc reaches the command untouched.
+          The hook that already inspects shell commands will refuse a ledger write whose
+          heredoc isn't quoted, so the one way to get it wrong is stopped before anything
+          runs.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The write commands
+          </summary>
+          <div class="technical-body">
+            <pre><code>ledger decision --as &lt;writer&gt; --by person|agent [--replaces &lt;id&gt;]   &lt; text
+ledger finding  --as &lt;writer&gt; --source &lt;where&gt;  [--replaces &lt;id&gt;]   &lt; text
+ledger progress --as &lt;writer&gt;                                        &lt; text</code></pre>
+            <ul>
+              <li>
+                <p>
+                  <code>--as</code> is required on every write, the orchestrator's included
+                  (<code>--as orchestrator</code>). Nothing in the environment tells an
+                  orchestrator from a subagent: both carry the same
+                  <code>CLAUDE_CODE_SESSION_ID</code>, and
+                  <code>CLAUDE_CODE_CHILD_SESSION=1</code> is set in the orchestrator too.
+                  A default would record a forgetful subagent as the orchestrator.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Empty standard input, or a terminal instead of a pipe, is refused: an
+                  entry always has text.
+                </p>
+              </li>
+              <li>
+                <p>
+                  The guard hook refuses a Bash command that runs a ledger write with an
+                  unquoted heredoc delimiter. Guard hooks that match on command text
+                  &mdash; the one blocking <code>git stash</code> today &mdash; ignore the
+                  body of a ledger write's heredoc, so an entry that mentions a forbidden
+                  command is recorded rather than refused.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </details>
+
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
