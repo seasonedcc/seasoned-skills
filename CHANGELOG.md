@@ -1,5 +1,11 @@
 # seasoned-skills
 
+## 0.0.8
+
+### Patch Changes
+
+- Sessions run on Opus at high effort, and Claude Code now compacts automatically at a third of the context window, so the `/prepare-for-compaction` and `/reground` skills, the subagent sizing machinery, and the `calibrationFile` configuration key are gone; delete the key, the calibration file, and any `prepare-for-compaction.md` or `reground.md` content file before upgrading, or sync stops. Sweeps and teardown kill only what your own Claude Code session or an ended one started: `sweep --browsers` and `sweep --lane-processes` list by default and kill only with `--kill`, teardown refuses a lane another live session is using, lane names must be a single directory name, Linux reads processes from `/proc`, and `provisioning.laneProcessCommands` is removed. Each session keeps its ledger and working files in `.sessions/<session id>/` in the main checkout, printed by the new `session-folder` command and cleaned up by `sweep --sessions --remove` from the end-of-session hook. Reviews report only findings at medium severity or above and end in approve or request changes; the improvement pass records each lesson as exactly one issue and opens no pull request; a main sync on a squash-merging repository lands as a merge commit; shaping solves time bombs at their element and defines a shaped document. Every shipped command is spelled `pnpm exec seasoned-skills`, run from the project's root or a worktree after `pnpm install`.
+
 ## 0.0.7
 
 ### Patch Changes
