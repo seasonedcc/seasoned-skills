@@ -96,7 +96,7 @@
         <p>
           Today each session, meaning one conversation with Claude Code, keeps its ledger
           as a plain text file in its own folder. Agents add to it one line at a time,
-          with shell commands or file edits, and read it the same way. In
+          by typing commands or editing the file, and read it the same way. In
           one session we followed from start to finish, the ledger was written 198 times
           and only ever read by its last few lines. It holds three kinds of things: what
           the person decided, what the session learned about the product while researching
@@ -261,7 +261,8 @@
         <h3>The big hire and the little hires</h3>
         <p>
           <strong>The big hire</strong> is the person who upgrades the package in a
-          project: from then on, every session there keeps its ledger in the database. To
+          project (seasoned-skills, the shared instructions and tools our projects
+          install): from then on, every session there keeps its ledger in the database. To
           make that switch they must lose nothing they have today, and one thing they have
           today is a ledger anyone can open. People read ledgers directly, copy them, and
           have rebuilt a lost one by hand. So the whole record has to stay readable as
@@ -318,7 +319,8 @@
         <p>
           We'll build it on the database that comes inside Node, the software the
           package already runs on, so nothing new gets installed. Projects on an early
-          release of Node 22 will need to update it.
+          release of Node 22 will need to update it for the ledger; every other command
+          keeps working until they do.
         </p>
 
         <details class="technical" open>
@@ -358,7 +360,13 @@
                   that drops only the SQLite experimental warning and prints everything
                   else. It is installed in <code>bin/seasoned-skills.js</code> before the
                   command line is loaded with a dynamic <code>import()</code>, so it is in
-                  place before anything imports <code>node:sqlite</code>.
+                  place before anything imports <code>node:sqlite</code>. The ledger
+                  commands import <code>node:sqlite</code> lazily, inside their own
+                  actions, never from <code>src/cli/program.ts</code>: <code>engines</code>
+                  is only advisory, and on Node 22.0 to 22.12 a static import breaks
+                  every command, <code>sync</code> in <code>prepare</code> and the
+                  session-end hook included. There, only <code>ledger</code> fails, with
+                  &ldquo;The ledger needs Node 22.13 or later.&rdquo;
                 </p>
               </li>
               <li>
@@ -440,7 +448,7 @@
   source      text  -- required on a finding, absent otherwise
   written_by  text  -- 'orchestrator', or the subagent's task name
   replaces    integer references entries(id)
-  written_at  text  -- UTC, from the database clock, never from the writer
+  written_at  text  -- UTC, from the database clock; our commands never take a time
 )</code></pre>
             <p>
               Refused on insert: a <code>replaces</code> pointing at a progress entry, at
@@ -595,20 +603,22 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   <code>ledger decision</code> and <code>ledger progress</code> refuse
                   any writer but <code>orchestrator</code>, so a subagent that reaches
                   for them by mistake is stopped; only <code>ledger finding</code>
-                  takes a subagent's name. <code>--replaces</code> also takes only
-                  <code>--as orchestrator</code>, since what is in force is the
-                  orchestrator's call: a subagent that finds a finding wrong records a new
-                  finding that names it, and the orchestrator decides whether it
-                  replaces the old one.
+                  takes a subagent's name. Any writer may replace a finding with a
+                  finding, so a subagent that disproves one records the correction as
+                  its replacement, with the source that disproved it. What is in force
+                  stays the orchestrator's call: when it checks the correction and finds
+                  it wrong, it replaces it in turn, and the chain shows all three.
                 </p>
               </li>
               <li>
                 <p>
                   Every <code>ledger</code> command runs from the project's root or one
-                  of its worktrees, as <code>session-folder</code> already does, so the
-                  conversation has one record even when a lane also works in another
-                  repository: that repository's checkout would resolve to a different
-                  session folder.
+                  of its worktrees where <code>pnpm install</code> has run, as
+                  <code>session-folder</code> already does, so the conversation has one
+                  record even when a lane also works in another repository: that
+                  repository's checkout would resolve to a different session folder. An
+                  agent in a plain worktree with no installed dependencies runs its
+                  ledger commands from the project's root.
                 </p>
               </li>
               <li>
@@ -630,9 +640,15 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   form (<code>pnpm exec seasoned-skills</code>, <code>npx</code>,
                   <code>node bin/seasoned-skills.js</code>), with <code>ledger
                   decision</code>, <code>finding</code>, or <code>progress</code>; a
-                  commit message or PR body that only mentions one is not a write. One
-                  Bash command holds at most one ledger write. The hook refuses a write
-                  whose text does not arrive through
+                  commit message or PR body that only mentions one is not a write. The
+                  hook refuses a second ledger write in the same Bash command, and
+                  anything after the closing <code>ENTRY</code> line: a write may be
+                  preceded by <code>cd &hellip; &amp;&amp;</code> but must end the
+                  command. That also closes the last way an entry could run: a line in
+                  the text that is exactly <code>ENTRY</code> ends the heredoc early,
+                  the lines after it become commands, and the hook sees text after the
+                  closing line and refuses. It refuses a write whose text does not
+                  arrive through
                   <code>&lt;&lt;'ENTRY'</code>, which also refuses
                   <code>echo &hellip; |</code> and a missing heredoc. It refuses a
                   <code>--source</code> holding a backtick or a <code>$</code> unless it
@@ -650,8 +666,7 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   Guard hooks that match on command text, the stash hook included, skip
                   a ledger write's body: the lines after the one holding
                   <code>&lt;&lt;'ENTRY'</code>, up to the line <code>ENTRY</code>. The
-                  line holding <code>&lt;&lt;'ENTRY'</code> and everything after the
-                  closing <code>ENTRY</code> are checked as usual, so
+                  line holding <code>&lt;&lt;'ENTRY'</code> is checked as usual, so
                   <code>&hellip; &lt;&lt;'ENTRY' &amp;&amp; git stash</code> is still
                   refused. Only a ledger write's heredoc is skipped, never any other.
                   An entry that mentions a forbidden command is recorded rather than
@@ -812,15 +827,16 @@ ledger print              [--session &lt;id&gt;]</code></pre>
               </li>
               <li>
                 <p>
-                  Search takes plain words, never FTS5 syntax. Each word is quoted as a
-                  plain term, so <code>node:sqlite</code>, <code>#418</code>, a hyphen,
+                  Search takes plain words, never FTS5 syntax. Every argument is split on
+                  whitespace, so <code>"busy timeout"</code> is two words, never a
+                  phrase, and each word is quoted as a plain term, so <code>node:sqlite</code>, <code>#418</code>, a hyphen,
                   or an uppercase <code>OR</code> is just text. It covers each entry's
                   text and its source. The terms are joined with <code>OR</code>; results
                   are ordered by how many of the words they match, then newest first, so
                   a lane relaunched under a new task id finds its latest launch on top.
                   Recency stands in for <code>bm25</code> here: in a ledger, the newest
-                  match is the one that matters. It prints the 20 best matches, then &ldquo;N more
-                  not shown&rdquo;.
+                  match is the one that matters. It prints the 20 best matches, then
+                  &ldquo;N more not shown&rdquo;.
                 </p>
               </li>
               <li>
@@ -854,8 +870,9 @@ ledger print              [--session &lt;id&gt;]</code></pre>
             <p>
               Proven on a throwaway database under Node 24.21 and 22.22. Search is an FTS5
               external-content index over the entry text and source, fed by an <code>AFTER INSERT</code>
-              trigger, ranked with <code>bm25</code> and excerpted with
-              <code>snippet</code>; the <code>porter unicode61</code> tokenizer matches
+              trigger, and excerpted with <code>snippet</code> (the spike also ranked
+              with <code>bm25</code>, which the read contract replaces with matched words
+              and recency); the <code>porter unicode61</code> tokenizer matches
               &ldquo;lanes&rdquo; on &ldquo;lane&rdquo;. In force is a view: a decision or
               finding with no later entry naming it in <code>replaces</code>. A replacement
               line is a recursive query over <code>replaces</code>.
@@ -876,7 +893,8 @@ ledger print              [--session &lt;id&gt;]</code></pre>
 
         <h3>After a compaction</h3>
         <p>
-          We'll add a hook that runs every time a conversation is compacted and puts the
+          We'll add a hook, a small script Claude Code runs on its own at set moments,
+          that runs every time a conversation is compacted and puts the
           decisions in force back in front of the agent, word for word, before it takes
           its next step. Nobody has to remember to look: in the one session we followed
           end to end, the agent never opened its ledger after any of five compactions. It
@@ -924,9 +942,11 @@ ledger print              [--session &lt;id&gt;]</code></pre>
                   at the first one that doesn't fit, followed by &ldquo;N older decisions
                   in force: run <code>pnpm exec seasoned-skills ledger</code>&rdquo;. A
                   decision is never cut mid-text, and none is skipped to fit an older
-                  one. The one exception is a single decision longer than the whole
-                  budget: it appears as one line, &ldquo;#N is too long for this view:
-                  run <code>pnpm exec seasoned-skills ledger show N</code>&rdquo;, and the fitting goes on.
+                  one. The one exception is a single decision longer than all the room
+                  left for decisions once progress and the findings line are set aside:
+                  it appears as one line, &ldquo;#N is too long for this view: run
+                  <code>pnpm exec seasoned-skills ledger show N</code>&rdquo;, and the
+                  fitting goes on.
                 </p>
               </li>
               <li>
@@ -1109,9 +1129,9 @@ Work branches from main.
 
 Done means, in order:
 
-1. The framing's outcome test holds in the shipped package, each of its four points shown with evidence: an edit and a delete refused by the database itself, both on the package's own database connection and through the sqlite3 command line; a finding found by search with its source; the in-force view keeping replaced entries apart and readable, with real times; and the history never getting in the way: on a record of thousands of entries, the in-force view shows only what still applies and a search prints at most 20 matches.
+1. The framing's outcome test holds in the shipped package, each of its four points shown with evidence: an edit and a delete refused by the database itself, both on the package's own database connection and through the sqlite3 command line; a finding found by search with its source; replaced entries kept out of the in-force view and still readable through search, show, and print, with real times; and the history never getting in the way: on a record of thousands of entries, the in-force view shows only what still applies and a search prints at most 20 matches.
 
-2. The document's walkthrough replayed for real in a live session, every step of it. Record what you saw at each step.
+2. The document's walkthrough replayed for real in a live session, every step of it. Ask the person for the steps only they can take: the compaction (/compact) and printing the record from their own terminal. Record what you saw at each step.
 
 3. The closing audit: audit the complete implementation against the document, section by section (every element, every technical note, every no-go) and fix every shortfall before calling the goal met. The audit is part of this goal, never a follow-up.
 
