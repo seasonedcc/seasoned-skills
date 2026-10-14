@@ -34,8 +34,9 @@
         <p class="masthead-eyebrow">Shaping document</p>
         <h1>Ledger database</h1>
         <p class="essence">
-          One sentence saying what this project is. If a reader stops here, this line is
-          what they walk away with.
+          Each session's ledger becomes a database that refuses every edit and every
+          delete, so what was decided, learned, and done comes back exactly as it was
+          written.
         </p>
         <!-- Flip data-built to "true" the day it ships. There is no third state. -->
         <p class="status" data-built="false">
@@ -298,6 +299,8 @@
           safely. They read back what is in force, search everything, and print the whole
           record as plain text whenever a person wants to read it.
         </p>
+
+        <div id="drawing-record"></div>
 
         <h3>The record</h3>
         <p>
@@ -774,19 +777,60 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
 
         <h3>Walkthrough</h3>
         <p>
-          Replay the framing's story — the same person, the same moment — with this in
-          place. Step by step, in their words, so the reader can check it against how the
-          work really goes.
+          The same long shaping session from the story, replayed with the record in
+          place.
         </p>
         <ol class="walkthrough">
           <li>
-            <p>Where they start, and what they see.</p>
+            <p>
+              Early in the session, the person settles how the problem is framed. The
+              agent records it as a decision by the person, in the person's words, and
+              the command answers with the entry's number and the real time. A subagent
+              sent to research how a piece of the product behaves records what it found,
+              with the file and line it found it in, and its report back points at that
+              entry.
+            </p>
           </li>
           <li>
-            <p>What they do next, and how the solution answers.</p>
+            <p>
+              Hours later the person changes their mind about one of those decisions. The
+              agent records the new decision as replacing the old one. The old entry is
+              still there, word for word, now marked as replaced by the new one.
+            </p>
           </li>
           <li>
-            <p>Where they end up, and how they know they are done.</p>
+            <p>
+              The agent's memory fills. Nobody announces the compaction, and nobody
+              needs to: there is nothing to tidy up beforehand. Had the agent still tried
+              to boil the record down to a summary, the database would have refused to
+              delete or edit a single entry. A summary it wrote would only have become one
+              more entry, after all the others.
+            </p>
+          </li>
+          <li>
+            <p>
+              The compaction lands. Before the agent takes its next step, the decisions in
+              force appear in front of it, newest first, each in the words it was written
+              in, with who decided it and when. The replaced decision is not among them.
+              The agent works from the person's rulings, not from the summary's paraphrase
+              of them.
+            </p>
+          </li>
+          <li>
+            <p>
+              Later, a question the subagent already answered comes back. The agent
+              searches the record for a few words from the question, finds the finding
+              with its source, and goes on. Nobody researches it twice, and the search
+              costs the same as it would have on the first day.
+            </p>
+          </li>
+          <li>
+            <p>
+              At the end of the day the person prints the record and reads it from top to
+              bottom: every decision, every finding, every step of progress, in the order
+              they happened, with the real times. The question from August has nothing
+              left to ask about: the history is all there.
+            </p>
           </li>
         </ol>
 
@@ -845,5 +889,91 @@ Say what to build and what &ldquo;done&rdquo; means, point at this document for 
         </div>
       </section>
     </main>
+
+    <script>
+      // Drawing 1 — the record, who writes to it, and the ways back out.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'ledger-record',
+          width: 900,
+          height: 490,
+          style: 'marker',
+          label:
+            'Subagents and the orchestrator write entries into one record per conversation; edits and deletes are refused; four commands read it back, and after a compaction the decisions in force return to the orchestrator.'
+        })
+
+        s.rect(30, 40, 230, 85, { width: 7 })
+        s.text('SUBAGENTS', 145, 80, { size: 24, weight: 700, align: 'middle', caps: true })
+        s.text('lanes, researchers', 145, 108, { size: 15, align: 'middle' })
+
+        s.rect(30, 185, 230, 85, { width: 7 })
+        s.text('ORCHESTRATOR', 145, 236, { size: 24, weight: 700, align: 'middle', caps: true })
+
+        s.arrow([266, 84], [334, 150], { width: 6 })
+        s.arrow([266, 226], [334, 196], { width: 6 })
+        s.text('write', 296, 172, { size: 17, align: 'middle' })
+
+        s.rect(340, 40, 230, 300, { width: 7 })
+        s.text('THE RECORD', 455, 82, { size: 24, weight: 700, align: 'middle', caps: true })
+        s.text('one per conversation', 455, 108, { size: 14, align: 'middle' })
+        ;[150, 185, 220, 255, 290].forEach(function (y, index) {
+          s.text('#' + (index + 1), 362, y, { size: 16, weight: 600 })
+          s.squiggle(400, y - 6, 145, { width: 5, amplitude: 5 })
+        })
+
+        s.arrow([455, 405], [455, 348], { width: 6, color: 'accent' })
+        s.text('EDIT  DELETE', 455, 428, {
+          size: 20,
+          weight: 700,
+          align: 'middle',
+          caps: true,
+          color: 'accent',
+          strike: true
+        })
+        s.text('refused', 455, 456, { size: 16, align: 'middle', color: 'accent' })
+
+        s.arrow([576, 190], [608, 190], { width: 6 })
+        s.brace(618, 62, 340, { width: 6, reach: 18 })
+        s.text('LEDGER', 652, 88, { size: 20, weight: 700, caps: true })
+        s.text('what is in force', 652, 112, { size: 15 })
+        s.text('SEARCH', 652, 162, { size: 20, weight: 700, caps: true })
+        s.text('any words, ranked', 652, 186, { size: 15 })
+        s.text('SHOW #N', 652, 236, { size: 20, weight: 700, caps: true })
+        s.text('one entry, whole', 652, 260, { size: 15 })
+        s.text('PRINT', 652, 310, { size: 20, weight: 700, caps: true })
+        s.text('everything, for people', 652, 334, { size: 15 })
+
+        s.arrow([352, 346], [262, 400], { width: 6, color: 'accent', curve: 'arc' })
+        s.text('AFTER A COMPACTION', 145, 420, {
+          size: 19,
+          weight: 700,
+          align: 'middle',
+          caps: true,
+          color: 'accent'
+        })
+        s.text('decisions in force, word for word', 145, 446, {
+          size: 14,
+          align: 'middle',
+          color: 'accent'
+        })
+        s.arrow([145, 398], [145, 280], { width: 6, color: 'accent' })
+
+        s.callout(1, 300, 40, { radius: 22 })
+        s.callout(2, 560, 420, { radius: 22, color: 'accent' })
+        s.callout(3, 860, 40, { radius: 22 })
+        s.callout(4, 40, 470, { radius: 22, color: 'accent' })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'Every agent writes to the same record, and every entry says who wrote it. The text goes in untouched, and the time comes from the database’s clock.',
+            'The database refuses every edit and every delete. A change of mind is a new entry that replaces an old one, and the old one stays.',
+            'Four ways back out. Three of them cost the same on the tenth day as on the first; printing everything is for people.',
+            'Every compaction puts the decisions in force back in front of the orchestrator, in the words they were written in.'
+          ],
+          caption: 'One record per conversation: many writers, no edits, four ways to read it.'
+        }).mount('#drawing-record')
+      })()
+    </script>
   </body>
 </html>
