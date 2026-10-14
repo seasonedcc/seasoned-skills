@@ -523,6 +523,15 @@
           points at them.
         </p>
         <p>
+          Subagents write findings and nothing else. Decisions and progress belong to the
+          orchestrator. A decision governs the whole session, so it comes from the
+          person or from the orchestrator's own judgment, never from one lane's choice;
+          when a lane's choice matters, the orchestrator records it after reading the
+          report. Progress is recorded only once its result has been read, and the
+          orchestrator is the one who reads and checks what subagents report. A lane's
+          working notes stay in its report.
+        </p>
+        <p>
           What is in force stays the orchestrator's call. An entry a subagent wrote says
           so plainly, and when the orchestrator checks a claim and finds it wrong, it
           replaces it. Nothing changes about verifying what subagents say; the claim is
@@ -583,6 +592,10 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   <code>CLAUDE_CODE_SESSION_ID</code>, and
                   <code>CLAUDE_CODE_CHILD_SESSION=1</code> is set in the orchestrator too.
                   A default would record a forgetful subagent as the orchestrator.
+                  <code>ledger decision</code> and <code>ledger progress</code> refuse
+                  any writer but <code>orchestrator</code>, so a subagent that reaches
+                  for them by mistake is stopped; only <code>ledger finding</code>
+                  takes a subagent's name.
                 </p>
               </li>
               <li>
@@ -1156,7 +1169,7 @@ Done means, in order:
         ShapingDrawing.figure({
           drawing: s,
           callouts: [
-            'Every agent writes to the same record, and every entry says who wrote it. The text goes in untouched, and the time comes from the database’s clock.',
+            'Subagents write findings; the orchestrator writes decisions and progress too. Every entry says who wrote it, the text goes in untouched, and the time comes from the database’s clock.',
             'The database refuses every edit and every delete. A change of mind is a new entry that replaces an old one, and the old one stays.',
             'Four ways back out. Three of them show only what still applies or what you searched for; printing everything is for people.',
             'Every compaction puts the decisions in force back in front of the orchestrator, in the words they were written in.'
