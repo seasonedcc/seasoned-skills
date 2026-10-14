@@ -293,11 +293,85 @@
 
         <h3>In plain language</h3>
         <p>
-          Say what we will build, as the team that will build it: &ldquo;We'll add a card
-          to the dashboard&rdquo;, never &ldquo;The screen shows a card&rdquo;. Open with
-          what gets built, where it sits, and who sees it; the mechanism comes after. Say
-          outright what stays the same.
+          We'll replace each session's ledger file with a small database in the same
+          session folder, plus a handful of commands in the package's command line for
+          writing to it and reading from it. The database only ever accepts new entries:
+          it refuses every edit and every delete on its own, whoever asks. Agents write an
+          entry with one short command that stamps the real time and takes any text
+          safely. They read back what is in force, search everything, and print the whole
+          record as plain text whenever a person wants to read it.
         </p>
+
+        <h3>Entries</h3>
+        <p>
+          Every entry is one of three kinds, and the kind decides what it has to carry.
+        </p>
+        <ul>
+          <li>
+            <p>
+              <strong>A decision</strong> is something that now governs the work. It
+              always says who decided it: the person or the agent. When the person
+              decided, the entry carries their own words.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>A finding</strong> is something we learned about the product. It
+              always says where it came from: a file and line, a command and what it
+              printed, a page, a test.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>Progress</strong> is where the work stands: what was launched and
+              under which id, on which branch, what a check returned.
+            </p>
+          </li>
+        </ul>
+        <p>
+          A decision or a finding can later be <strong>replaced</strong> by a new entry
+          that names it &mdash; a decision the person changed, a finding that turned out
+          wrong. An entry is in force until something replaces it. The replaced entry
+          stays exactly as it was, readable forever, with a pointer to what replaced it.
+          Progress is never replaced; it just gets older.
+        </p>
+        <p>
+          The ledger holds nothing else. Questions still waiting on the person stay in the
+          conversation, and lessons about how we work go to the self-improvement pass, as
+          they do today.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Schema</span>
+            An entry
+          </summary>
+          <div class="technical-body">
+            <p>
+              One table, <code>STRICT</code>. The integer primary key is the only unique
+              constraint: any other <code>UNIQUE</code> column would open a way for
+              <code>INSERT OR REPLACE</code> to delete a row without firing a delete
+              guard, which the spike showed with a unique <code>replaces</code> column.
+              Rules that need uniqueness are enforced by <code>BEFORE INSERT</code>
+              triggers instead.
+            </p>
+            <pre><code>entries(
+  id          integer primary key,
+  kind        text  -- 'decision' | 'finding' | 'progress'
+  body        text  -- the entry, verbatim as written
+  decided_by  text  -- 'person' | 'agent'; required on a decision, absent otherwise
+  source      text  -- required on a finding, absent otherwise
+  replaces    integer references entries(id)
+  written_at  text  -- UTC, from the database clock, never from the writer
+)</code></pre>
+            <p>
+              Refused on insert: a <code>replaces</code> pointing at a progress entry, at
+              an entry of another kind, at an entry that does not exist yet, or at an entry something already
+              replaced. In force means: a decision or finding no later entry replaces.
+            </p>
+          </div>
+        </details>
 
         <figure class="drawing">
           <div class="drawing-canvas shaping-drawing-frame">
