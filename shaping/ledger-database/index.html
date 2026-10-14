@@ -425,6 +425,93 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
           </div>
         </details>
 
+        <h3>Reading it back</h3>
+        <p>
+          We'll add four ways to read. Three of them cost the same however long the
+          session runs, because consulting the record on day ten must take no more
+          reading than on day one.
+        </p>
+        <ul>
+          <li>
+            <p>
+              <strong><code>ledger</code></strong> on its own shows what is in force:
+              every decision still in force, newest first, each with who decided it, who
+              wrote it, and when; then the last ten progress entries; then only a count of
+              the findings, with a reminder to search them. Decisions are the rules of the
+              work and a long session holds dozens, not thousands. Older progress is
+              history. Findings pile up into the hundreds, and the session needs one when
+              a question comes back &mdash; and the question carries the words to search
+              for.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong><code>ledger search &lt;words&gt;</code></strong> searches every
+              entry, in force or not, ranked by how well it matches. Each result is a short
+              excerpt with its number, kind, writer, and time. A replaced entry says
+              &ldquo;replaced by #N&rdquo;, so a finding that turned out wrong is never
+              mistaken for a current one.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong><code>ledger show &lt;number&gt;</code></strong> prints one entry
+              whole, with its source, and its line of replacements both ways: what it
+              replaced and what replaced it.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong><code>ledger print</code></strong> prints the whole record as plain
+              text, in order, for a person who wants to read it end to end, copy it, or
+              keep it. It is the one read that grows with the session, on purpose: it is
+              the person's way in, not the agent's way back.
+            </p>
+          </li>
+        </ul>
+
+        <figure class="quote">
+          <pre><code>In force (7 decisions, newest first)
+  #52  person  orchestrator  14:31  No jobs, tasks, or statuses: a ledger for context, not a project management tool.
+  #47  person  orchestrator  14:02  Every agent in the session writes to the same record.
+  ...
+Latest progress (last 10)
+  #58  orchestrator  15:10  Pushed 4e1a2c0 to shaping/ledger-database.
+  ...
+Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;</code></pre>
+          <figcaption>Roughly what <code>ledger</code> prints. The layout is the build's to settle.</figcaption>
+        </figure>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Spike</span>
+            Search and what is in force
+          </summary>
+          <div class="technical-body">
+            <p>
+              Proven on a throwaway database under Node 24.21 and 22.22. Search is an FTS5
+              external-content index over the entry text, fed by an <code>AFTER INSERT</code>
+              trigger, ranked with <code>bm25</code> and excerpted with
+              <code>snippet</code>; the <code>porter unicode61</code> tokenizer matches
+              &ldquo;lanes&rdquo; on &ldquo;lane&rdquo;. In force is a view: a decision or
+              finding with no later entry naming it in <code>replaces</code>. A replacement
+              line is a recursive query over <code>replaces</code>.
+            </p>
+            <p>
+              The search index is derived data, not the record, and it is the one part a
+              stray command can empty: FTS5's own <code>'delete'</code> and
+              <code>'delete-all'</code> commands bypass every trigger, and a virtual table
+              accepts no triggers of its own. A row count cannot see the damage &mdash;
+              on an external-content index, <code>count(*)</code> reads the table and still
+              reported 2 rows after <code>'delete-all'</code> emptied the index &mdash; but
+              FTS5's <code>integrity-check</code> with a rank of 1 fails on it. So every
+              search runs that check first and rebuilds the index when it fails. The
+              record itself is never at risk from this.
+            </p>
+          </div>
+        </details>
+
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
