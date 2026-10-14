@@ -65,7 +65,7 @@
           Late in August, deep into a long shaping session, the person running it told the
           agent that the conversation was about to be compacted: summarized, to free room
           for more work, with everything not in the summary gone from the agent's memory.
-          The agent had been keeping a ledger all along &mdash; the running file where a
+          The agent had been keeping a ledger all along: the running file where a
           session writes down what was decided, what it learned, and where the work
           stands, so it can find its way back after a compaction. To get ready, the agent
           rewrote that ledger into a short summary of the current state, and in doing so
@@ -99,8 +99,8 @@
           one session we followed from start to finish, the ledger was written 198 times
           and only ever read by its last few lines. It holds three kinds of things: what
           the person decided, what the session learned about the product while researching
-          it, and where the work stands &mdash; what is running, on which branch, with
-          which result.
+          it, and where the work stands: what is running, on which branch, with which
+          result.
         </p>
         <p>It breaks in four places.</p>
         <ul>
@@ -246,7 +246,7 @@
           Two things changed this week. Ledgers moved out of a temporary folder the
           computer could wipe and into each project's own session folder, so the file now
           survives. Compaction now happens on its own, whenever the agent's memory fills,
-          rather than when someone announces it &mdash; so there is no longer a moment to
+          rather than when someone announces it. There is no longer a moment to
           prepare, and what the session wrote down along the way is all it gets back. The
           ledger is now the one record every long session leans on, and the remaining
           question is whether it still says what was written. This pays in time: every
@@ -307,9 +307,9 @@
           Each conversation gets one record: a single database file in its session
           folder, the same folder where the ledger file lives today, so it survives a
           reboot and is cleaned up with the folder when Claude Code forgets the
-          conversation. The first write creates it. Every agent in the conversation
-          &mdash; in the main checkout or in any worktree &mdash; reaches the same
-          record without naming it, the way <code>session-folder</code> already finds
+          conversation. The first write creates it. Every agent in the conversation,
+          in the main checkout or in any worktree, reaches the same record without
+          naming it, the way <code>session-folder</code> already finds
           the folder.
         </p>
         <p>
@@ -396,7 +396,7 @@
         </ul>
         <p>
           A decision or a finding can later be <strong>replaced</strong> by a new entry
-          that names it &mdash; a decision the person changed, a finding that turned out
+          that names it: a decision the person changed, a finding that turned out
           wrong. An entry is in force until something replaces it. The replaced entry
           stays exactly as it was, readable forever, with a pointer to what replaced it.
           Progress is never replaced; it just gets older.
@@ -444,9 +444,9 @@
         <p>
           The database itself refuses to change or remove an entry, whoever asks and
           through whatever tool: our own commands, a stray script, or someone typing into
-          SQLite by hand. Every failure in the records was an accident under load &mdash;
-          a rewrite before compaction, a note the shell ran, a scripted edit &mdash; and
-          each of them took one ordinary command against a text file. Against a database
+          SQLite by hand. Every failure in the records was an accident under load: a
+          rewrite before compaction, a note the shell ran, a scripted edit. Each of them
+          took one ordinary command against a text file. Against a database
           none of them can happen by accident: there is nothing to overwrite with a
           redirect, and an edit or a delete is refused. Getting around the guards takes
           deliberate steps nobody takes by mistake, and we won't build anything to catch
@@ -499,8 +499,8 @@
         <h3>Who writes</h3>
         <p>
           Every agent in the session writes to the same record: the orchestrator and every
-          subagent it launches. Each entry says who wrote it &mdash; the orchestrator, or
-          the subagent's name for its task, such as a lane or a researcher. Today a
+          subagent it launches. Each entry says who wrote it: the orchestrator, or the
+          subagent's name for its task, such as a lane or a researcher. Today a
           subagent is forbidden from touching the session's ledger, because a file can be
           clobbered, so its findings survive only if the orchestrator copies them over
           from its report. A record that can't be rewritten removes that danger. A
@@ -525,8 +525,8 @@
 node:sqlite prints an ExperimentalWarning on every run on Node 22; Node 24.21 prints none.
 EOF</code></pre>
         <p>
-          The command answers with the entry's number, kind, and time &mdash;
-          <code>#41 finding, 2026-10-14T15:02:11Z</code> &mdash; and nothing else. The
+          The command answers with the entry's number, kind, and time, such as
+          <code>#41 finding, 2026-10-14T15:02:11Z</code>, and nothing else. The
           time comes from the database's clock, never from the agent.
         </p>
         <p>
@@ -570,8 +570,8 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
               <li>
                 <p>
                   The guard hook refuses a Bash command that runs a ledger write with an
-                  unquoted heredoc delimiter. Guard hooks that match on command text
-                  &mdash; the one blocking <code>git stash</code> today &mdash; ignore the
+                  unquoted heredoc delimiter. Guard hooks that match on command text,
+                  such as the one blocking <code>git stash</code> today, ignore the
                   body of a ledger write's heredoc, so an entry that mentions a forbidden
                   command is recorded rather than refused.
                 </p>
@@ -607,8 +607,7 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
               the findings, with a reminder to search them. Decisions are the rules of the
               work and a long session holds dozens, not thousands. Older progress is
               history. Findings pile up into the hundreds, and the session needs one when
-              a question comes back &mdash; and the question carries the words to search
-              for.
+              a question comes back, and the question carries the words to search for.
             </p>
           </li>
           <li>
@@ -669,9 +668,9 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
               The search index is derived data, not the record, and it is the one part a
               stray command can empty: FTS5's own <code>'delete'</code> and
               <code>'delete-all'</code> commands bypass every trigger, and a virtual table
-              accepts no triggers of its own. A row count cannot see the damage &mdash;
-              on an external-content index, <code>count(*)</code> reads the table and still
-              reported 2 rows after <code>'delete-all'</code> emptied the index &mdash; but
+              accepts no triggers of its own. A row count cannot see the damage: on an
+              external-content index, <code>count(*)</code> reads the table, and it still
+              reported 2 rows after <code>'delete-all'</code> emptied the index. But
               FTS5's <code>integrity-check</code> with a rank of 1 fails on it. So every
               search runs that check first and rebuilds the index when it fails. The
               record itself is never at risk from this.
@@ -686,7 +685,7 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
           its next step. Nobody has to remember to look: in the one session we followed
           end to end, the agent never opened its ledger after any of five compactions and
           found its way back from the summary alone. A summary paraphrases, and the
-          records show what happens next &mdash; the paraphrase of a ruling becomes the
+          records show what happens next: the paraphrase of a ruling becomes the
           ruling. With the hook, the person's decisions come back in the person's own
           words every time.
         </p>
@@ -780,9 +779,9 @@ Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;
           </li>
           <li>
             <p>
-              The pages people read &mdash; the way of working, running a session, the
-              command reference, and the list of files the package manages &mdash;
-              describe the ledger as it now is.
+              The pages people read describe the ledger as it now is: the way of
+              working, running a session, the command reference, and the list of files
+              the package manages.
             </p>
           </li>
         </ul>
