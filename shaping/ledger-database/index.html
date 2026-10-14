@@ -326,7 +326,7 @@
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Spike</span>
+            <span class="technical-kind">Contract</span>
             The file, the runtime, and several writers at once
           </summary>
           <div class="technical-body">
@@ -350,11 +350,10 @@
               </li>
               <li>
                 <p>
-                  <code>node:sqlite</code>: no flag and no warning on Node 24.21 (SQLite
-                  3.53); unflagged since 22.13 and still printing
-                  <code>ExperimentalWarning: SQLite is an experimental feature</code> on
-                  22.19 and 22.22. FTS5, JSON functions, and <code>STRICT</code> tables
-                  work on both. <code>engines.node</code> becomes
+                  <code>node:sqlite</code> needs no flag from Node 22.13 on. Node 22
+                  prints <code>ExperimentalWarning: SQLite is an experimental
+                  feature</code> on every run; Node 24 prints none. FTS5, JSON functions,
+                  and <code>STRICT</code> tables work on both. <code>engines.node</code> becomes
                   <code>&gt;=22.13.0</code>, up from <code>&gt;=22.0.0</code>. A new
                   warning filter replaces Node's <code>warning</code> listener with one
                   that drops only the SQLite experimental warning and prints everything
@@ -371,12 +370,11 @@
               </li>
               <li>
                 <p>
-                  Several writers: twelve processes appending 200 entries each, every
-                  entry on a fresh connection like separate command runs. With a
-                  5-second busy timeout, all 2,400 landed; with none, 90 to 99 percent
-                  failed with <code>database is locked</code>. So every connection sets
-                  <code>PRAGMA busy_timeout</code> (the pragma also works on Node 22
-                  versions older than the <code>timeout</code> option). WAL mode lets
+                  Every connection sets a 5-second <code>PRAGMA busy_timeout</code>
+                  (the pragma also works on Node 22 versions older than the
+                  <code>timeout</code> option). Agents write at the same moment all the
+                  time, each command on its own connection, and without the wait most of
+                  those writes fail with <code>database is locked</code>. WAL mode lets
                   reads run while a write is open.
                 </p>
               </li>
@@ -436,7 +434,8 @@
               One table, <code>STRICT</code>. The integer primary key is the only unique
               constraint: any other <code>UNIQUE</code> column would open a way for
               <code>INSERT OR REPLACE</code> to delete a row without firing a delete
-              guard, which the spike showed with a unique <code>replaces</code> column.
+              guard (a unique <code>replaces</code> column would let one replacement
+              silently wipe out another).
               Rules that need uniqueness are enforced by <code>BEFORE INSERT</code>
               triggers instead.
             </p>
@@ -475,14 +474,13 @@
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Spike</span>
+            <span class="technical-kind">Schema</span>
             What the guards refuse, and what escapes them
           </summary>
           <div class="technical-body">
             <p>
-              Proven on a throwaway database under Node 24.21, Node 22.22, and the
-              <code>sqlite3</code> command line. Three <code>BEFORE</code> triggers, each
-              ending in <code>RAISE(ABORT, …)</code>:
+              Three <code>BEFORE</code> triggers, each ending in
+              <code>RAISE(ABORT, …)</code>:
             </p>
             <ul>
               <li>
@@ -863,16 +861,15 @@ ledger print              [--session &lt;id&gt;]</code></pre>
         <details class="technical" open>
           <summary>
             <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Spike</span>
+            <span class="technical-kind">Schema</span>
             Search and what is in force
           </summary>
           <div class="technical-body">
             <p>
-              Proven on a throwaway database under Node 24.21 and 22.22. Search is an FTS5
-              external-content index over the entry text and source, fed by an <code>AFTER INSERT</code>
-              trigger, and excerpted with <code>snippet</code> (the spike also ranked
-              with <code>bm25</code>, which the read contract replaces with matched words
-              and recency); the <code>porter unicode61</code> tokenizer matches
+              Search is an FTS5 external-content index over the entry text and source,
+              fed by an <code>AFTER INSERT</code> trigger, and excerpted with
+              <code>snippet</code>; results are ordered as the read commands say. The
+              <code>porter unicode61</code> tokenizer matches
               &ldquo;lanes&rdquo; on &ldquo;lane&rdquo;. In force is a view: a decision or
               finding with no later entry naming it in <code>replaces</code>. A replacement
               line is a recursive query over <code>replaces</code>.
@@ -882,9 +879,9 @@ ledger print              [--session &lt;id&gt;]</code></pre>
               stray command can empty: FTS5's own <code>'delete'</code> and
               <code>'delete-all'</code> commands bypass every trigger, and a virtual table
               accepts no triggers of its own. A row count cannot see the damage: on an
-              external-content index, <code>count(*)</code> reads the table, and it still
-              reported 2 rows after <code>'delete-all'</code> emptied the index. But
-              FTS5's <code>integrity-check</code> with a rank of 1 fails on it. So every
+              external-content index, <code>count(*)</code> reads the table, so it keeps
+              counting every entry after the index is emptied. FTS5's
+              <code>integrity-check</code> with a rank of 1 does fail on it. So every
               search runs that check first and rebuilds the index when it fails. The
               record itself is never at risk from this.
             </p>
@@ -1123,7 +1120,7 @@ ledger print              [--session &lt;id&gt;]</code></pre>
 
 Before anything else, you and every builder read shaping/ledger-database/index.html raw and whole, drawings included. It is the single source of truth for this build.
 
-What to build, exactly as the document shapes it: the record (one database per conversation in its session folder, on Node's built-in SQLite), its entries and their three kinds, the guards, the write commands, the four reads, the compaction hook, and every change to the standing instructions and the pages people read. Every Contract, Schema, and Spike note must be followed, and so must the no-gos. This repository's standing rules apply too.
+What to build, exactly as the document shapes it: the record (one database per conversation in its session folder, on Node's built-in SQLite), its entries and their three kinds, the guards, the write commands, the four reads, the compaction hook, and every change to the standing instructions and the pages people read. Every Contract and Schema note must be followed, and so must the no-gos. This repository's standing rules apply too.
 
 Work branches from main.
 
