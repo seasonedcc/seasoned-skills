@@ -1,10 +1,11 @@
 # Commands
 
-Eight commands, all through one binary. In a project that has the package
-installed, run them with your package manager: `pnpm exec seasoned-skills sync`.
-Three of them work on a lane. A lane is one named workspace for one piece of
-work, with its own worktree, ports, databases, and env files, so two pieces of
-work never collide on this machine.
+Eight commands, all through one binary. The package is installed as a
+dependency of your project, not globally, so the binary is not on your PATH. Run
+every command from your project's root as `pnpm exec seasoned-skills <command>`.
+In a new worktree, run `pnpm install` first. Three of them work on a lane. A
+lane is one named workspace for one piece of work, with its own worktree, ports,
+databases, and env files, so two pieces of work never collide on this machine.
 
 | Command | What it does |
 | --- | --- |
@@ -103,7 +104,7 @@ shaping skill.
 
 Run it on a new machine, and after every package upgrade: the cache records the
 version that built it, so any newer version reads as stale.
-`seasoned-skills doctor` tells you which of those you are looking at.
+`pnpm exec seasoned-skills doctor` tells you which of those you are looking at.
 
 | Flag | What it does |
 | --- | --- |
@@ -117,7 +118,7 @@ table in your configuration, which is where each repository declares what it
 owns.
 
 ```sh
-seasoned-skills provision search-filters
+pnpm exec seasoned-skills provision search-filters
 ```
 
 Provisioning is idempotent. Re-running keeps the lane's existing allocation and

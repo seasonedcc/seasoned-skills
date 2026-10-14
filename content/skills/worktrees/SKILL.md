@@ -11,15 +11,17 @@ Each worktree is an isolated lane: its own git checkout, and — for every resou
 
 ### Create
 
+Run every lane command as `pnpm exec seasoned-skills <command>` from the project's root.
+
 ```bash
-seasoned-skills provision <lane>
-seasoned-skills provision <lane> --repo ../engine        # cover one declared repository (default: the first)
-seasoned-skills provision <lane> --repo . --repo ../engine  # cover several; repeat the flag
-seasoned-skills provision <lane> --branch feature/name   # custom branch (default worktree/<lane>)
-seasoned-skills provision <lane> --base origin/main      # custom base (default origin's HEAD branch)
-seasoned-skills provision <lane> --skip-provision        # worktree only, no deps/databases
-seasoned-skills provision <lane> --skip-seed             # provision and migrate, but leave the databases empty
-seasoned-skills provision <lane> --fresh-seed            # re-anchor the demo data to today
+pnpm exec seasoned-skills provision <lane>
+pnpm exec seasoned-skills provision <lane> --repo ../engine        # cover one declared repository (default: the first)
+pnpm exec seasoned-skills provision <lane> --repo . --repo ../engine  # cover several; repeat the flag
+pnpm exec seasoned-skills provision <lane> --branch feature/name   # custom branch (default worktree/<lane>)
+pnpm exec seasoned-skills provision <lane> --base origin/main      # custom base (default origin's HEAD branch)
+pnpm exec seasoned-skills provision <lane> --skip-provision        # worktree only, no deps/databases
+pnpm exec seasoned-skills provision <lane> --skip-seed             # provision and migrate, but leave the databases empty
+pnpm exec seasoned-skills provision <lane> --fresh-seed            # re-anchor the demo data to today
 ```
 
 `<lane>` is a short lowercase slug naming the task (e.g. `fix-webhook-retry`), always a single directory name: `provision`, `teardown`, and `sweep --lane` refuse a path such as `./lane` or `lane/`. Setup is idempotent: re-running reuses the registered worktrees, their databases, their ports, and the lane's cache-store index — the managed env block is the allocation record, read back before anything is assigned — and rewrites that block in place. Only a database setup creates in that same run is seeded, so re-running never writes over the data a lane already holds. It prints a summary with the lane's ports and, per repository it covered, the worktree path, branch, databases, and whether it was seeded.
@@ -53,8 +55,8 @@ agent-browser open http://localhost:<DEV_SERVER_PORT>/ --session <lane>
 ### Teardown
 
 ```bash
-seasoned-skills teardown <lane>            # refuses if the worktree has uncommitted changes or another live session uses the lane
-seasoned-skills teardown <lane> --force    # removes anyway
+pnpm exec seasoned-skills teardown <lane>            # refuses if the worktree has uncommitted changes or another live session uses the lane
+pnpm exec seasoned-skills teardown <lane> --force    # removes anyway
 ```
 
 Teardown takes no `--repo`: it sweeps the lane across every declared repository, whichever subset the lane was provisioned for, and passes quietly over the ones that never registered a worktree. It kills the processes listening on the lane's managed ports that this session or an ended one started — so a worker stack orphaned by a killed run cannot outlive the lane — flushes the lane's cache-store index (so a recycled index never leaks a previous lane's keys or queue backlogs), drops each repository's whole derived-database family (the derived-name patterns live in the resource table, so nothing derived is ever orphaned), and removes the worktrees. It never touches the branch (it may back a PR).
@@ -94,7 +96,7 @@ Shared across lanes (by design): the local database server, the local cache stor
 - Never run a lane's end-to-end suite and a browser session concurrently in the same lane: both claim the lane's single dev-server port — the suite starts its own server stack on it, and browser work needs the lane's dev server listening on it — so the two runs collide. Sequence them, or give the browser work its own lane.
 - Per-lane resource pools are finite — a cache store has a fixed number of indexes — and exhaust silently after enough provisioned lanes. Tear down finished lanes between waves — teardown frees the lane's index, databases, and ports for the next wave.
 - Read-only work — audits, reviews, censuses — and documentation-only changes get their OWN worktree, never a build lane's tree and never a branch on the main checkout (checkouts never leave the default branch): `--skip-provision` makes a lane cheap, and a plain `git worktree add` serves deliberately unprovisioned work, removed afterwards with `git worktree remove`. And before ANY teardown, check the live task/agent roster for agents still reading that tree: a teardown under a live reader corrupts the reader's run.
-- Never kill lane processes by matching command names (`pkill -f` and kin) — every lane runs identical command lines, so the match reaches into sibling lanes and takes down their servers or workers. Kill by exact process id only, and sweep with `seasoned-skills sweep --lane-processes`, which lists every lane process with the Claude Code session that started it (`--lane <lane>` narrows it to one lane); with `--kill` it kills only this session's own and those of ended sessions, by exact id — another live session's processes and unmarked ones are never killed. The session-end hook runs the same kill.
+- Never kill lane processes by matching command names (`pkill -f` and kin) — every lane runs identical command lines, so the match reaches into sibling lanes and takes down their servers or workers. Kill by exact process id only, and sweep with `pnpm exec seasoned-skills sweep --lane-processes`, which lists every lane process with the Claude Code session that started it (`--lane <lane>` narrows it to one lane); with `--kill` it kills only this session's own and those of ended sessions, by exact id — another live session's processes and unmarked ones are never killed. The session-end hook runs the same kill.
 - Where the project shares a content-addressed build cache across lanes, a gate command may replay a task another worktree computed, and the replayed log then prints that other lane's absolute paths. The result is still correct, but a path in a gate log is not evidence of where the task ran, and a task you expected to run fresh may not have.
 - Setup migrates and seeds with the code present at creation time. A worktree later moved to a newer base (rebase, checkout, pull) keeps its old databases — routes can fail on missing relations and seeded state can predate seed changes on the new base. After moving a worktree's base, drop and recreate the lane's databases, migrate, and reseed before trusting anything the app shows.
 - The same staleness applies to installed dependencies: a worktree keeps the install from its creation time, and a base move can bring code that needs a dependency the worktree never installed. The failure is misleading — tests owned by untouched sibling surfaces fail on the new code's runtime resolution while the same suite is green in the main checkout and on CI. After moving a worktree's base, run the dependency install before trusting any gate the worktree runs.
@@ -106,4 +108,4 @@ Shared across lanes (by design): the local database server, the local cache stor
 - Never edit the main checkout's env files from a worktree task; each worktree owns its own copies.
 - The managed block in lane env files is marked with a `managed by` comment. Its presence is the idempotency sentinel — do not remove it by hand.
 - After rebasing a long-lived worktree onto main, diff the repo's env surface (its env sample or schema) against your lane's base commit — a newly-required env var must be mirrored into the worktree's gitignored env files or the dev server and tests crash.
-- Provisioning is implemented once, inside the seasoned-skills package, driven by the resource table the project's configuration declares — projects carry no provisioning scripts of their own, and `seasoned-skills doctor` checks the binaries and services the machine needs. That includes the branch handling every repository gets: a stale local lane branch is fast-forwarded to its origin tip, an existing `origin/<branch>` is adopted without an upstream so a bare push cannot land on the base branch, and a diverged local branch is left alone. Never hand-roll a `git worktree add` for a repository the table declares — declare it and pass `--repo`.
+- Provisioning is implemented once, inside the seasoned-skills package, driven by the resource table the project's configuration declares — projects carry no provisioning scripts of their own, and `pnpm exec seasoned-skills doctor` checks the binaries and services the machine needs. That includes the branch handling every repository gets: a stale local lane branch is fast-forwarded to its origin tip, an existing `origin/<branch>` is adopted without an upstream so a bare push cannot land on the base branch, and a diverged local branch is left alone. Never hand-roll a `git worktree add` for a repository the table declares — declare it and pass `--repo`.

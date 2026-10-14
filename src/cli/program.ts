@@ -65,7 +65,7 @@ export function buildProgram(): Command {
         degrade(root, error as Error)
         console.error((error as Error).message)
         console.error(
-          '\nThe generated workflow has been removed down to the repair kit. Fix the inputs above and run `seasoned-skills sync` again.',
+          '\nThe generated workflow has been removed down to the repair kit. Fix the inputs above and run `pnpm exec seasoned-skills sync` again.',
         )
         process.exitCode = 1
       }
@@ -117,11 +117,11 @@ export function buildProgram(): Command {
       const builtBy = corpusBuiltBy(corpusCacheRoot())
       if (builtBy === undefined) {
         console.log(
-          'Shaping corpus cache: missing — run `seasoned-skills corpus` to build it; until then the generated shaping skill carries no references.',
+          'Shaping corpus cache: missing — run `pnpm exec seasoned-skills corpus` to build it; until then the generated shaping skill carries no references.',
         )
       } else if (builtBy !== version) {
         console.log(
-          `Shaping corpus cache: stale (built by ${builtBy}, this package is ${version}) — run \`seasoned-skills corpus\` to rebuild.`,
+          `Shaping corpus cache: stale (built by ${builtBy}, this package is ${version}) — run \`pnpm exec seasoned-skills corpus\` to rebuild.`,
         )
       } else {
         console.log('Shaping corpus cache: present and current.')
@@ -142,7 +142,7 @@ export function buildProgram(): Command {
       try {
         buildCorpus(corpusCacheRoot(), options)
         console.log(
-          `Corpus built at ${corpusCacheRoot()}. Run \`seasoned-skills sync\` in each project to weave it in.`,
+          `Corpus built at ${corpusCacheRoot()}. Run \`pnpm exec seasoned-skills sync\` in each project to weave it in.`,
         )
       } catch (error) {
         console.error((error as Error).message)

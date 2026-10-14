@@ -23,6 +23,6 @@ Two things this account is not:
 
 For verbatim study, get the real book. If you own a copy compiled to this
 corpus's shape — a folder of numbered markdown chapters with images — run
-`seasoned-skills corpus --book <path>` and the vendoring script replaces this
-account with the actual chapters on your machine. The built corpus lives only
-on your machine either way; it is never committed.
+`pnpm exec seasoned-skills corpus --book <path>` and the vendoring script
+replaces this account with the actual chapters on your machine. The built
+corpus lives only on your machine either way; it is never committed.

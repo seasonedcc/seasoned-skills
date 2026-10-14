@@ -333,12 +333,13 @@ its own context being compacted several times along the way.
 Independent pieces of work run in parallel, and parallel work needs
 isolation. Each piece runs in a lane: its own git worktree (a separate
 checkout of the repository on its own branch), provisioned by
-`seasoned-skills provision` with its own databases, its own ports, and
-its own copies of the environment files, all derived from the resource
-table the project's configuration declares. Two lanes never share
-uncommitted code or data, so their dev servers, test runs, and browser
-sessions run at the same time without colliding, and a finished lane is
-swept away by `seasoned-skills teardown` with everything it owned.
+`pnpm exec seasoned-skills provision` with its own databases, its own
+ports, and its own copies of the environment files, all derived from the
+resource table the project's configuration declares. Two lanes never
+share uncommitted code or data, so their dev servers, test runs, and
+browser sessions run at the same time without colliding, and a finished
+lane is swept away by `pnpm exec seasoned-skills teardown` with
+everything it owned.
 
 ### What done means
 

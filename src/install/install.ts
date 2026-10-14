@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { CONFIG_FILE_NAME } from '../config/load.js'
+import { SYNC_COMMAND } from '../footprint/scripts.js'
 import type { GeneratedFile } from '../generation/types.js'
 import { writeGeneratedFiles } from '../generation/write.js'
 
@@ -54,7 +55,7 @@ export interface InstallPlan {
 export function planInstall(projectRoot: string, answers: InstallAnswers): InstallPlan {
   if (existsSync(join(projectRoot, CONFIG_FILE_NAME))) {
     throw new Error(
-      `${CONFIG_FILE_NAME} already exists — this project is adopted. Run \`seasoned-skills sync\` instead.`,
+      `${CONFIG_FILE_NAME} already exists — this project is adopted. Run \`pnpm exec seasoned-skills sync\` instead.`,
     )
   }
 
@@ -79,7 +80,7 @@ export function planInstall(projectRoot: string, answers: InstallAnswers): Insta
       {
         name: answers.projectName,
         private: true,
-        scripts: { prepare: 'seasoned-skills sync' },
+        scripts: { prepare: SYNC_COMMAND },
       },
       null,
       2,

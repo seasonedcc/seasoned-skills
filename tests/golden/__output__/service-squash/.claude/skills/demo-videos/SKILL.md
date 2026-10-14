@@ -156,7 +156,7 @@ One failure wears a retake's costume and is not one: a transcript that runs past
 **4. Verify audio against video, directly, at four checkpoints spread across the cut.** Each scene in `report.json` carries its `seconds` and a `timings` entry per move with that move's `cue` and its `scheduledAt` inside the scene. A cue's second on the finished timeline is the `seconds` of every scene before it plus its own `scheduledAt`. Then:
 
 ```bash
-folder=$(seasoned-skills session-folder) || exit 1
+folder=$(pnpm exec seasoned-skills session-folder) || exit 1
 ffmpeg -ss <t> -t 3 -i <video>.mp4 -vn "$folder/<slug>-<cut>-slice.wav"
 .claude/skills/demo-videos/scripts/transcribe.sh --audio "$folder/<slug>-<cut>-slice.wav"
 ffmpeg -ss <t+1.1> -i <video>.mp4 -frames:v 1 "$folder/<slug>-<cut>-frame.png"

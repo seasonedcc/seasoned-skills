@@ -2,12 +2,12 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
- * The one managed script entry: the project's own prepare script runs
- * `seasoned-skills sync` on every install, so a fresh clone materializes the
- * whole workflow and a version bump regenerates everything on the next
- * install. It is deliberately the project's script, not a package lifecycle
- * hook — the pinned package manager blocks dependency lifecycle scripts by
- * default, and a sync that silently does not run is worse than none.
+ * The one managed script entry: the project's own prepare script runs the
+ * sync on every install, so a fresh clone materializes the whole workflow and
+ * a version bump regenerates everything on the next install. It is
+ * deliberately the project's script, not a package lifecycle hook — the pinned
+ * package manager blocks dependency lifecycle scripts by default, and a sync
+ * that silently does not run is worse than none.
  *
  * Sync re-asserts this entry; creating a manifest where none exists is the
  * install's job, so a missing package.json is left alone.
