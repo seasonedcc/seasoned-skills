@@ -444,6 +444,21 @@ describe('the compaction hook', () => {
     })
   })
 
+  it('prints nothing of a failed command, such as pnpm not finding the package', () => {
+    standInPnpm(
+      lines(
+        'echo undefined',
+        `echo ' ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "seasoned-skills" not found'`,
+        'exit 254',
+      ),
+    )
+    expect(compact({ CLAUDE_PROJECT_DIR: project })).toEqual({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    })
+  })
+
   it('exits 0 without running anything when the project directory is unset or missing', () => {
     standInPnpm('echo ran')
     expect(compact({})).toEqual({ exitCode: 0, stdout: '', stderr: '' })
