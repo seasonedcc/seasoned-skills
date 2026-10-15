@@ -415,6 +415,10 @@ def sources(arguments):
             yield word
 
 
+def source_expands(arguments):
+    return any(source.expands for source in sources(arguments))
+
+
 def standard_inputs(command):
     return [
         redirection
@@ -454,23 +458,21 @@ def refusal(text):
     found = list(ledger_commands(Reader(text).read()))
     if any(command.comment for command, _ in found):
         return COMMENT_REFUSAL
-    writes = [
-        (command, arguments)
-        for command, arguments in found
-        if ledger_kind(arguments) and not asks_for_help(command, arguments)
-    ]
+    writes = [(command, arguments) for command, arguments in found if ledger_kind(arguments)]
     if not writes:
         return ''
     if len(writes) > 1:
         return SECOND_WRITE_REFUSAL + FORM
     write, arguments = writes[0]
+    if asks_for_help(write, arguments):
+        return SOURCE_REFUSAL + FORM if source_expands(arguments) else ''
     inputs = standard_inputs(write)
     if write.piped or len(inputs) != 1 or not is_entry_heredoc(inputs[0]):
         return TEXT_REFUSAL + FORM
     heredoc = inputs[0].heredoc
     if not heredoc.closed:
         return UNCLOSED_REFUSAL + FORM
-    if any(source.expands for source in sources(arguments)):
+    if source_expands(arguments):
         return SOURCE_REFUSAL + FORM
     if write.followed_by not in ('\n', '') or text[heredoc.end :].strip():
         return TRAILING_REFUSAL + FORM

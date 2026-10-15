@@ -156,6 +156,7 @@ describe('the ledger write guard', () => {
     it('help on a write command', () => {
       passes('pnpm exec seasoned-skills ledger finding --help')
       passes('pnpm exec seasoned-skills ledger progress -h')
+      passes('pnpm exec seasoned-skills ledger finding --help | head -20')
       passes('pnpm exec seasoned-skills ledger decision --as orchestrator --help')
     })
 
@@ -369,6 +370,22 @@ describe('the ledger write guard', () => {
         'pnpm exec seasoned-skills ledger --session -h progress --as orchestrator',
         reason,
       )
+    })
+
+    it('a request for help that breaks any rule but the heredoc', () => {
+      refusedWith(
+        'pnpm exec seasoned-skills ledger finding --help --source "$(touch x)"',
+        '--source holds a backtick or a $ outside single quotes',
+      )
+      refusedWith(
+        `pnpm exec seasoned-skills ledger finding --help && ${progress('two')}`,
+        'more than one ledger write',
+      )
+      const { exitCode, stderr } = guard(
+        'pnpm exec seasoned-skills ledger decision --help --replaces #47',
+      )
+      expect(exitCode).toBe(2)
+      expect(stderr).toContain('unquoted word starting with #')
     })
 
     it('an entry that never closes', () => {
