@@ -329,7 +329,7 @@ working.
 | Flag | What it does |
 | --- | --- |
 | `--session <id>` | Read that session's record instead of the current one's, by its session id. Nothing is created for an id with no folder. Before a subcommand it is refused; each read takes its own after its name. |
-| `--hook` | Run as the compaction hook. It reads the session from the hook payload on stdin, prints the in-force view fitted under 9,500 characters, prints nothing when there is no record, and always exits 0. The progress entries and the findings line come first, each entry cut to its first line and 200 characters. Decisions fill the rest, newest first and only whole, followed by how many older ones did not fit. A decision too long to fit on its own shows as one line pointing at `ledger show`. |
+| `--hook` | Run as the compaction hook. It reads the session from the hook payload on stdin, prints the in-force view fitted under 9,500 characters, prints nothing when there is no record, and always exits 0. It prints, in order, the decisions in force, newest first and only whole; a line counting the older ones that did not fit; the last ten progress entries, each cut to its first line and 200 characters; and the findings line. Room for the progress entries and the findings line is set aside first, and the decisions fill the rest. A decision too long to fit on its own shows as one line pointing at `ledger show`. |
 
 ### seasoned-skills ledger decision
 
