@@ -22,8 +22,8 @@ second write in the same command, anything after the entry, and a
 `--source` holding a `$` or a backtick outside single quotes. It also
 refuses any `ledger` command with an unquoted word starting with `#`, such
 as `ledger show #47`, since the shell reads the rest of that line as a
-comment. A write command run with `--help` needs no heredoc, but every other
-rule still applies.
+comment. A write command run with `--help` writes nothing, so it needs no
+heredoc.
 
 The `git stash` guard no longer reads an entry's text, so an entry can
 mention a forbidden command. It now also refuses a `git stash` that shell

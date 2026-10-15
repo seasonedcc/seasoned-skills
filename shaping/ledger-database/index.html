@@ -655,7 +655,9 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   closing line and refuses. It refuses a write whose text does not
                   arrive through
                   <code>&lt;&lt;'ENTRY'</code>, which also refuses
-                  <code>echo &hellip; |</code> and a missing heredoc. It refuses a
+                  <code>echo &hellip; |</code> and a missing heredoc. A request for help,
+                  <code>--help</code> or <code>-h</code> where it is no option's value,
+                  writes nothing, so it needs no heredoc. It refuses a
                   <code>--source</code> holding a backtick or a <code>$</code> unless it
                   is single-quoted, since a source is often a command and what it
                   printed, and inside double quotes the shell would run it or swap in a

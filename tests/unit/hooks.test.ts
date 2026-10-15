@@ -137,20 +137,10 @@ describe('the ledger write guard', () => {
         'gh pr create --title "Ledger" --body "echo x | pnpm exec seasoned-skills ledger progress --as orchestrator is refused"',
       )
       passes('echo "pnpm exec seasoned-skills ledger finding --as reviewer"')
-      passes(
-        lines(
-          "gh pr comment 12 --body-file - <<'EOF'",
-          'Refused: $(echo x | pnpm exec seasoned-skills ledger progress --as orchestrator)',
-          'EOF',
-        ),
-      )
-      passes(
-        lines(
-          'cat <<EOF',
-          'Refused: \\$(echo x | pnpm exec seasoned-skills ledger progress --as orchestrator)',
-          'EOF',
-        ),
-      )
+    })
+
+    it('a write after an unquoted heredoc whose body holds a stray backtick', () => {
+      passes(lines('cat <<EOF > notes.md', 'use `foo', 'EOF', progress('Some text.')))
     })
 
     it('help on a write command', () => {
@@ -213,6 +203,25 @@ describe('the ledger write guard', () => {
         `result=$(${progress('Pushed.')}\n)`,
         'something follows the ledger write',
       )
+      refusedWith(
+        lines(
+          "notes=`pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+          'Pushed.',
+          'ENTRY`',
+          'gh pr merge 12',
+          'ENTRY',
+        ),
+        'something follows the ledger write',
+      )
+      refusedWith(
+        lines(
+          "notes=$(pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+          'Next: 1) push',
+          'gh pr merge 12',
+          'ENTRY',
+        ),
+        'something follows the ledger write',
+      )
     })
 
     it("text that does not arrive through <<'ENTRY'", () => {
@@ -271,15 +280,16 @@ describe('the ledger write guard', () => {
       refusedWith(lines('cat <<-EOF', '\tnotes', '\tEOF', unquotedProgress), reason)
     })
 
-    it("text that does not arrive through <<'ENTRY', in an unquoted heredoc's substitution", () => {
-      refusedWith(
-        lines(
-          'cat <<EOF',
-          'Notes: $(echo "Pushed $(git rev-parse HEAD)" | pnpm exec seasoned-skills ledger progress --as orchestrator)',
-          'EOF',
-        ),
-        "the entry's text must arrive through <<'ENTRY'",
-      )
+    it("text that does not arrive through <<'ENTRY', after a quote or a comment inside backticks", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(`echo \`echo it's\` ; ${unquotedProgress}`, reason)
+      refusedWith(`echo \`true # notes\` ; ${unquotedProgress}`, reason)
+    })
+
+    it("text that does not arrive through <<'ENTRY', after a heredoc opened inside a substitution", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(lines('notes=$(cat <<EOF)', unquotedProgress, 'EOF'), reason)
+      refusedWith(lines('notes=`cat <<EOF`', unquotedProgress, 'EOF'), reason)
     })
 
     it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
@@ -396,16 +406,15 @@ describe('the ledger write guard', () => {
         ),
         'never closes',
       )
-      refusedWith(
-        lines(
-          "notes=`pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
-          'Pushed.',
-          'ENTRY`',
-          'gh pr merge 12',
-          'ENTRY',
-        ),
-        'never closes',
-      )
+    })
+
+    it('an entry whose heredoc opens inside a substitution that ends on its line', () => {
+      for (const write of [
+        "notes=$(pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY')",
+        "notes=`pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'`",
+      ]) {
+        refusedWith(lines(write, 'gh pr merge 12', 'ENTRY'), 'never closes')
+      }
     })
 
     it('a source holding a backtick or a $ outside single quotes', () => {
@@ -522,6 +531,52 @@ describe('the stash hook', () => {
     refused(lines("cat > notes.sh <<'EOF'", 'git stash pop', 'EOF'))
     refused(
       lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
+    )
+  })
+
+  it('sees a git stash after a heredoc body that holds a stray backtick', () => {
+    refused(
+      lines(
+        'cat <<EOF',
+        "odd ` pnpm exec seasoned-skills ledger progress --as o <<'ENTRY'",
+        'EOF',
+        'git stash',
+        'ENTRY',
+      ),
+    )
+  })
+
+  it('sees a git stash after a heredoc opened inside a substitution that ends on its line', () => {
+    for (const write of [
+      "notes=$(pnpm exec seasoned-skills ledger progress --as o <<'ENTRY')",
+      "notes=$((pnpm exec seasoned-skills ledger progress --as o <<'ENTRY') )",
+      "notes=`pnpm exec seasoned-skills ledger progress --as o <<'ENTRY'`",
+      "cat <(pnpm exec seasoned-skills ledger progress --as o <<'ENTRY')",
+    ]) {
+      refused(lines(write, 'git stash', 'ENTRY'))
+    }
+  })
+
+  it('reads the entry of a write inside a substitution, which a shell may end early', () => {
+    refused(
+      lines(
+        "notes=$(pnpm exec seasoned-skills ledger progress --as o <<'ENTRY'",
+        'Next: 1) push',
+        'git stash',
+        'ENTRY',
+        ')',
+      ),
+    )
+  })
+
+  it('sees a git stash past a quote inside backticks', () => {
+    refused(
+      lines(
+        "echo `echo '` x' ; pnpm exec seasoned-skills ledger progress --as o <<'ENTRY'",
+        "'",
+        'git stash',
+        'ENTRY',
+      ),
     )
   })
 
