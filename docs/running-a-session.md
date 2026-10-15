@@ -35,31 +35,35 @@ the building to), once the context reaches around 300,000 tokens — a
 little under a third of the window.
 
 What happens next needs nobody in the room either. A compacted session's
-memory of the effort is a summary, and summaries drift, so the
-orchestrator's standing instructions send it straight back to its ledger
-before it takes another step. The ledger is the file where the effort's
-durable facts and lessons live, kept current at every moment precisely
-because compaction can land at any point. From there the orchestrator
-checks what it remembers against the real sources of truth (the
-codebase, the pull requests, the shaping document), and where the
-summary and the sources disagree, the sources win.
+memory of the effort is a summary, and summaries drift: the paraphrase
+of a decision quietly becomes the decision. So the moment a compaction
+lands, a hook (a small script Claude Code runs on its own at set
+moments) puts the decisions still in force back in front of the
+orchestrator, word for word, before it takes another step. They come
+from the ledger, the record where the session writes down what you
+decided, what it learned about the product, and where the work stands,
+each entry as it happens, because compaction can land at any point.
+From there the orchestrator checks what it remembers against the real
+sources of truth (the codebase, the pull requests, the shaping
+document), and where the summary and the sources disagree, the sources
+win. When a question comes back that the session already answered, it
+searches the ledger instead of researching it again.
 
 Claude Code gives every session a scratch directory of its own, but it
 lives under `/tmp`, and the operating system empties that on a reboot
 and clears out files nobody has touched for a few days. A session that
-loses its ledger halfway through a long effort loses the record it
-recovers from. So the ledger, and everything else the session writes
-(its notes, its logs, the instructions it hands its helpers), lives in a
-folder named after the id Claude Code gives each session, under
-`.sessions/` in your main checkout (the copy of the repository you
-cloned, which every worktree branches from). That folder stays for as
-long as Claude Code keeps the session's transcript, the saved
-conversation a session resumes from, so a session you resume weeks later
-still finds its ledger, and the folder is removed once Claude Code has
-deleted that transcript. A folder that never found its transcript stays
-until you delete it. Browser logins are the one thing left in Claude
-Code's directory, because their cookies must never land inside a
-checkout.
+loses its files halfway through a long effort loses what it was working
+from. So the ledger, and everything else the session writes (its notes,
+its logs, the instructions it hands its helpers), lives in a folder
+named after the id Claude Code gives each session, under `.sessions/` in
+your main checkout (the copy of the repository you cloned, which every
+worktree branches from). That folder stays for as long as Claude Code
+keeps the session's transcript, the saved conversation a session resumes
+from, so a session you resume weeks later still finds its ledger, and
+the folder is removed once Claude Code has deleted that transcript. A
+folder that never found its transcript stays until you delete it.
+Browser logins are the one thing left in Claude Code's directory,
+because their cookies must never land inside a checkout.
 
 The status line at the bottom of the session shows a context bar:
 green while the context is under a quarter full, yellow up to a third,
@@ -67,6 +71,38 @@ red beyond. Automatic compaction should already have fired at around 30
 percent, so a red bar means it did not: compact by hand with `/compact`.
 Don't let it wait. A questionnaire sits patiently until you answer it,
 but a red context bar degrades the work while it sits.
+
+## Reading the ledger yourself
+
+The ledger is a database, but it's yours to read as plain text whenever
+you like. From a terminal in your main checkout, print a session's whole
+record, in order, with the real time of every entry:
+
+```bash
+pnpm exec seasoned-skills ledger print --session <session id>
+```
+
+The session id is the name of the session's folder under `.sessions/`.
+The other reads take it the same way. `ledger` on its own shows only
+what still applies: the decisions in force, the latest progress, and a
+count of the findings, the things the session learned about the product.
+`ledger search` finds any entry by a few of its words, and `ledger show`
+prints one entry in full:
+
+```bash
+pnpm exec seasoned-skills ledger --session <session id>
+pnpm exec seasoned-skills ledger search <words> --session <session id>
+pnpm exec seasoned-skills ledger show <number> --session <session id>
+```
+
+Nothing in the record is ever edited, so a decision you changed is still
+there, marked with the entry that replaced it, and you can follow it
+from your first ruling to your last.
+
+A session that was already running when your project upgraded to the
+ledger database keeps its old ledger, a markdown file, right where it
+was. It stays there to read as history, and every new entry goes to the
+database.
 
 ## The first watch: usage limits
 
