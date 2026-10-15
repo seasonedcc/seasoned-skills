@@ -298,6 +298,36 @@ describe('the ledger record', () => {
       )
     })
 
+    it('accepts only the three kinds', () => {
+      expect(insert('decided_by', `'note', 'x', 'orchestrator', NULL`)).toThrow(
+        /CHECK constraint failed/,
+      )
+    })
+
+    it('accepts only the person or the agent as who decided', () => {
+      expect(
+        insert('decided_by', `'decision', 'x', 'orchestrator', 'committee'`),
+      ).toThrow(/CHECK constraint failed/)
+    })
+
+    const blank = "' \t\n\r'"
+
+    for (const [what, columns, values] of [
+      ['text', 'source', `'progress', ${blank}, 'orchestrator', NULL`],
+      ['writer', 'source', `'progress', 'x', ${blank}, NULL`],
+      ['source', 'source', `'finding', 'x', 'researcher', ${blank}`],
+    ]) {
+      it(`refuses a blank ${what}`, () => {
+        expect(insert(columns, values)).toThrow(/CHECK constraint failed/)
+      })
+    }
+
+    it('declares that a replacement refers to an entry', () => {
+      expect(database.prepare(`PRAGMA foreign_key_list('entries')`).all()).toEqual([
+        expect.objectContaining({ table: 'entries', from: 'replaces', to: 'id' }),
+      ])
+    })
+
     it('lists the latest progress newest first, with the total', () => {
       for (const step of ['one', 'two', 'three']) progress(step)
       const latest = latestProgress(database, 2)
