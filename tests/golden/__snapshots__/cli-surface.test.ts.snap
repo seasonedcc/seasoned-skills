@@ -35,6 +35,36 @@ exports[`CLI surface > matches the pinned command surface 1`] = `
       "description": "List what sessions leave behind — automated browsers, processes running from inside provisioning lanes, or session folders whose transcript Claude Code no longer keeps. With --kill, kill the processes this session may: its own and those of ended sessions, never another live session's or an unmarked process. With --remove, remove the expired session folders.",
       "name": "sweep",
     },
+    {
+      "commands": [
+        {
+          "description": "Record something that now governs the work, with its text on stdin through <<'ENTRY'. The orchestrator's alone.",
+          "name": "decision",
+        },
+        {
+          "description": "Record something learned about the product, with where it came from, with its text on stdin through <<'ENTRY'. Any writer, subagents included.",
+          "name": "finding",
+        },
+        {
+          "description": "Record where the work stands, once its result has been read, with its text on stdin through <<'ENTRY'. The orchestrator's alone.",
+          "name": "progress",
+        },
+        {
+          "description": "Search every entry, in force or not, for any of the words: the best 20 matches, ordered by how many of the words each matches, then newest first.",
+          "name": "search",
+        },
+        {
+          "description": "Print one entry whole, with its source and its line of replacements both ways.",
+          "name": "show",
+        },
+        {
+          "description": "Print the whole record as plain text, oldest first, each replaced entry saying what replaced it.",
+          "name": "print",
+        },
+      ],
+      "description": "Keep this Claude Code session's ledger: a record in the session folder that accepts new entries — decisions, findings, and progress — and refuses every edit and every delete. On its own it prints what is in force: the decisions no later entry replaced, the latest progress, and a count of the findings.",
+      "name": "ledger",
+    },
   ],
   "name": "seasoned-skills",
 }
