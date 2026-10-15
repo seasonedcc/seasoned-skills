@@ -70,6 +70,21 @@ describe('the ledger record', () => {
     reopened?.close()
   })
 
+  it('finds no record while the first write is still creating its schema', async () => {
+    const fresh = join(directory, 'fresh.db')
+    const { DatabaseSync } = await import('node:sqlite')
+    const firstWrite = new DatabaseSync(fresh)
+    firstWrite.exec('PRAGMA journal_mode = WAL')
+    firstWrite.exec('BEGIN IMMEDIATE')
+    firstWrite.exec('CREATE TABLE entries (id integer PRIMARY KEY)')
+    try {
+      expect(await openExistingRecord(fresh)).toBeUndefined()
+    } finally {
+      firstWrite.exec('ROLLBACK')
+      firstWrite.close()
+    }
+  })
+
   it('keeps its entries in one STRICT table, whose integer primary key is its only unique constraint', () => {
     expect(database.prepare(`PRAGMA table_list('entries')`).get()).toMatchObject({
       strict: 1,
@@ -375,11 +390,13 @@ describe('the ledger record', () => {
       finding('this or that')
       finding('nothing else here')
       finding('a "quoted" word')
+      finding('they say"hello')
       expect(searched('node:sqlite')).toEqual(['node:sqlite needs Node 22.13'])
       expect(searched('#418')).toEqual(['issue #418 ran four commands'])
       expect(searched('busy-timeout')).toEqual(['a busy-timeout pragma'])
       expect(searched('OR')).toEqual(['this or that'])
       expect(searched('"quoted"')).toEqual(['a "quoted" word'])
+      expect(searched('say"hello')).toEqual(['they say"hello'])
       expect(searched('-', '#', 'AND', 'NOT', '*')).toEqual([])
     })
 
@@ -438,6 +455,70 @@ describe('the ledger record', () => {
           .all(),
       ).toEqual([])
       expect(searched('record')).toEqual(['the record survives'])
+    })
+
+    it('puts the busy timeout back after its check, whether the check ran or met a held write', async () => {
+      finding('the record survives')
+      const busyTimeout = () => database.prepare('PRAGMA busy_timeout').get()
+      expect(searched('record')).toEqual(['the record survives'])
+      expect(busyTimeout()).toEqual({ timeout: 5000 })
+      const holder = await openRecord(path)
+      holder.exec('BEGIN IMMEDIATE')
+      try {
+        expect(searched('record')).toEqual(['the record survives'])
+        expect(busyTimeout()).toEqual({ timeout: 5000 })
+      } finally {
+        holder.exec('ROLLBACK')
+        holder.close()
+      }
+    })
+
+    it('fails when its check fails for any reason but a held write', async () => {
+      finding('the record survives')
+      const { DatabaseSync } = await import('node:sqlite')
+      const readOnly = new DatabaseSync(path, { readOnly: true })
+      try {
+        expect(() => searchEntries(readOnly, ['record'])).toThrow(
+          'attempt to write a readonly database',
+        )
+      } finally {
+        readOnly.close()
+      }
+    })
+
+    it('rebuilds an emptied index before a writer arriving the moment its check fails can write', async ({
+      onTestFinished,
+    }) => {
+      finding('the record survives')
+      database.exec(`INSERT INTO entries_search (entries_search) VALUES ('delete-all')`)
+      const writer = await openRecord(path)
+      onTestFinished(() => writer.close())
+      writer.exec('PRAGMA busy_timeout = 0')
+      let writerArrived = false
+      let writerGotIn = false
+      const { DatabaseSync } = await import('node:sqlite')
+      const exec = DatabaseSync.prototype.exec
+      const arrivesWhenTheCheckFails = vi
+        .spyOn(DatabaseSync.prototype, 'exec')
+        .mockImplementation(function (this: DatabaseSync, sql: string) {
+          try {
+            return exec.call(this, sql)
+          } catch (error) {
+            if (sql.includes('integrity-check')) {
+              writerArrived = true
+              try {
+                exec.call(writer, 'BEGIN IMMEDIATE')
+                writerGotIn = true
+              } catch {}
+            }
+            throw error
+          }
+        })
+      onTestFinished(() => arrivesWhenTheCheckFails.mockRestore())
+      const found = searched('record')
+      if (writerGotIn) exec.call(writer, 'ROLLBACK')
+      expect(writerArrived).toBe(true)
+      expect(found).toEqual(['the record survives'])
     })
   })
 

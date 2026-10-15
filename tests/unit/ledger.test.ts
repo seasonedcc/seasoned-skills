@@ -63,6 +63,16 @@ try {
 } catch {}
 `)}`
 
+/**
+ * Preloaded into the package's binary: once the command has run, it raises a
+ * warning of its own, long after the binary has put its warning filter in place.
+ */
+const warningOnceTheCommandHasRun = `data:text/javascript,${encodeURIComponent(`
+process.once('beforeExit', () =>
+  process.emitWarning('Raised once the command has run.', 'ProbeWarning'),
+)
+`)}`
+
 function run(...args: string[]) {
   return buildProgram().parseAsync(args, { from: 'user' })
 }
@@ -423,6 +433,23 @@ describe('the ledger commands', () => {
         })
         expect(result).toMatchObject({ status: 0, stderr: '' })
       }
+    })
+
+    it("prints every other warning through the package's binary", {
+      timeout: 60_000,
+    }, () => {
+      const result = spawnSync(
+        process.execPath,
+        ['--import', warningOnceTheCommandHasRun, packageBinary, 'ledger', 'print'],
+        {
+          cwd: root,
+          encoding: 'utf8',
+          env: { ...process.env, NODE_OPTIONS: '', NODE_NO_WARNINGS: '' },
+        },
+      )
+      expect(result.status).toBe(0)
+      expect(result.stderr).toContain('ProbeWarning: Raised once the command has run.')
+      expect(result.stderr).not.toContain('SQLite')
     })
   })
 
