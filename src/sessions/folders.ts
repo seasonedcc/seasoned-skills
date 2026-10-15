@@ -111,15 +111,10 @@ function holdsTranscript(projectsDirectory: string, sessionId: string) {
 }
 
 /**
- * This session's folder in the main checkout, created when missing. When a
- * project directory holds the session's transcript, the folder records the
- * projects directory, which is all the sweep needs to tell when it is gone.
+ * The session id Claude Code sets for every command it runs, refused when it
+ * is missing or is not a session id.
  */
-function sessionFolder(
-  projectDirectory: string,
-  sessionId: string | undefined,
-  projectsDirectory: string,
-) {
+function claudeCodeSessionId(sessionId: string | undefined) {
   if (sessionId === undefined || sessionId === '') {
     throw new Error(
       'CLAUDE_CODE_SESSION_ID is not set — a session folder belongs to a Claude Code session, so ask for it from inside one.',
@@ -130,10 +125,38 @@ function sessionFolder(
       `CLAUDE_CODE_SESSION_ID ${JSON.stringify(sessionId)} is not a Claude Code session id, so no folder is named after it.`,
     )
   }
-  const path = join(sessionsDirectoryOf(projectDirectory), sessionId)
+  return sessionId
+}
+
+/**
+ * Where a session's folder sits in the main checkout, whether or not it
+ * exists yet. Nothing is created, and a value that is not a session id never
+ * names a path.
+ */
+function sessionFolderPath(projectDirectory: string, sessionId: string) {
+  if (!SESSION_ID.test(sessionId)) {
+    throw new Error(
+      `${JSON.stringify(sessionId)} is not a Claude Code session id, so no session folder is named after it.`,
+    )
+  }
+  return join(sessionsDirectoryOf(projectDirectory), sessionId)
+}
+
+/**
+ * This session's folder in the main checkout, created when missing. When a
+ * project directory holds the session's transcript, the folder records the
+ * projects directory, which is all the sweep needs to tell when it is gone.
+ */
+function sessionFolder(
+  projectDirectory: string,
+  sessionId: string | undefined,
+  projectsDirectory: string,
+) {
+  const id = claudeCodeSessionId(sessionId)
+  const path = sessionFolderPath(projectDirectory, id)
   mkdirSync(path, { recursive: true })
   const record = join(path, PROJECTS_RECORD)
-  if (holdsTranscript(projectsDirectory, sessionId)) {
+  if (holdsTranscript(projectsDirectory, id)) {
     writeFileSync(record, `${projectsDirectory}\n`)
   }
   return { path, recorded: existsSync(record) }
@@ -231,8 +254,10 @@ function removeExpiredSessionFolders(projectDirectory: string) {
 
 export type { KeptSessionFolder, SessionFolder, SessionFolderListing }
 export {
+  claudeCodeSessionId,
   claudeProjectsDirectory,
   listSessionFolders,
   removeExpiredSessionFolders,
   sessionFolder,
+  sessionFolderPath,
 }
