@@ -380,6 +380,15 @@ describe('the ledger record', () => {
       expect(matches[0]?.body).toBe('match number 24')
     })
 
+    it('indexes each entry as it is written, before any search', () => {
+      const learned = finding('indexed on arrival', { source: 'a probe' })
+      const indexed = database.prepare(
+        'SELECT rowid FROM entries_search WHERE entries_search MATCH ?',
+      )
+      expect(indexed.all('arrival')).toEqual([{ rowid: learned.id }])
+      expect(indexed.all('probe')).toEqual([{ rowid: learned.id }])
+    })
+
     it('rebuilds an index a stray command emptied before it searches', () => {
       finding('the record survives')
       database.exec(`INSERT INTO entries_search (entries_search) VALUES ('delete-all')`)
