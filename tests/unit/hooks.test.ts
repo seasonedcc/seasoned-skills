@@ -347,7 +347,7 @@ describe('the stash hook', () => {
     )
     refused(
       lines(
-        ": ${x:-'}'} A'; pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+        `: \${x:-'}'} A'; pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'`,
         "'; git stash #",
         'ENTRY',
       ),
