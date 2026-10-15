@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import {
   existsSync,
   mkdirSync,
@@ -30,6 +30,10 @@ const typescriptSourceLoader = fileURLToPath(
 )
 
 const packageManifest = fileURLToPath(new URL('../../package.json', import.meta.url))
+
+const packageBinary = fileURLToPath(
+  new URL('../../bin/seasoned-skills.js', import.meta.url),
+)
 
 /**
  * Preloaded into a child command line: on file descriptor 3 it says
@@ -405,6 +409,20 @@ describe('the ledger commands', () => {
       const results = await Promise.all(writers)
       expect(results.map((result) => result.stderr)).toEqual(['', '', '', ''])
       expect(results.map((result) => result.code)).toEqual([0, 0, 0, 0])
+    })
+
+    it("prints nothing on standard error through the package's binary, on Node 22 too", {
+      timeout: 60_000,
+    }, () => {
+      for (const args of [['progress', '--as', 'orchestrator'], ['print']]) {
+        const result = spawnSync(process.execPath, [packageBinary, 'ledger', ...args], {
+          cwd: root,
+          input: 'Launched.\n',
+          encoding: 'utf8',
+          env: { ...process.env, NODE_OPTIONS: '', NODE_NO_WARNINGS: '' },
+        })
+        expect(result).toMatchObject({ status: 0, stderr: '' })
+      }
     })
   })
 
