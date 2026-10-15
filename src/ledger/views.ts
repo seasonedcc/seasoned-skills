@@ -169,6 +169,8 @@ function entryHeader(entry: Entry) {
     ...(entry.decidedBy === null ? [] : [`Decided by the ${entry.decidedBy}`]),
     `Written by ${entry.writtenBy}`,
     ...(entry.source === null ? [] : [`Source: ${entry.source}`]),
+    ...(entry.replaces === null ? [] : [`Replaces #${entry.replaces}`]),
+    ...(entry.replacedBy === null ? [] : [`Replaced by #${entry.replacedBy}`]),
   ]
 }
 
@@ -188,13 +190,7 @@ function entryReport(entry: Entry, line: number[]) {
 /** The whole record, oldest first, as plain text a person can read end to end or keep. */
 function recordText(sessionId: string, entries: Entry[]) {
   const blocks = entries.map((entry) =>
-    [
-      ...entryHeader(entry),
-      ...(entry.replaces === null ? [] : [`Replaces #${entry.replaces}`]),
-      ...(entry.replacedBy === null ? [] : [`Replaced by #${entry.replacedBy}`]),
-      '',
-      entry.body,
-    ].join('\n'),
+    [...entryHeader(entry), '', entry.body].join('\n'),
   )
   return [
     `Ledger of session ${sessionId}: ${counted(entries.length, 'entry', 'entries')}, oldest first`,

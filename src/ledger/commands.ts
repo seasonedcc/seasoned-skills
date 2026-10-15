@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
+import { text } from 'node:stream/consumers'
 import type { Command } from 'commander'
 import {
   claudeCodeSessionId,
@@ -14,6 +14,7 @@ import {
   entryById,
   findingCounts,
   latestProgress,
+  loadSqlite,
   type NewEntry,
   openExistingRecord,
   openRecord,
@@ -50,9 +51,13 @@ function refuse(message: string): never {
   throw new Error(message)
 }
 
-/** Run a ledger command, printing why it cannot when it cannot. */
+/**
+ * Run a ledger command, printing why it cannot when it cannot. A Node whose
+ * SQLite cannot hold the ledger is refused before anything is created.
+ */
 async function reporting(work: () => Promise<void>) {
   try {
+    await loadSqlite()
     await work()
   } catch (error) {
     console.error((error as Error).message)
@@ -60,16 +65,26 @@ async function reporting(work: () => Promise<void>) {
   }
 }
 
+/**
+ * Everything standard input carries, waiting for what is still on its way.
+ * It is read as a stream: importing Commander has already made a piped
+ * standard input non-blocking, so a synchronous read fails when the writer
+ * is slower than the command.
+ */
+function standardInput() {
+  return text(process.stdin)
+}
+
 /** The entry's text from standard input, less the one trailing newline a heredoc adds. */
-function entryText() {
+async function entryText() {
   if (process.stdin.isTTY) {
     refuse(
       `The entry's text comes on standard input, through a quoted heredoc: ${HEREDOC}.`,
     )
   }
-  const text = readFileSync(0, 'utf8')
-  if (text.trim() === '') refuse(`The entry has no text: ${HEREDOC}.`)
-  return text.endsWith('\n') ? text.slice(0, -1) : text
+  const written = await standardInput()
+  if (written.trim() === '') refuse(`The entry has no text: ${HEREDOC}.`)
+  return written.endsWith('\n') ? written.slice(0, -1) : written
 }
 
 function writer(options: WriteOptions) {
@@ -175,16 +190,16 @@ function inForce(database: DatabaseSync) {
 }
 
 /** The session the compaction hook's payload names, or nothing. */
-function hookSession() {
+async function hookSession() {
   if (process.stdin.isTTY) return undefined
-  const payload = JSON.parse(readFileSync(0, 'utf8')) as { session_id?: unknown }
+  const payload = JSON.parse(await standardInput()) as { session_id?: unknown }
   return typeof payload.session_id === 'string' ? payload.session_id : undefined
 }
 
 /** The compaction hook: the fitted in-force view, or nothing. Never fails. */
 async function runHook() {
   try {
-    const sessionId = hookSession()
+    const sessionId = await hookSession()
     if (sessionId === undefined) return
     const database = await openExistingRecord(recordPathOf(sessionId))
     if (database === undefined) return
@@ -240,7 +255,7 @@ function declareLedger(program: Command) {
         }
         await write({
           kind: 'decision',
-          body: entryText(),
+          body: await entryText(),
           writtenBy,
           decidedBy,
           ...replaced(options),
@@ -274,7 +289,7 @@ function declareLedger(program: Command) {
         }
         await write({
           kind: 'finding',
-          body: entryText(),
+          body: await entryText(),
           writtenBy,
           source,
           ...replaced(options),
@@ -292,7 +307,7 @@ function declareLedger(program: Command) {
       await reporting(async () => {
         refuseLedgerOptions(ledger)
         const writtenBy = orchestratorOnly(options, 'progress')
-        await write({ kind: 'progress', body: entryText(), writtenBy })
+        await write({ kind: 'progress', body: await entryText(), writtenBy })
       })
     })
 

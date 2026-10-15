@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
+import { setTimeout as delay } from 'node:timers/promises'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   allEntries,
@@ -82,6 +83,20 @@ describe('the ledger record', () => {
     reader?.close()
   })
 
+  it('waits out a write lock another connection holds on a new record', async () => {
+    const fresh = join(directory, 'fresh.db')
+    const { DatabaseSync } = await import('node:sqlite')
+    const holder = new DatabaseSync(fresh)
+    holder.exec('BEGIN IMMEDIATE')
+    const opening = openRecord(fresh)
+    await delay(200)
+    holder.exec('COMMIT')
+    holder.close()
+    const opened = await opening
+    expect(opened.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' })
+    opened.close()
+  })
+
   it("stamps each entry with the database's own clock, in UTC", () => {
     const before = Math.floor(Date.now() / 1000) * 1000
     const entry = progress('Launched the build.')
@@ -105,7 +120,7 @@ describe('the ledger record', () => {
       finding('The sweep removes whole folders.')
     })
 
-    function refusedWithoutChange(statement: string, message: RegExp) {
+    function refusedWithoutChange(statement: string, message: string) {
       const before = allEntries(database)
       expect(() => database.exec(statement)).toThrow(message)
       expect(allEntries(database)).toEqual(before)
@@ -114,7 +129,7 @@ describe('the ledger record', () => {
     it('refuses an edit', () => {
       refusedWithoutChange(
         `UPDATE entries SET body = 'rewritten' WHERE id = 1`,
-        /Ledger entries are never edited: #1 stays exactly as it was written/,
+        'Ledger entries are never edited: each one stays exactly as it was written. Record a new entry instead.',
       )
     })
 
@@ -123,19 +138,30 @@ describe('the ledger record', () => {
         `INSERT INTO entries (id, kind, body, decided_by, written_by)
          VALUES (1, 'decision', 'rewritten', 'agent', 'orchestrator')
          ON CONFLICT (id) DO UPDATE SET body = excluded.body`,
-        /Ledger entries are never overwritten: #1/,
+        'Ledger entries are never overwritten: each one stays exactly as it was written.',
       )
     })
 
     it('refuses a delete', () => {
       refusedWithoutChange(
         'DELETE FROM entries WHERE id = 2',
-        /Ledger entries are never deleted: #2 stays exactly as it was written/,
+        'Ledger entries are never deleted: each one stays exactly as it was written.',
       )
     })
 
     it('refuses a whole-table delete', () => {
-      refusedWithoutChange('DELETE FROM entries', /Ledger entries are never deleted/)
+      refusedWithoutChange('DELETE FROM entries', 'Ledger entries are never deleted')
+    })
+
+    it('gives every refusal a constant message, which SQLite before 3.47 can read', () => {
+      const triggers = database
+        .prepare(`SELECT sql FROM sqlite_schema WHERE type = 'trigger'`)
+        .all() as { sql: string }[]
+      const schema = triggers.map(({ sql }) => sql).join('\n')
+      const refusals = schema.match(/RAISE\s*\(/g) ?? []
+      const constantRefusals = schema.match(/RAISE\(ABORT, '[^']+'\)/g) ?? []
+      expect(refusals.length).toBeGreaterThan(0)
+      expect(constantRefusals).toHaveLength(refusals.length)
     })
 
     it('refuses INSERT OR REPLACE and REPLACE INTO', () => {
@@ -143,7 +169,7 @@ describe('the ledger record', () => {
         refusedWithoutChange(
           `${verb} INTO entries (id, kind, body, decided_by, written_by)
            VALUES (1, 'decision', 'swapped', 'agent', 'orchestrator')`,
-          /Ledger entries are never overwritten: #1/,
+          'Ledger entries are never overwritten',
         )
       }
     })
@@ -153,7 +179,7 @@ describe('the ledger record', () => {
     it('refuses to replace progress', () => {
       const launched = progress('Launched the build.')
       expect(() => finding('Wrong.', { replaces: launched.id })).toThrow(
-        `#${launched.id} is progress, and progress is never replaced.`,
+        'That entry is progress, and progress is never replaced.',
       )
     })
 
@@ -170,22 +196,34 @@ describe('the ledger record', () => {
     it('refuses to replace an entry of another kind', () => {
       const learned = finding('A fact.')
       expect(() => decision('A rule.', learned.id)).toThrow(
-        `#${learned.id} is a finding, and a decision replaces only a decision.`,
+        'A decision replaces only a decision, and a finding only a finding.',
       )
     })
 
     it('refuses to replace an entry that does not exist yet', () => {
       decision('A rule.')
       expect(() => decision('Another rule.', 2)).toThrow(
-        'There is no entry #2 to replace.',
+        'There is no entry by that number to replace.',
       )
     })
 
-    it('refuses to replace an entry something already replaced', () => {
+    it('refuses to replace an entry something already replaced, naming the one to replace', () => {
       const first = decision('Use a file.')
       const second = decision('Use a database.', first.id)
       expect(() => decision('Use both.', first.id)).toThrow(
-        `#${first.id} was already replaced by #${second.id}: replace #${second.id} instead.`,
+        `#${first.id} was already replaced: replace #${second.id}, which is in force in its place.`,
+      )
+      const third = decision('Use SQLite.', second.id)
+      expect(() => decision('Use both.', first.id)).toThrow(
+        `#${first.id} was already replaced: replace #${third.id}, which is in force in its place.`,
+      )
+      expect(() =>
+        database.exec(
+          `INSERT INTO entries (kind, body, decided_by, written_by, replaces)
+           VALUES ('decision', 'By hand.', 'person', 'someone', ${first.id})`,
+        ),
+      ).toThrow(
+        'That entry was already replaced: replace the entry in force in its place instead.',
       )
     })
 

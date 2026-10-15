@@ -41,7 +41,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.16.0"
   },
   "packageManager": "pnpm@10.34.5",
   "scripts": {

@@ -11,19 +11,12 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Readable } from 'node:stream'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
 import { openRecord, writeEntry } from '../../src/ledger/record.js'
-
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>()
-  return { ...actual, readFileSync: vi.fn(actual.readFileSync) }
-})
-
-const { readFileSync: realReadFileSync } =
-  await vi.importActual<typeof import('node:fs')>('node:fs')
 
 const SESSION = '11111111-1111-4111-8111-111111111111'
 
@@ -55,11 +48,14 @@ function complaints() {
     .join('\n')
 }
 
-/** Standard input as a heredoc delivers it. */
-function stdin(text: string) {
-  vi.mocked(readFileSync).mockImplementation((path, options) =>
-    path === 0 ? text : realReadFileSync(path, options as BufferEncoding),
-  )
+const realStdin = Object.getOwnPropertyDescriptor(process, 'stdin') as PropertyDescriptor
+
+/** Standard input as a heredoc delivers it, or as a terminal. */
+function stdin(text: string, terminal = false) {
+  Object.defineProperty(process, 'stdin', {
+    value: Object.assign(Readable.from([text]), { isTTY: terminal }),
+    configurable: true,
+  })
 }
 
 describe('the ledger commands', () => {
@@ -67,14 +63,6 @@ describe('the ledger commands', () => {
   let sessions: string
   let projects: string
   const startDirectory = process.cwd()
-  const terminal = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY')
-
-  function stdinIsTerminal(isTerminal: boolean) {
-    Object.defineProperty(process.stdin, 'isTTY', {
-      value: isTerminal,
-      configurable: true,
-    })
-  }
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'seasoned-skills-ledger-cli-'))
@@ -85,7 +73,7 @@ describe('the ledger commands', () => {
     vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'claude-config'))
     vi.stubEnv('CLAUDE_CODE_SESSION_ID', SESSION)
     vi.stubEnv('TZ', 'America/Sao_Paulo')
-    stdinIsTerminal(false)
+    stdin('')
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -93,12 +81,7 @@ describe('the ledger commands', () => {
   afterEach(() => {
     process.chdir(startDirectory)
     process.exitCode = undefined
-    if (terminal === undefined) {
-      Reflect.deleteProperty(process.stdin, 'isTTY')
-    } else {
-      Object.defineProperty(process.stdin, 'isTTY', terminal)
-    }
-    vi.mocked(readFileSync).mockImplementation(realReadFileSync)
+    Object.defineProperty(process, 'stdin', realStdin)
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
     rmSync(root, { recursive: true, force: true })
@@ -124,6 +107,44 @@ describe('the ledger commands', () => {
   function freshOutput() {
     vi.mocked(console.log).mockClear()
     vi.mocked(console.error).mockClear()
+  }
+
+  /** The real command line in its own process, its standard input arriving after a pause. */
+  function ledgerInChildProcess(args: string[], input: string, pause = 0) {
+    return new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (resolve) => {
+        const child = spawn(
+          process.execPath,
+          [
+            '--experimental-transform-types',
+            '--no-warnings',
+            '--import',
+            typescriptSourceLoader,
+            commandLine,
+            'ledger',
+            ...args,
+          ],
+          { cwd: root, env: { ...process.env } },
+        )
+        let stdout = ''
+        let stderr = ''
+        child.stdout.on('data', (chunk) => {
+          stdout += chunk
+        })
+        child.stderr.on('data', (chunk) => {
+          stderr += chunk
+        })
+        child.on('close', (code) => resolve({ code, stdout: stdout.trim(), stderr }))
+        setTimeout(() => child.stdin.end(input), pause)
+      },
+    )
+  }
+
+  function writeInChildProcess(index: number) {
+    return ledgerInChildProcess(
+      ['finding', '--as', `writer-${index}`, '--source', 'a concurrent test'],
+      `Concurrent write number ${index}.\n`,
+    )
   }
 
   describe('writing', () => {
@@ -159,11 +180,23 @@ describe('the ledger commands', () => {
           "The entry has no text: end the command with <<'ENTRY'",
         )
       }
-      stdinIsTerminal(true)
-      await decide('Never read.\n')
+      stdin('Never read.\n', true)
+      await run('ledger', 'decision', '--as', 'orchestrator', '--by', 'person')
       expect(complaints()).toContain("The entry's text comes on standard input")
       expect(process.exitCode).toBe(1)
       expect(existsSync(recordOf())).toBe(false)
+    })
+
+    it('waits for text that arrives after the command has started', {
+      timeout: 60_000,
+    }, async () => {
+      const result = await ledgerInChildProcess(
+        ['progress', '--as', 'orchestrator'],
+        'Slow text.\n',
+        1500,
+      )
+      expect(result).toMatchObject({ code: 0, stderr: '' })
+      expect(result.stdout).toMatch(/^#1 progress, /)
     })
 
     it('requires a writer on every write', async () => {
@@ -248,7 +281,7 @@ describe('the ledger commands', () => {
     it("passes the database's refusals on as they are", async () => {
       await write('Launched.\n', 'progress', '--as', 'orchestrator')
       await decide('A rule.\n', '--replaces', '1')
-      expect(complaints()).toBe('#1 is progress, and progress is never replaced.')
+      expect(complaints()).toBe('That entry is progress, and progress is never replaced.')
       freshOutput()
       await decide('A rule.\n', '--replaces', 'forty-seven')
       expect(complaints()).toBe("--replaces takes an entry's number, such as 47.")
@@ -316,40 +349,6 @@ describe('the ledger commands', () => {
       expect(results.map((result) => result.stderr)).toEqual(['', '', '', ''])
       expect(results.map((result) => result.code)).toEqual([0, 0, 0, 0])
     })
-
-    function writeInChildProcess(index: number) {
-      return new Promise<{ code: number | null; stdout: string; stderr: string }>(
-        (resolve) => {
-          const child = spawn(
-            process.execPath,
-            [
-              '--experimental-transform-types',
-              '--no-warnings',
-              '--import',
-              typescriptSourceLoader,
-              commandLine,
-              'ledger',
-              'finding',
-              '--as',
-              `writer-${index}`,
-              '--source',
-              'a concurrent test',
-            ],
-            { cwd: root, env: { ...process.env } },
-          )
-          let stdout = ''
-          let stderr = ''
-          child.stdout.on('data', (chunk) => {
-            stdout += chunk
-          })
-          child.stderr.on('data', (chunk) => {
-            stderr += chunk
-          })
-          child.on('close', (code) => resolve({ code, stdout: stdout.trim(), stderr }))
-          child.stdin.end(`Concurrent write number ${index}.\n`)
-        },
-      )
-    }
   })
 
   describe('reading', () => {
@@ -424,6 +423,7 @@ describe('the ledger commands', () => {
       freshOutput()
       await run('ledger', 'show', '1')
       expect(printed()).toMatch(STAMP)
+      expect(printed()).toContain('Replaced by #2')
       expect(printed()).toContain('Replacement line, oldest first: #1 (this entry) → #2')
 
       freshOutput()
@@ -526,6 +526,70 @@ describe('the ledger commands', () => {
     })
   })
 
+  describe('on a Node whose SQLite cannot hold the ledger', () => {
+    const NEEDS_NODE = 'The ledger needs Node 22.16 or later.'
+
+    function withoutSqlite(): never {
+      throw new Error('No such built-in module: node:sqlite')
+    }
+
+    async function withoutFullTextSearch() {
+      const actual = await vi.importActual<typeof import('node:sqlite')>('node:sqlite')
+      class DatabaseSync extends actual.DatabaseSync {
+        exec(sql: string) {
+          if (/\bfts5\b/i.test(sql)) throw new Error('no such module: fts5')
+          super.exec(sql)
+        }
+      }
+      return { ...actual, DatabaseSync }
+    }
+
+    afterEach(() => {
+      vi.doUnmock('node:sqlite')
+    })
+
+    for (const [node, sqlite] of [
+      ['without node:sqlite', withoutSqlite],
+      ['whose node:sqlite lacks FTS5', withoutFullTextSearch],
+    ] as const) {
+      it(`refuses every ledger command on a Node ${node}, creating nothing`, async () => {
+        vi.doMock('node:sqlite', sqlite)
+        for (const args of [
+          ['decision', '--as', 'orchestrator', '--by', 'person'],
+          ['finding', '--as', 'researcher', '--source', 'probe'],
+          ['progress', '--as', 'orchestrator'],
+          [],
+          ['search', 'anything'],
+          ['show', '1'],
+          ['print'],
+        ]) {
+          freshOutput()
+          process.exitCode = undefined
+          await write('Text.\n', ...args)
+          expect(complaints()).toBe(NEEDS_NODE)
+          expect(printed()).toBe('')
+          expect(process.exitCode).toBe(1)
+        }
+        expect(existsSync(sessions)).toBe(false)
+      })
+    }
+
+    it('keeps the compaction hook silent and every other command working', async () => {
+      await decide('The person decided this.\n')
+      freshOutput()
+      vi.doMock('node:sqlite', withoutFullTextSearch)
+      stdin(JSON.stringify({ session_id: SESSION }))
+      await run('ledger', '--hook')
+      expect(printed()).toBe('')
+      vi.doMock('node:sqlite', withoutSqlite)
+      await run('ledger', '--hook')
+      expect(printed()).toBe('')
+      await run('session-folder')
+      expect(printed()).toBe(join(sessions, SESSION))
+      expect(process.exitCode).toBeUndefined()
+    })
+  })
+
   describe('as the compaction hook', () => {
     function hookPayload(payload: string) {
       stdin(payload)
@@ -542,6 +606,46 @@ describe('the ledger commands', () => {
       expect(process.exitCode).toBeUndefined()
     })
 
+    it("fits a view longer than Claude Code's 10,000-character cap under 9,500 characters", async () => {
+      mkdirSync(join(sessions, SESSION), { recursive: true })
+      const database = await openRecord(recordOf())
+      database.exec('BEGIN')
+      for (let index = 0; index < 150; index += 1) {
+        writeEntry(database, {
+          kind: 'decision',
+          body: `Decision number ${index}, ${'worded at some length, '.repeat(3)}`,
+          writtenBy: 'orchestrator',
+          decidedBy: 'person',
+        })
+      }
+      database.exec('COMMIT')
+      database.close()
+      await run('ledger')
+      expect(`${printed()}\n`.length).toBeGreaterThan(10_000)
+
+      freshOutput()
+      await hookPayload(JSON.stringify({ session_id: SESSION }))
+      const hookText = `${printed()}\n`
+      expect(hookText.length).toBeLessThanOrEqual(9_500)
+      expect(hookText).toMatch(
+        /\n\d+ older decisions in force: run `pnpm exec seasoned-skills ledger`\n/,
+      )
+      expect(hookText).toContain('Decision number 149,')
+    })
+
+    it('waits for a payload that arrives after the hook has started', {
+      timeout: 60_000,
+    }, async () => {
+      await decide('The person decided this.\n')
+      const result = await ledgerInChildProcess(
+        ['--hook'],
+        JSON.stringify({ session_id: SESSION }),
+        1500,
+      )
+      expect(result).toMatchObject({ code: 0, stderr: '' })
+      expect(result.stdout).toContain('The person decided this.')
+    })
+
     it('prints nothing and never fails without a record, a valid payload, or a valid id', async () => {
       for (const payload of [
         JSON.stringify({ session_id: SESSION }),
@@ -551,7 +655,7 @@ describe('the ledger commands', () => {
       ]) {
         await hookPayload(payload)
       }
-      stdinIsTerminal(true)
+      stdin('', true)
       await run('ledger', '--hook')
       expect(vi.mocked(console.log)).not.toHaveBeenCalled()
       expect(vi.mocked(console.error)).not.toHaveBeenCalled()

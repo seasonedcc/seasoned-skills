@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import type { DatabaseSync } from 'node:sqlite'
+import { setTimeout as delay } from 'node:timers/promises'
 
 /**
  * The ledger's record: one SQLite database per session, which accepts new
@@ -50,7 +51,14 @@ interface SearchResults {
 
 const SEARCH_LIMIT = 20
 
+const BUSY_TIMEOUT = 5000
+
+const SQLITE_BUSY = 5
+
 const SQLITE_CORRUPT_VTAB = 267
+
+const ALREADY_REPLACED =
+  'That entry was already replaced: replace the entry in force in its place instead.'
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS entries (
@@ -71,20 +79,20 @@ const SCHEMA = `
   CREATE TRIGGER IF NOT EXISTS entries_are_never_edited
   BEFORE UPDATE ON entries
   BEGIN
-    SELECT RAISE(ABORT, 'Ledger entries are never edited: #' || OLD.id || ' stays exactly as it was written. Record a new entry instead.');
+    SELECT RAISE(ABORT, 'Ledger entries are never edited: each one stays exactly as it was written. Record a new entry instead.');
   END;
 
   CREATE TRIGGER IF NOT EXISTS entries_are_never_deleted
   BEFORE DELETE ON entries
   BEGIN
-    SELECT RAISE(ABORT, 'Ledger entries are never deleted: #' || OLD.id || ' stays exactly as it was written.');
+    SELECT RAISE(ABORT, 'Ledger entries are never deleted: each one stays exactly as it was written.');
   END;
 
   CREATE TRIGGER IF NOT EXISTS entries_are_never_overwritten
   BEFORE INSERT ON entries
   WHEN EXISTS (SELECT 1 FROM entries WHERE id = NEW.id)
   BEGIN
-    SELECT RAISE(ABORT, 'Ledger entries are never overwritten: #' || NEW.id || ' stays exactly as it was written.');
+    SELECT RAISE(ABORT, 'Ledger entries are never overwritten: each one stays exactly as it was written.');
   END;
 
   CREATE TRIGGER IF NOT EXISTS replacements_replace_what_is_in_force
@@ -93,16 +101,14 @@ const SCHEMA = `
   BEGIN
     SELECT RAISE(ABORT, 'Progress is never replaced and never replaces anything.')
     WHERE NEW.kind = 'progress';
-    SELECT RAISE(ABORT, 'There is no entry #' || NEW.replaces || ' to replace.')
+    SELECT RAISE(ABORT, 'There is no entry by that number to replace.')
     WHERE NOT EXISTS (SELECT 1 FROM entries WHERE id = NEW.replaces);
-    SELECT RAISE(ABORT, '#' || NEW.replaces || ' is progress, and progress is never replaced.')
+    SELECT RAISE(ABORT, 'That entry is progress, and progress is never replaced.')
     WHERE (SELECT kind FROM entries WHERE id = NEW.replaces) = 'progress';
-    SELECT RAISE(ABORT, '#' || NEW.replaces || ' is a ' || replaced.kind || ', and a ' || NEW.kind || ' replaces only a ' || NEW.kind || '.')
-    FROM entries AS replaced
-    WHERE replaced.id = NEW.replaces AND replaced.kind <> NEW.kind;
-    SELECT RAISE(ABORT, '#' || NEW.replaces || ' was already replaced by #' || later.id || ': replace #' || later.id || ' instead.')
-    FROM entries AS later
-    WHERE later.replaces = NEW.replaces;
+    SELECT RAISE(ABORT, 'A decision replaces only a decision, and a finding only a finding.')
+    WHERE (SELECT kind FROM entries WHERE id = NEW.replaces) <> NEW.kind;
+    SELECT RAISE(ABORT, '${ALREADY_REPLACED}')
+    WHERE EXISTS (SELECT 1 FROM entries WHERE replaces = NEW.replaces);
   END;
 
   CREATE VIEW IF NOT EXISTS entries_in_force AS
@@ -149,19 +155,46 @@ interface EntryRow {
   written_at: string
 }
 
+/**
+ * Node's SQLite, once it is known to hold the search index: before Node 22.13
+ * `node:sqlite` needs a flag, and before 22.16 it comes without FTS5.
+ */
 async function loadSqlite() {
   try {
-    return await import('node:sqlite')
+    const sqlite = await import('node:sqlite')
+    const probe = new sqlite.DatabaseSync(':memory:')
+    try {
+      probe.exec('CREATE VIRTUAL TABLE probe USING fts5 (text)')
+    } finally {
+      probe.close()
+    }
+    return sqlite
   } catch {
-    throw new Error('The ledger needs Node 22.13 or later.')
+    throw new Error('The ledger needs Node 22.16 or later.')
+  }
+}
+
+/**
+ * Switch the record to WAL, where reads never wait for a write. On a new file
+ * the switch does not wait out the busy timeout while another connection holds
+ * a write lock, so it is tried again until the timeout has passed.
+ */
+async function switchToWal(database: DatabaseSync, deadline: number): Promise<void> {
+  try {
+    database.exec('PRAGMA journal_mode = WAL')
+  } catch (error) {
+    if ((error as { errcode?: number }).errcode !== SQLITE_BUSY || Date.now() > deadline)
+      throw error
+    await delay(10)
+    await switchToWal(database, deadline)
   }
 }
 
 async function connect(path: string) {
   const { DatabaseSync } = await loadSqlite()
   const database = new DatabaseSync(path)
-  database.exec('PRAGMA busy_timeout = 5000')
-  database.exec('PRAGMA journal_mode = WAL')
+  database.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT}`)
+  await switchToWal(database, Date.now() + BUSY_TIMEOUT)
   return database
 }
 
@@ -216,23 +249,36 @@ function entriesOf(rows: unknown[]): Entry[] {
   return (rows as EntryRow[]).map(entryOf)
 }
 
-/** Record a new entry, stamped by the database's own clock. */
+/**
+ * Record a new entry, stamped by the database's own clock. Replacing an entry
+ * something already replaced is refused with the number of the one in force
+ * in its place, which is the one to replace.
+ */
 function writeEntry(database: DatabaseSync, entry: NewEntry): Entry {
-  const { id } = database
-    .prepare(
-      `INSERT INTO entries (kind, body, decided_by, source, written_by, replaces)
-       VALUES (?, ?, ?, ?, ?, ?)
-       RETURNING id`,
+  const replaces = entry.kind === 'progress' ? null : (entry.replaces ?? null)
+  try {
+    const { id } = database
+      .prepare(
+        `INSERT INTO entries (kind, body, decided_by, source, written_by, replaces)
+         VALUES (?, ?, ?, ?, ?, ?)
+         RETURNING id`,
+      )
+      .get(
+        entry.kind,
+        entry.body,
+        entry.kind === 'decision' ? entry.decidedBy : null,
+        entry.kind === 'finding' ? entry.source : null,
+        entry.writtenBy,
+        replaces,
+      ) as { id: number }
+    return entryById(database, id) as Entry
+  } catch (error) {
+    if (replaces === null || (error as Error).message !== ALREADY_REPLACED) throw error
+    const inForce = replacementLine(database, replaces).at(-1)
+    throw new Error(
+      `#${replaces} was already replaced: replace #${inForce}, which is in force in its place.`,
     )
-    .get(
-      entry.kind,
-      entry.body,
-      entry.kind === 'decision' ? entry.decidedBy : null,
-      entry.kind === 'finding' ? entry.source : null,
-      entry.writtenBy,
-      entry.kind === 'progress' ? null : (entry.replaces ?? null),
-    ) as { id: number }
-  return entryById(database, id) as Entry
+  }
 }
 
 function entryById(database: DatabaseSync, id: number): Entry | undefined {
@@ -389,6 +435,7 @@ export {
   entryById,
   findingCounts,
   latestProgress,
+  loadSqlite,
   openExistingRecord,
   openRecord,
   replacementLine,

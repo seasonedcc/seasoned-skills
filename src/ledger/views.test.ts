@@ -108,19 +108,23 @@ describe('the ledger views', () => {
     )
   })
 
-  it('prints one entry whole, with its line of replacements both ways', () => {
+  it('prints one entry whole, marked as replaced, with its line of replacements both ways', () => {
     const shown = entry({
       id: 58,
       kind: 'finding',
       writtenBy: 'sqlite-research',
       source: 'node -e on Node 22.22',
       body: 'First line.\nSecond line.',
+      replaces: 40,
+      replacedBy: 64,
     })
     expect(entryReport(shown, [40, 58, 64])).toBe(
       [
         '#58 finding, 2026-10-14 15:12:40 -03:00',
         'Written by sqlite-research',
         'Source: node -e on Node 22.22',
+        'Replaces #40',
+        'Replaced by #64',
         'Replacement line, oldest first: #40 → #58 (this entry) → #64',
         '',
         'First line.\nSecond line.',
