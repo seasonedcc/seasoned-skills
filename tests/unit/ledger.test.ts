@@ -181,7 +181,7 @@ describe('the ledger commands', () => {
     )
   }
 
-  function writeInChildProcess(index: number, onWrite?: () => void) {
+  function writeInChildProcess(index: number, onWrite = () => {}) {
     return commandLineInChildProcess(
       ['ledger', 'finding', '--as', `writer-${index}`, '--source', 'a concurrent test'],
       `Concurrent write number ${index}.\n`,
