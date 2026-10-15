@@ -24,6 +24,7 @@ function runHook(script: string, command: string) {
   const result = spawnSync(join(hooks, script), {
     input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }),
     encoding: 'utf8',
+    timeout: 10_000,
   })
   return { exitCode: result.status, stderr: result.stderr }
 }
@@ -45,6 +46,11 @@ const progress = (text: string, writer = 'orchestrator') =>
     text,
     'ENTRY',
   )
+
+const unquotedProgress = progress('Next: $(gh pr merge 12)').replace(
+  "<<'ENTRY'",
+  '<<ENTRY',
+)
 
 describe('the ledger write guard', () => {
   const refusedWith = (command: string, reason: string) => {
@@ -86,6 +92,16 @@ describe('the ledger write guard', () => {
       )
     })
 
+    it('a write behind a wrapper, or through the command line source', () => {
+      passes(`timeout 30 ${finding}`)
+      passes(
+        finding.replace(
+          'pnpm exec seasoned-skills',
+          'node --experimental-transform-types src/cli/index.ts',
+        ),
+      )
+    })
+
     it('an entry whose text the shell would expand anywhere else', () => {
       passes(
         progress(
@@ -96,6 +112,12 @@ describe('the ledger write guard', () => {
           ),
         ),
       )
+    })
+
+    it('a write after arithmetic, a subshell, or a parameter expansion', () => {
+      passes(lines('for (( i = 0; i < 3; i++ )); do echo "$i"; done', finding))
+      passes(lines('((cd lane && git status); (git log -1))', finding))
+      passes(`echo "\${x:-'}'}" && ${finding}`)
     })
 
     it('a single-quoted source holding a $', () => {
@@ -114,7 +136,13 @@ describe('the ledger write guard', () => {
       passes(
         'gh pr create --title "Ledger" --body "echo x | pnpm exec seasoned-skills ledger progress --as orchestrator is refused"',
       )
-      passes('echo pnpm exec seasoned-skills ledger finding --as reviewer')
+      passes('echo "pnpm exec seasoned-skills ledger finding --as reviewer"')
+    })
+
+    it('help on a write command', () => {
+      passes('pnpm exec seasoned-skills ledger finding --help')
+      passes('pnpm exec seasoned-skills ledger progress -h')
+      passes('pnpm exec seasoned-skills ledger decision --as orchestrator --help')
     })
 
     it('the reads, and every other command', () => {
@@ -124,6 +152,7 @@ describe('the ledger write guard', () => {
         'pnpm exec seasoned-skills ledger show 47 --session 1b2c3d4e-0000-0000-0000-000000000000',
       )
       passes('pnpm exec seasoned-skills ledger print > ledger.txt')
+      passes(lines('# check what is in force', 'pnpm exec seasoned-skills ledger'))
       passes('git status # what changed')
       passes(lines("cat <<'ENTRY'", 'pnpm exec seasoned-skills ledger progress', 'ENTRY'))
     })
@@ -191,6 +220,87 @@ describe('the ledger write guard', () => {
         "pnpm exec seasoned-skills ledger progress --as orchestrator <<< 'Pushed.'",
         reason,
       )
+      refusedWith(
+        progress('Pushed.').replace("<<'ENTRY'", "<<'ENTRY' < note.txt"),
+        reason,
+      )
+      refusedWith(
+        progress('Pushed.').replace("<<'ENTRY'", "< note.txt <<'ENTRY'"),
+        reason,
+      )
+      refusedWith(unquotedProgress.replace('--as orchestrator', '--help'), reason)
+      refusedWith(
+        'echo "Pushed $(git rev-parse HEAD)" | pnpm exec seasoned-skills ledger progress -h',
+        reason,
+      )
+    })
+
+    it("text that does not arrive through <<'ENTRY', however the write is spelled", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      const write = 'pnpm exec seasoned-skills ledger progress --as orchestrator'
+      refusedWith(`NOTES=1 ${write}`, reason)
+      refusedWith(`if ${write} < note.txt; then echo recorded; fi`, reason)
+      refusedWith(`! ${write}`, reason)
+      refusedWith(
+        write.replace('seasoned-skills ledger', 'seasoned-skills -- ledger'),
+        reason,
+      )
+      refusedWith(
+        write.replace(
+          'ledger progress',
+          'ledger --session 1b2c3d4e-0000-0000-0000-000000000000 progress',
+        ),
+        reason,
+      )
+      refusedWith(write.replace('ledger progress', 'ledger \\\n  progress'), reason)
+      refusedWith(lines('cat <<-EOF', '\tnotes', '\tEOF', unquotedProgress), reason)
+    })
+
+    it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(`grep -q "ready$" log && ${unquotedProgress}`, reason)
+      refusedWith(`grep -q "ready$'" log; ${unquotedProgress}`, reason)
+      refusedWith(
+        'grep -q "ready$" log && echo Pushed $(git rev-parse HEAD) | pnpm exec seasoned-skills ledger progress --as orchestrator && echo "done"',
+        reason,
+      )
+    })
+
+    it("text that does not arrive through <<'ENTRY', after arithmetic or a parameter expansion", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(`(( shift = 1 << 3 ))\n${unquotedProgress}`, reason)
+      refusedWith(
+        lines(
+          '(( x = 1 << 3 ))',
+          'echo "$(date)" | pnpm exec seasoned-skills ledger progress --as orchestrator',
+        ),
+        reason,
+      )
+      refusedWith(`: \${x:-'}'}; ${unquotedProgress}`, reason)
+      refusedWith(`echo "\${name:-it's}" && ${unquotedProgress}`, reason)
+      refusedWith(`notes=$((cd /work && ${unquotedProgress}\n) )`, reason)
+      refusedWith(`echo ${'$(('.repeat(40)}\n${unquotedProgress}`, reason)
+    })
+
+    it("text that does not arrive through <<'ENTRY', whatever runs the binary", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      const write = 'pnpm exec seasoned-skills ledger progress --as orchestrator'
+      refusedWith(`timeout 30 ${unquotedProgress}`, reason)
+      refusedWith(`corepack ${unquotedProgress}`, reason)
+      refusedWith(unquotedProgress.replace('pnpm', '$PNPM'), reason)
+      refusedWith(`echo "$(date)" | xargs ${write}`, reason)
+      refusedWith(`timeout 10 ${write} < note.txt`, reason)
+      refusedWith(
+        unquotedProgress.replace(
+          'pnpm exec seasoned-skills',
+          'node --experimental-transform-types src/cli/index.ts',
+        ),
+        reason,
+      )
+      refusedWith(
+        unquotedProgress.replace('pnpm exec seasoned-skills', 'node dist/cli/index.js'),
+        reason,
+      )
     })
 
     it('an entry that never closes', () => {
@@ -211,6 +321,7 @@ describe('the ledger write guard', () => {
       )
       refusedWith(finding.replace("'node -e on Node 22.22'", '"`date`"'), reason)
       refusedWith(finding.replace("'node -e on Node 22.22'", '$HOME/notes'), reason)
+      refusedWith(finding.replace("'node -e on Node 22.22'", '\\$HOME/notes'), reason)
       refusedWith(
         finding.replace("--source 'node -e on Node 22.22'", '--source="$PWD"'),
         reason,
@@ -260,9 +371,42 @@ describe('the stash hook', () => {
     refused(progress(lines('Pushed.', 'ENTRY', 'git stash')))
   })
 
+  it('sees a git stash the shell runs past arithmetic, a parameter expansion, or a plain $', () => {
+    refused(
+      lines(
+        "(( pnpm exec seasoned-skills ledger progress <<'ENTRY' ))",
+        'git stash',
+        'ENTRY',
+      ),
+    )
+    refused(
+      lines(
+        `: \${x:-'}'} A'; pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'`,
+        "'; git stash #",
+        'ENTRY',
+      ),
+    )
+    refused(
+      lines(
+        `grep -q "x$" /dev/null; cat <<'EOF' >/dev/null`,
+        `""; pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'`,
+        'EOF',
+        'git stash',
+        'ENTRY',
+      ),
+    )
+  })
+
   it("reads every heredoc but a ledger entry's", () => {
     refused(lines("cat <<'ENTRY'", 'git stash', 'ENTRY'))
     refused(lines("cat > notes.sh <<'EOF'", 'git stash pop', 'EOF'))
+    refused(
+      lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
+    )
+  })
+
+  it('reads the whole command when the command reader cannot read it', () => {
+    refused(`git stash\necho ${'$('.repeat(1000)}`)
   })
 })
 
@@ -334,6 +478,21 @@ describe('the compaction hook', () => {
 
   it('exits 0 when the ledger command fails', () => {
     standInPnpm('echo "error: unknown command" >&2; exit 1')
+    expect(compact({ CLAUDE_PROJECT_DIR: project })).toEqual({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    })
+  })
+
+  it('prints nothing of a failed command, such as pnpm not finding the package', () => {
+    standInPnpm(
+      lines(
+        'echo undefined',
+        `echo ' ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "seasoned-skills" not found'`,
+        'exit 254',
+      ),
+    )
     expect(compact({ CLAUDE_PROJECT_DIR: project })).toEqual({
       exitCode: 0,
       stdout: '',
