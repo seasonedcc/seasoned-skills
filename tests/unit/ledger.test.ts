@@ -606,6 +606,33 @@ describe('the ledger commands', () => {
       expect(process.exitCode).toBeUndefined()
     })
 
+    it("fits a view longer than Claude Code's 10,000-character cap under 9,500 characters", async () => {
+      mkdirSync(join(sessions, SESSION), { recursive: true })
+      const database = await openRecord(recordOf())
+      database.exec('BEGIN')
+      for (let index = 0; index < 150; index += 1) {
+        writeEntry(database, {
+          kind: 'decision',
+          body: `Decision number ${index}, ${'worded at some length, '.repeat(3)}`,
+          writtenBy: 'orchestrator',
+          decidedBy: 'person',
+        })
+      }
+      database.exec('COMMIT')
+      database.close()
+      await run('ledger')
+      expect(`${printed()}\n`.length).toBeGreaterThan(10_000)
+
+      freshOutput()
+      await hookPayload(JSON.stringify({ session_id: SESSION }))
+      const hookText = `${printed()}\n`
+      expect(hookText.length).toBeLessThanOrEqual(9_500)
+      expect(hookText).toMatch(
+        /\n\d+ older decisions in force: run `pnpm exec seasoned-skills ledger`\n/,
+      )
+      expect(hookText).toContain('Decision number 149,')
+    })
+
     it('waits for a payload that arrives after the hook has started', {
       timeout: 60_000,
     }, async () => {
