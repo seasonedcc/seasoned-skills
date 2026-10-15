@@ -28,6 +28,15 @@ export function materializeRuntime(): GeneratedFile[] {
       executable: true,
     },
     {
+      path: '.claude/hooks/ledger-write-guard.sh',
+      contents: runtimeFile('hooks/ledger-write-guard.sh'),
+      executable: true,
+    },
+    {
+      path: '.claude/hooks/command-reader.py',
+      contents: runtimeFile('hooks/command-reader.py'),
+    },
+    {
       path: '.claude/hooks/isolation-guard.sh',
       contents: runtimeFile('hooks/isolation-guard.sh'),
       executable: true,
@@ -35,6 +44,11 @@ export function materializeRuntime(): GeneratedFile[] {
     {
       path: '.claude/hooks/session-end-sweep.sh',
       contents: runtimeFile('hooks/session-end-sweep.sh'),
+      executable: true,
+    },
+    {
+      path: '.claude/hooks/ledger-after-compaction.sh',
+      contents: runtimeFile('hooks/ledger-after-compaction.sh'),
       executable: true,
     },
     {

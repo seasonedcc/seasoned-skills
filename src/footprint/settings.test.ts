@@ -27,15 +27,27 @@ describe('mergeManagedSettings', () => {
     })
   })
 
-  it('wires the status line and the three hooks with absence guards', () => {
+  it('wires the status line and the five hooks with absence guards', () => {
     const merged = mergeManagedSettings({})
     expect(merged.statusLine).toEqual({
       type: 'command',
       command: guardedCommand('.claude/statusline.sh'),
     })
     const hooks = merged.hooks as Record<string, unknown[]>
-    expect(hooks.PreToolUse).toHaveLength(2)
+    expect(hooks.PreToolUse).toHaveLength(3)
     expect(hooks.SessionEnd).toHaveLength(1)
+    expect(hooks.SessionStart).toEqual([
+      {
+        matcher: 'compact',
+        hooks: [
+          {
+            type: 'command',
+            command: guardedCommand('.claude/hooks/ledger-after-compaction.sh'),
+            timeout: 10,
+          },
+        ],
+      },
+    ])
     expect(guardedCommand('.claude/hooks/block-git-stash.sh')).toBe(
       '[ -x "$CLAUDE_PROJECT_DIR"/.claude/hooks/block-git-stash.sh ] && exec "$CLAUDE_PROJECT_DIR"/.claude/hooks/block-git-stash.sh; exit 0',
     )
@@ -64,8 +76,9 @@ describe('mergeManagedSettings', () => {
     const commands = JSON.stringify(preToolUse)
     expect(commands).toContain('project-own-hook.py')
     expect(commands).not.toContain('old .claude/hooks/block-git-stash.sh call')
-    // one managed stash blocker, one managed isolation guard, one project hook
-    expect(preToolUse).toHaveLength(3)
+    // one managed stash blocker, one managed ledger write guard, one managed
+    // isolation guard, one project hook
+    expect(preToolUse).toHaveLength(4)
   })
 
   it('is idempotent', () => {
