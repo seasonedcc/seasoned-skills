@@ -23,6 +23,7 @@ import signal
 import sys
 
 KINDS = ('decision', 'finding', 'progress')
+VALUE_OPTIONS = ('--as', '--by', '--source', '--replaces', '--session')
 ENTRY_HEREDOC = "'ENTRY'"
 BINARY = re.compile(
     r'(^|/)seasoned-skills(@[^/]*)?$|(^|/)seasoned-skills\.js$|(^|/)cli/index\.[jt]s$'
@@ -429,11 +430,15 @@ def standard_inputs(command):
 
 
 def asks_for_help(command, arguments):
-    return (
-        any(word.text in ('-h', '--help') for word in arguments)
-        and not command.piped
-        and not standard_inputs(command)
-    )
+    if command.piped or standard_inputs(command):
+        return False
+    index = 0
+    while index < len(arguments):
+        word = arguments[index].text
+        if word in ('-h', '--help'):
+            return True
+        index += 2 if word in VALUE_OPTIONS else 1
+    return False
 
 
 def is_entry_heredoc(redirection):

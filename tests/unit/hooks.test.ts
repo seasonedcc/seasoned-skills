@@ -303,6 +303,30 @@ describe('the ledger write guard', () => {
       )
     })
 
+    it("a write whose -h or --help is an option's value, not a request for help", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(
+        'pnpm exec seasoned-skills ledger finding --as -h --source "ran $(touch x)"',
+        reason,
+      )
+      refusedWith(
+        lines(
+          '{ pnpm exec seasoned-skills ledger finding --as r --source -h; } <<EOF',
+          'Ran: $(touch x)',
+          'EOF',
+        ),
+        reason,
+      )
+      refusedWith(
+        'pnpm exec seasoned-skills ledger decision --as orchestrator --by --help --replaces -h',
+        reason,
+      )
+      refusedWith(
+        'pnpm exec seasoned-skills ledger --session -h progress --as orchestrator',
+        reason,
+      )
+    })
+
     it('an entry that never closes', () => {
       refusedWith(
         lines(
