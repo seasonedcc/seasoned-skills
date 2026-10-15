@@ -280,6 +280,10 @@ describe('the ledger write guard', () => {
       refusedWith(`echo "\${name:-it's}" && ${unquotedProgress}`, reason)
       refusedWith(`notes=$((cd /work && ${unquotedProgress}\n) )`, reason)
       refusedWith(`echo ${'$(('.repeat(40)}\n${unquotedProgress}`, reason)
+      refusedWith(`echo $(( 1 << 3 ))\n${unquotedProgress}`, reason)
+      refusedWith(`echo \${x:-\\}<<A}\n${unquotedProgress}`, reason)
+      refusedWith(`echo \${x:-"}"<<A}\n${unquotedProgress}`, reason)
+      refusedWith(`echo \${x:-\`echo }\`<<A}\n${unquotedProgress}`, reason)
     })
 
     it("text that does not arrive through <<'ENTRY', whatever runs the binary", () => {
@@ -299,6 +303,18 @@ describe('the ledger write guard', () => {
       )
       refusedWith(
         unquotedProgress.replace('pnpm exec seasoned-skills', 'node dist/cli/index.js'),
+        reason,
+      )
+      refusedWith(
+        unquotedProgress.replace('pnpm exec seasoned-skills', 'node bin/seasoned-skills.js'),
+        reason,
+      )
+      refusedWith(
+        lines(
+          "pnpm dlx seasoned-skills@1.2.3 ledger finding --as reviewer --source 'gh pr view 12' <<ENTRY",
+          'Next: $(gh pr merge 12)',
+          'ENTRY',
+        ),
         reason,
       )
     })
