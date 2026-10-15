@@ -892,7 +892,9 @@ ledger print              [--session &lt;id&gt;]</code></pre>
               counting every entry after the index is emptied. FTS5's
               <code>integrity-check</code> with a rank of 1 does fail on it. So every
               search runs that check first and rebuilds the index when it fails. The
-              record itself is never at risk from this.
+              check is itself a write, so it runs only when the write lock is free at
+              once; while another connection holds a write open, the search reads the
+              index as it is. The record itself is never at risk from this.
             </p>
           </div>
         </details>
