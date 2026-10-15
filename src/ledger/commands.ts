@@ -193,9 +193,7 @@ async function runHook() {
     } finally {
       database.close()
     }
-  } catch {
-    // Silent by contract: the hook never stops a compaction.
-  }
+  } catch {}
 }
 
 /** The `ledger` command and its subcommands, declared on the program. */
