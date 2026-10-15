@@ -372,6 +372,56 @@ describe('the stash hook', () => {
     refused('true|git stash')
   })
 
+  it('refuses a git stash wherever the shell would run it', () => {
+    refused('{ git stash; }')
+    refused('if git stash; then git pull; fi')
+    refused('GIT_TRACE=1 sudo git stash')
+    refused('git -C lane stash pop')
+    refused('/usr/bin/git stash')
+    refused('echo $(( $(git stash list | wc -l) + 1 ))')
+    refused(`echo "\${message:-$(git stash)}"`)
+    refused('git commit -m "use `git stash`"')
+    refused('git commit -m "Stashed: $(git stash)"')
+  })
+
+  it('refuses a git stash in text handed to a shell to run', () => {
+    refused("bash -c 'git stash'")
+    refused('sh -c "cd lane && git stash pop"')
+    refused("zsh -ec 'git stash'")
+    refused('eval git stash')
+    refused("eval 'git stash'")
+    refused(lines('bash <<EOF', 'git stash', 'EOF'))
+    refused(lines("sh -s <<'EOF'", 'cd lane', 'git stash', 'EOF'))
+    refused("bash <<< 'git stash'")
+  })
+
+  it('refuses a git stash that an unquoted heredoc substitutes', () => {
+    refused(lines('cat <<EOF', 'Stashed: $(git stash)', 'EOF'))
+  })
+
+  it('lets through git stash in quoted text and in heredocs fed to anything but a shell', () => {
+    allowed(
+      lines(
+        "gh pr edit 590 --body-file - <<'EOF'",
+        "- The stash guard now skips a ledger entry's text, so an entry that mentions a forbidden command is recorded instead of refused. It also now refuses a `git stash` that shell punctuation ends or encloses, such as `git stash; git pull` or `(git stash)`, which used to slip past it.",
+        'EOF',
+      ),
+    )
+    allowed('git commit -m "fix stash)"')
+    allowed("git commit -m 'Never run `git stash`: shelve with a patch.'")
+    allowed("git commit -m 'Refuse shared state (git stash)'")
+    allowed('git commit -m "Never git stash; write a patch"')
+    allowed(
+      lines("cat > notes.md <<'EOF'", 'Never run `git stash`: lanes share it.', 'EOF'),
+    )
+    allowed(lines("cat <<'ENTRY'", 'git stash', 'ENTRY'))
+    allowed(
+      lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
+    )
+    allowed('grep -rn "git stash" docs')
+    allowed('git status # never git stash here')
+  })
+
   it('lets through words that merely start with stash', () => {
     allowed('git checkout stashes')
     allowed('git log --grep stashed')
@@ -413,16 +463,23 @@ describe('the stash hook', () => {
     )
   })
 
-  it("reads every heredoc but a ledger entry's", () => {
-    refused(lines("cat <<'ENTRY'", 'git stash', 'ENTRY'))
-    refused(lines("cat > notes.sh <<'EOF'", 'git stash pop', 'EOF'))
-    refused(
-      lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
-    )
+  it('reads the body of a heredoc that never closes, since the shell may run it', () => {
+    refused(lines("cat <<$'EOF'", 'notes', 'EOF', 'git stash'))
+    refused(lines('echo $[1<<3]', 'git stash'))
+    refused(lines("notes=`cat <<'EOF'", 'notes', 'EOF`', 'git stash', 'EOF'))
   })
 
-  it('reads the whole command when the command reader cannot read it', () => {
+  it('falls back on the whole text when the command reader cannot read it', () => {
     refused(`git stash\necho ${'$('.repeat(1000)}`)
+    allowed(`git status\necho ${'$('.repeat(1000)}`)
+  })
+
+  it('falls back on the whole text when the command reader takes too long', {
+    timeout: 15_000,
+  }, () => {
+    const started = Date.now()
+    refused(lines('git stash', ...Array(30_000).fill('(( a')))
+    expect(Date.now() - started).toBeLessThan(5_000)
   })
 })
 
