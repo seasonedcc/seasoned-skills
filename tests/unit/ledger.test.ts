@@ -423,6 +423,7 @@ describe('the ledger commands', () => {
       freshOutput()
       await run('ledger', 'show', '1')
       expect(printed()).toMatch(STAMP)
+      expect(printed()).toContain('Replaced by #2')
       expect(printed()).toContain('Replacement line, oldest first: #1 (this entry) → #2')
 
       freshOutput()

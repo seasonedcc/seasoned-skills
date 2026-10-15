@@ -403,8 +403,9 @@ it. It prints the 20 best matches, then how many more there are.
 ### seasoned-skills ledger show
 
 Print one entry whole, with its source and its line of replacements both
-ways: what it replaced and what replaced it. The entry's number `<number>`
-takes a leading `#` or none.
+ways: what it replaced and what replaced it. A replaced entry says so
+plainly, with the number of the entry that replaced it. The entry's number
+`<number>` takes a leading `#` or none.
 
 | Flag | What it does |
 | --- | --- |
