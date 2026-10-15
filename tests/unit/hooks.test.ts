@@ -193,6 +193,17 @@ describe('the ledger write guard', () => {
       )
     })
 
+    it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      const unquoted = progress('Next: $(gh pr merge 12)').replace("<<'ENTRY'", '<<ENTRY')
+      refusedWith(`grep -q "ready$" log && ${unquoted}`, reason)
+      refusedWith(`grep -q "ready$'" log; ${unquoted}`, reason)
+      refusedWith(
+        'grep -q "ready$" log && echo Pushed $(git rev-parse HEAD) | pnpm exec seasoned-skills ledger progress --as orchestrator && echo "done"',
+        reason,
+      )
+    })
+
     it('an entry that never closes', () => {
       refusedWith(
         lines(

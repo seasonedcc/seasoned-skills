@@ -258,7 +258,7 @@ class Reader:
                 expands = expands or expanded
             elif character == '$':
                 expands = True
-                position = self.read_dollar(position, value)
+                position = self.read_dollar(position, value, False)
             elif character == '`':
                 expands = True
                 end = self.read_list(position + 1, '`')
@@ -284,7 +284,7 @@ class Reader:
                 position += 2
             elif character == '$':
                 expands = True
-                position = self.read_dollar(position, value)
+                position = self.read_dollar(position, value, True)
             elif character == '`':
                 expands = True
                 end = self.read_list(position + 1, '`')
@@ -295,7 +295,7 @@ class Reader:
                 position += 1
         return position, expands
 
-    def read_dollar(self, position, value):
+    def read_dollar(self, position, value, quoted):
         text = self.text
         if text.startswith('$((', position):
             end = self.matching_parenthesis(position + 1)
@@ -304,12 +304,12 @@ class Reader:
         elif text.startswith('${', position):
             end = text.find('}', position + 2)
             end = len(text) if end == -1 else end + 1
-        elif text.startswith("$'", position):
+        elif text.startswith("$'", position) and not quoted:
             end = position + 2
             while end < len(text) and text[end] != "'":
                 end += 2 if text[end] == '\\' else 1
             end = min(end + 1, len(text))
-        elif text.startswith('$"', position):
+        elif text.startswith('$"', position) and not quoted:
             end, _ = self.read_double_quoted(position + 2, [])
         else:
             end = PARAMETER.match(text, position).end()
