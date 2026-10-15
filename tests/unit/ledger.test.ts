@@ -12,7 +12,6 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
@@ -29,6 +28,33 @@ const commandLine = fileURLToPath(new URL('../../src/cli/index.ts', import.meta.
 const typescriptSourceLoader = fileURLToPath(
   new URL('./typescript-source-loader.mjs', import.meta.url),
 )
+
+const packageManifest = fileURLToPath(new URL('../../package.json', import.meta.url))
+
+/**
+ * Preloaded into a child command line: on file descriptor 3 it says
+ * `reading` the first time the command reads its standard input, and
+ * `writing` each time it opens a write transaction on a record.
+ */
+const momentSignals = `data:text/javascript,${encodeURIComponent(`
+import { writeSync } from 'node:fs'
+const signal = (moment) => writeSync(3, moment + '\\n')
+const stdin = process.stdin
+const read = stdin.read
+stdin.read = function (...args) {
+  stdin.read = read
+  signal('reading')
+  return read.apply(this, args)
+}
+try {
+  const { DatabaseSync } = await import('node:sqlite')
+  const exec = DatabaseSync.prototype.exec
+  DatabaseSync.prototype.exec = function (sql) {
+    if (sql === 'BEGIN IMMEDIATE') signal('writing')
+    return exec.call(this, sql)
+  }
+} catch {}
+`)}`
 
 function run(...args: string[]) {
   return buildProgram().parseAsync(args, { from: 'user' })
@@ -109,22 +135,32 @@ describe('the ledger commands', () => {
     vi.mocked(console.error).mockClear()
   }
 
-  /** The real command line in its own process, its standard input arriving after a pause. */
-  function ledgerInChildProcess(args: string[], input: string, pause = 0) {
+  /**
+   * The real command line in its own process. Its standard input arrives only
+   * once the command has started reading it, so the command always finds the
+   * pipe empty at first; `onWrite` hears the command open a write transaction.
+   */
+  function commandLineInChildProcess(
+    args: string[],
+    input: string,
+    options: { node?: string[]; onWrite?: () => void } = {},
+  ) {
     return new Promise<{ code: number | null; stdout: string; stderr: string }>(
       (resolve) => {
         const child = spawn(
           process.execPath,
           [
+            ...(options.node ?? []),
             '--experimental-transform-types',
             '--no-warnings',
             '--import',
             typescriptSourceLoader,
+            '--import',
+            momentSignals,
             commandLine,
-            'ledger',
             ...args,
           ],
-          { cwd: root, env: { ...process.env } },
+          { cwd: root, env: { ...process.env }, stdio: ['pipe', 'pipe', 'pipe', 'pipe'] },
         )
         let stdout = ''
         let stderr = ''
@@ -134,16 +170,22 @@ describe('the ledger commands', () => {
         child.stderr.on('data', (chunk) => {
           stderr += chunk
         })
+        child.stdio[3]?.on('data', (chunk: Buffer) => {
+          for (const moment of chunk.toString().split('\n')) {
+            if (moment === 'reading') child.stdin.end(input)
+            if (moment === 'writing') options.onWrite?.()
+          }
+        })
         child.on('close', (code) => resolve({ code, stdout: stdout.trim(), stderr }))
-        setTimeout(() => child.stdin.end(input), pause)
       },
     )
   }
 
-  function writeInChildProcess(index: number) {
-    return ledgerInChildProcess(
-      ['finding', '--as', `writer-${index}`, '--source', 'a concurrent test'],
+  function writeInChildProcess(index: number, onWrite = () => {}) {
+    return commandLineInChildProcess(
+      ['ledger', 'finding', '--as', `writer-${index}`, '--source', 'a concurrent test'],
       `Concurrent write number ${index}.\n`,
+      { onWrite },
     )
   }
 
@@ -190,10 +232,9 @@ describe('the ledger commands', () => {
     it('waits for text that arrives after the command has started', {
       timeout: 60_000,
     }, async () => {
-      const result = await ledgerInChildProcess(
-        ['progress', '--as', 'orchestrator'],
+      const result = await commandLineInChildProcess(
+        ['ledger', 'progress', '--as', 'orchestrator'],
         'Slow text.\n',
-        1500,
       )
       expect(result).toMatchObject({ code: 0, stderr: '' })
       expect(result.stdout).toMatch(/^#1 progress, /)
@@ -297,25 +338,28 @@ describe('the ledger commands', () => {
       expect(existsSync(sessions)).toBe(false)
     })
 
-    it("refuses ledger's own --session or --hook before a subcommand", async () => {
-      await write(
-        'A rule.\n',
-        '--session',
-        OTHER_SESSION,
-        'decision',
-        '--as',
-        'orchestrator',
-        '--by',
-        'person',
+    it("refuses ledger's own --session or --hook before every subcommand, creating nothing", async () => {
+      const ledger = buildProgram().commands.find(
+        (command) => command.name() === 'ledger',
       )
-      expect(complaints()).toContain('--session before a subcommand would be ignored')
-      freshOutput()
-      await write('A rule.\n', '--hook', 'progress', '--as', 'orchestrator')
-      expect(complaints()).toContain("--hook is the compaction hook's mode")
-      freshOutput()
-      await run('ledger', '--session', OTHER_SESSION, 'print')
-      expect(complaints()).toContain('--session before a subcommand would be ignored')
-      expect(process.exitCode).toBe(1)
+      const subcommands = ledger?.commands ?? []
+      expect(subcommands.length).toBeGreaterThan(0)
+      for (const subcommand of subcommands) {
+        const operands = subcommand.registeredArguments.map(() => '1')
+        for (const [options, refusal] of [
+          [
+            ['--session', OTHER_SESSION],
+            '--session before a subcommand would be ignored',
+          ],
+          [['--hook'], "--hook is the compaction hook's mode"],
+        ] as const) {
+          freshOutput()
+          process.exitCode = undefined
+          await write('A rule.\n', ...options, subcommand.name(), ...operands)
+          expect(complaints()).toContain(refusal)
+          expect(process.exitCode).toBe(1)
+        }
+      }
       expect(existsSync(sessions)).toBe(false)
     })
 
@@ -341,8 +385,18 @@ describe('the ledger commands', () => {
       mkdirSync(join(sessions, SESSION), { recursive: true })
       const holder = await openRecord(recordOf())
       holder.exec('BEGIN IMMEDIATE')
-      const writers = Array.from({ length: 4 }, (_, index) => writeInChildProcess(index))
-      await delay(2000)
+      let waiting = 0
+      let everyWriterWaits = () => {}
+      const writersWait = new Promise<void>((resolve) => {
+        everyWriterWaits = resolve
+      })
+      const writers = Array.from({ length: 4 }, (_, index) =>
+        writeInChildProcess(index, () => {
+          waiting += 1
+          if (waiting === 4) everyWriterWaits()
+        }),
+      )
+      await Promise.race([writersWait, Promise.all(writers)])
       holder.exec('COMMIT')
       holder.close()
       const results = await Promise.all(writers)
@@ -450,6 +504,27 @@ describe('the ledger commands', () => {
       freshOutput()
       await run('ledger', 'print', '--session', OTHER_SESSION)
       expect(printed()).toContain(`Ledger of session ${OTHER_SESSION}: 1 entry`)
+    })
+
+    it("reaches the main checkout's record from a linked worktree, both ways", async () => {
+      const worktree = join(root, 'lane-a')
+      execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+        cwd: root,
+      })
+      execFileSync('git', ['worktree', 'add', '--quiet', worktree], { cwd: root })
+      process.chdir(worktree)
+      await learn('Learned in the worktree.\n')
+      process.chdir(root)
+      await learn('Learned in the main checkout.\n')
+      for (const directory of [root, worktree]) {
+        process.chdir(directory)
+        freshOutput()
+        await run('ledger', 'print')
+        expect(printed()).toContain('Learned in the worktree.')
+        expect(printed()).toContain('Learned in the main checkout.')
+      }
+      expect(existsSync(recordOf())).toBe(true)
+      expect(existsSync(join(worktree, '.sessions'))).toBe(false)
     })
 
     it('refuses a --session that is not a session id, creating nothing', async () => {
@@ -574,19 +649,48 @@ describe('the ledger commands', () => {
       })
     }
 
-    it('keeps the compaction hook silent and every other command working', async () => {
+    it('needs the Node the package declares as its floor', async () => {
+      vi.doMock('node:sqlite', withoutSqlite)
+      await run('ledger')
+      const needed = complaints().match(/^The ledger needs Node (\d+\.\d+) or later\.$/)
+      const { engines } = JSON.parse(readFileSync(packageManifest, 'utf8'))
+      expect(engines.node).toBe(`>=${needed?.[1]}.0`)
+    })
+
+    it('keeps the compaction hook silent on a Node whose node:sqlite lacks FTS5', async () => {
       await decide('The person decided this.\n')
       freshOutput()
       vi.doMock('node:sqlite', withoutFullTextSearch)
       stdin(JSON.stringify({ session_id: SESSION }))
       await run('ledger', '--hook')
       expect(printed()).toBe('')
-      vi.doMock('node:sqlite', withoutSqlite)
-      await run('ledger', '--hook')
-      expect(printed()).toBe('')
-      await run('session-folder')
-      expect(printed()).toBe(join(sessions, SESSION))
       expect(process.exitCode).toBeUndefined()
+    })
+
+    it('keeps the compaction hook silent and every other command working on a Node without node:sqlite', {
+      timeout: 60_000,
+    }, async () => {
+      const node = ['--no-experimental-sqlite']
+      expect(
+        await commandLineInChildProcess(
+          ['ledger', 'progress', '--as', 'orchestrator'],
+          'Text.\n',
+          { node },
+        ),
+      ).toEqual({ code: 1, stdout: '', stderr: `${NEEDS_NODE}\n` })
+      expect(existsSync(sessions)).toBe(false)
+
+      await decide('The person decided this.\n')
+      expect(
+        await commandLineInChildProcess(
+          ['ledger', '--hook'],
+          JSON.stringify({ session_id: SESSION }),
+          { node },
+        ),
+      ).toEqual({ code: 0, stdout: '', stderr: '' })
+      expect(
+        await commandLineInChildProcess(['session-folder'], '', { node }),
+      ).toMatchObject({ code: 0, stdout: join(sessions, SESSION) })
     })
   })
 
@@ -596,13 +700,15 @@ describe('the ledger commands', () => {
       return run('ledger', '--hook')
     }
 
-    it('prints the fitted in-force view of the session the payload names', async () => {
+    it("prints the fitted in-force view of the session the payload names, whatever the hook's environment names", async () => {
       vi.stubEnv('CLAUDE_CODE_SESSION_ID', OTHER_SESSION)
-      await decide('The person decided this.\n')
-      vi.stubEnv('CLAUDE_CODE_SESSION_ID', undefined)
+      await decide('The payload names this session.\n')
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', SESSION)
+      await decide('The environment names this session.\n')
       freshOutput()
       await hookPayload(JSON.stringify({ session_id: OTHER_SESSION, source: 'compact' }))
-      expect(printed()).toContain('The person decided this.')
+      expect(printed()).toContain('The payload names this session.')
+      expect(printed()).not.toContain('The environment names this session.')
       expect(process.exitCode).toBeUndefined()
     })
 
@@ -637,10 +743,9 @@ describe('the ledger commands', () => {
       timeout: 60_000,
     }, async () => {
       await decide('The person decided this.\n')
-      const result = await ledgerInChildProcess(
-        ['--hook'],
+      const result = await commandLineInChildProcess(
+        ['ledger', '--hook'],
         JSON.stringify({ session_id: SESSION }),
-        1500,
       )
       expect(result).toMatchObject({ code: 0, stderr: '' })
       expect(result.stdout).toContain('The person decided this.')

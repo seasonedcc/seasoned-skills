@@ -2,8 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
-import { setTimeout as delay } from 'node:timers/promises'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   allEntries,
   decisionsInForce,
@@ -22,15 +21,12 @@ describe('the ledger record', () => {
   let path: string
   let database: DatabaseSync
 
-  beforeEach(async () => {
+  beforeEach(async ({ onTestFinished }) => {
     directory = mkdtempSync(join(tmpdir(), 'seasoned-skills-ledger-'))
+    onTestFinished(() => rmSync(directory, { recursive: true, force: true }))
     path = join(directory, 'ledger.db')
     database = await openRecord(path)
-  })
-
-  afterEach(() => {
-    database.close()
-    rmSync(directory, { recursive: true, force: true })
+    onTestFinished(() => database.close())
   })
 
   function decision(body: string, replaces?: number) {
@@ -72,6 +68,17 @@ describe('the ledger record', () => {
     reopened?.close()
   })
 
+  it('keeps its entries in one STRICT table, whose integer primary key is its only unique constraint', () => {
+    expect(database.prepare(`PRAGMA table_list('entries')`).get()).toMatchObject({
+      strict: 1,
+    })
+    const indexes = database.prepare(`PRAGMA index_list('entries')`).all() as {
+      name: string
+      unique: number
+    }[]
+    expect(indexes.filter((index) => index.unique === 1)).toEqual([])
+  })
+
   it('sets a busy timeout and WAL mode on every connection', async () => {
     const reader = await openExistingRecord(path)
     for (const connection of [database, reader as DatabaseSync]) {
@@ -88,10 +95,18 @@ describe('the ledger record', () => {
     const { DatabaseSync } = await import('node:sqlite')
     const holder = new DatabaseSync(fresh)
     holder.exec('BEGIN IMMEDIATE')
+    const exec = vi.spyOn(DatabaseSync.prototype, 'exec')
     const opening = openRecord(fresh)
-    await delay(200)
+    await vi.waitFor(
+      () =>
+        expect(exec.mock.results).toContainEqual(
+          expect.objectContaining({ type: 'throw' }),
+        ),
+      { timeout: 5000 },
+    )
     holder.exec('COMMIT')
     holder.close()
+    exec.mockRestore()
     const opened = await opening
     expect(opened.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' })
     opened.close()
@@ -266,7 +281,7 @@ describe('the ledger record', () => {
     }
 
     it('requires who decided on a decision, and nowhere else', () => {
-      expect(insert('source', `'decision', 'x', 'orchestrator', 'a source'`)).toThrow(
+      expect(insert('decided_by', `'decision', 'x', 'orchestrator', NULL`)).toThrow(
         /CHECK constraint failed/,
       )
       expect(
