@@ -492,6 +492,28 @@ describe('the ledger commands', () => {
       expect(process.exitCode).toBe(1)
     })
 
+    it('reads at once, never waiting out the busy timeout, while another connection holds a write open', {
+      timeout: 60_000,
+    }, async () => {
+      await decide('Reads never wait for a write.\n')
+      const holder = await openRecord(recordOf())
+      holder.exec('BEGIN IMMEDIATE')
+      try {
+        for (const args of [[], ['search', 'wait'], ['show', '1'], ['print']]) {
+          freshOutput()
+          const started = Date.now()
+          await run('ledger', ...args)
+          const elapsed = Date.now() - started
+          expect(complaints()).toBe('')
+          expect(printed()).toContain('Reads never wait for a write.')
+          expect(elapsed).toBeLessThan(5_000)
+        }
+      } finally {
+        holder.exec('ROLLBACK')
+        holder.close()
+      }
+    })
+
     it("reads another session's record with --session, after the subcommand", async () => {
       vi.stubEnv('CLAUDE_CODE_SESSION_ID', OTHER_SESSION)
       await learn('Yesterday it worked.\n')
