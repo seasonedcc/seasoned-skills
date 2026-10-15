@@ -143,6 +143,21 @@ describe('the ledger write guard', () => {
       passes(lines('cat <<EOF > notes.md', 'use `foo', 'EOF', progress('Some text.')))
     })
 
+    it('a write after heredocs that close, in a substitution or on its own line', () => {
+      const write = progress('Ran: notes=$(cat <<EOF)')
+      passes(lines("notes=$(cat <<'EOF'", 'some notes', 'EOF', ')', write))
+      passes(lines(`git commit -m "$(cat <<'EOF'`, 'A message', 'EOF', `)" && ${write}`))
+      passes(
+        lines(
+          "cat > notes.md <<'EOF' && pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+          'some notes',
+          'EOF',
+          'Ran: notes=$(cat <<EOF)',
+          'ENTRY',
+        ),
+      )
+    })
+
     it('help on a write command', () => {
       passes('pnpm exec seasoned-skills ledger finding --help')
       passes('pnpm exec seasoned-skills ledger progress -h')
@@ -415,6 +430,20 @@ describe('the ledger write guard', () => {
       ]) {
         refusedWith(lines(write, 'gh pr merge 12', 'ENTRY'), 'never closes')
       }
+    })
+
+    it('a write in a command where any heredoc never closes', () => {
+      const write = progress('Next: $(gh pr merge 12)')
+      for (const opener of [
+        'notes=$(cat <<EOF)',
+        'notes="$(cat <<EOF)"',
+        'diff <(cat <<EOF) /dev/null',
+        'echo hi > >(cat <<EOF)',
+        'echo `cat <<EOF`',
+      ]) {
+        refusedWith(lines(opener, write), 'never closes')
+      }
+      refusedWith(`echo $(cat <<X); ${write}`, 'never closes')
     })
 
     it('a source holding a backtick or a $ outside single quotes', () => {
