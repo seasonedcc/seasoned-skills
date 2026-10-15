@@ -30,6 +30,8 @@ The same ritual opens every session, before the first question:
 
 A session lives in a git worktree of its own from the first minute, behind a draft pull request that stays open the whole time, its description kept current as the document grows. The PR's state says who the document is for: **draft** while shaping is in progress, **ready for review** when the user judges it fit to share with the team, **merged** when it is fit for stakeholders. Feedback that arrives after a merge opens the next round on a new branch with a new draft PR. Whatever plumbing the consuming repo needs so its gates ignore `shaping/` (CI filters, lint and type-check exclusions) lands on the base branch through its own PR — a shaping PR only ever carries shaping.
 
+The moment the PR leaves draft, publish the document as a Claude Artifact, a web page on claude.ai, so teammates read it whole in a browser with no clone, checkout, or install — "Publishing for review" below has the recipe — and put its link in the PR description. The link never changes: every revision after that, feedback rounds included, republishes to the same artifact before you tell the user the revision is done, and a later round that reaches review again republishes to the link its previous PR carries. An artifact is private until its owner shares it, so give the user the link and tell them to share it with the team on claude.ai; never tell them reviewers can open it already. Without an Artifact tool in the session, the PR stays the way to read the document.
+
 The document is the session's only memory and the room's whiteboard. Write and draw on it at every crystallization point — when something is settled, not sentence by sentence, because "Shaping is not filling in a template" (`references/03-articles/shaping-isnt-writing.md`). Drawings enter that loop alongside the prose, appearing and changing mid-conversation, never rendered once the talking is over. Done right, the user watches the document grow as you talk, and a session months later resumes from the document alone.
 
 Feedback rounds are this same session type, seeded with the feedback, whatever channel it arrived by. Map each point to the section it lands in, adjudicate them with the user one at a time, and carry the reasoned declines back into the document alongside the accepted changes — a decline that lives only in a thread gets raised again by the next reader. Then revise the prose, re-draw what the rulings changed, and re-derive the goal. Git is the revision history; the document states current truth only.
@@ -182,3 +184,23 @@ cp shaping/assets/template.html shaping/<project-title>/index.html
 Standing rulings that bind every session run in a repo — a house doctrine the generic skill stays free of — live in this skill's own project section, woven in from the project's content file. Sessions read it as part of their opening ritual, so anything a repo's teams have settled once holds everywhere without being restated.
 
 The template carries the five parts a shaping document has — the title and the one-sentence essence, the built-or-not status, the framing, the shape, the goal — each with placeholder copy saying what belongs there. It also carries the markup for a technical note anchored beside the thing it defines, and the switch that hides every technical affordance, including the whole goal section, so one file reads both for the people who hold the business rules and for whoever builds it.
+
+### Publishing for review
+
+An artifact serves only its page and the files published with it, so a document's `../assets/` paths cannot resolve there. Publish a staged copy and never edit the committed file for it. From the worktree's root, this stages the document's folder without `references/`, which is for the build, and the assets a page loads beside it; rewrites the copy's asset paths; and drops the `<title>`'s "— shaping document" so the artifact is named for the project alone, as the `<h1>` names it:
+
+```sh
+project=<project-title>
+folder=$(pnpm exec seasoned-skills session-folder) || exit 1
+stage="$folder/shaping-$project"
+rm -rf "$stage" && mkdir -p "$stage"
+cp -R "shaping/$project/." "$stage/" && rm -rf "$stage/references"
+cp -R shaping/assets "$stage/assets"
+find "$stage/assets" \( -name '*.html' -o -name '*.md' -o -name 'demo.js' \) -exec rm {} +
+sed -e 's|\.\./assets/|assets/|g' -e 's|<title>\(.*\) — shaping document</title>|<title>\1</title>|' "shaping/$project/index.html" > "$stage/index.html"
+grep -n '\.\./' "$stage/index.html"
+grep -o '"assets/[^"]*"' "$stage/index.html" | tr -d '"' | while read -r file; do test -f "$stage/$file" || echo "missing: $file"; done
+(cd "$stage" && find . -type f ! -path ./index.html | sed 's|^\./||')
+```
+
+The Artifact tool reads a publish's files only from under the working directory or its scratchpad directory, so when the session folder lies outside both, as it can when the worktree sits apart from the project's root, set `folder` to the scratchpad directory instead: every publish restages from scratch, so the copy needs no lasting home. Nothing may print above the closing file list. A line the first `grep` prints is a link climbing out of the document's folder, such as a quote's source elsewhere in the repository: in the staged copy, point it at that file on the PR's branch in the repository's web view instead. Publish `$stage/index.html` with every listed file in `files`, published at its listed path from its staged source. The first publish also takes the icon `document` and the document's essence as its description. Every republish reruns the recipe first. In the same conversation it then passes the same staged path; a later conversation reads the link in the PR description with the Artifact tool first, then publishes with it as `url`, since a publish without it creates a second artifact under a new link. The page is the document exactly as written, never restyled.

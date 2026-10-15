@@ -150,6 +150,11 @@ as the document exists, the session gives you its path and offers to
 open it in your browser. From then on it grows at every point where
 something is settled, sketches included, so you watch it take shape as
 you talk, and a session months later resumes from the document alone.
+When you judge the document ready for your team, the pull request leaves
+draft and the session publishes the document as a Claude Artifact, a
+private web page on claude.ai whose link stays the same through every
+later revision, so once you share it, your teammates read the whole
+document in a browser without checking anything out.
 
 ### Entry point two: meeting recordings
 
