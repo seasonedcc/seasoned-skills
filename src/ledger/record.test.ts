@@ -2,8 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
-import { setTimeout as delay } from 'node:timers/promises'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   allEntries,
   decisionsInForce,
@@ -88,10 +87,18 @@ describe('the ledger record', () => {
     const { DatabaseSync } = await import('node:sqlite')
     const holder = new DatabaseSync(fresh)
     holder.exec('BEGIN IMMEDIATE')
+    const exec = vi.spyOn(DatabaseSync.prototype, 'exec')
     const opening = openRecord(fresh)
-    await delay(200)
+    await vi.waitFor(
+      () =>
+        expect(exec.mock.results).toContainEqual(
+          expect.objectContaining({ type: 'throw' }),
+        ),
+      { timeout: 5000 },
+    )
     holder.exec('COMMIT')
     holder.close()
+    exec.mockRestore()
     const opened = await opening
     expect(opened.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' })
     opened.close()
