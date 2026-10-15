@@ -1,17 +1,15 @@
 """
 Reads a Bash command the way the managed guard hooks need it: which words
 the shell runs, outside quotes and heredoc bodies, across lists, pipelines,
-subshells, and command substitutions. It answers one question about the
-command in a hook's JSON payload on standard input, named by its one
-argument:
+subshells, and command substitutions. It finds the ledger commands among
+them and answers one question about the command in a hook's JSON payload on
+standard input, named by its one argument:
 
-  refusal         why the ledger write guard refuses the command, or
-                  nothing when it passes
-  runs-git-stash  "git stash" when a command the shell would run is a git
-                  stash, or nothing. Text that only mentions one, in quotes
-                  or in a heredoc fed to anything but a shell, passes. A
-                  command the reader cannot read in time is matched as
-                  whole text instead, so a failure never lets a stash by.
+  refusal          why the ledger write guard refuses the command, or
+                   nothing when it passes
+  outside-entries  the command without the text of its ledger entries, for
+                   guards that match on command text: an entry is recorded,
+                   never run
 
 The hooks run it as a script with python3 -B, so it never leaves bytecode
 beside them. Standard library only, and Python 3.9 compatible.
@@ -19,7 +17,6 @@ beside them. Standard library only, and Python 3.9 compatible.
 
 import json
 import re
-import signal
 import sys
 
 KINDS = ('decision', 'finding', 'progress')
@@ -33,11 +30,6 @@ REDIRECTION = re.compile(r'(\d*)(<<<|<<-|<<|<>|<&|<|>>|>&|>\||>)|&>>|&>')
 STANDARD_INPUT = {'<<<', '<<-', '<<', '<>', '<&', '<'}
 METACHARACTERS = set(' \t\n;&|<>()')
 PARAMETER = re.compile(r'\$([A-Za-z_][A-Za-z0-9_]*|[0-9#?$!@*-])?')
-SHELLS = ('sh', 'bash', 'zsh', 'dash', 'ksh')
-MENTIONS_GIT_STASH = re.compile(
-    r'(^|[\s;&|(`])git\s+([^|;&]*\s)?stash([\s;&|()<>`]|$)', re.ASCII
-)
-READING_TIME_LIMIT = 2
 
 FORM = (
     "\n\nWrite each entry as one command that ends with it, its text on standard"
@@ -92,7 +84,6 @@ class Heredoc:
         self.operator = operator
         self.delimiter = delimiter
         self.body_start = None
-        self.body_end = None
         self.end = None
         self.closed = False
 
@@ -143,7 +134,7 @@ class Reader:
 
     def leave_pending(self, position):
         for heredoc in self.pending:
-            heredoc.body_start = heredoc.body_end = heredoc.end = position
+            heredoc.body_start = heredoc.end = position
         self.pending = []
 
     def finish(self, command, followed_by):
@@ -236,16 +227,16 @@ class Reader:
                 if heredoc.operator == '<<-':
                     line = line.lstrip('\t')
                 if line == heredoc.delimiter.text:
-                    heredoc.body_end = position
+                    body_end = position
                     heredoc.closed = True
                 position = len(text) if newline == -1 else newline + 1
                 if heredoc.closed:
                     break
             if not heredoc.closed:
-                heredoc.body_end = position
+                body_end = position
             heredoc.end = position
             if heredoc.expands():
-                self.read_substitutions(heredoc.body_start, heredoc.body_end)
+                self.read_substitutions(heredoc.body_start, body_end)
         return position
 
     def read_substitutions(self, position, end):
@@ -483,53 +474,21 @@ def refusal(text):
     return ''
 
 
-def runs_git_stash(text):
-    return any(command_runs_git_stash(command, text) for command in Reader(text).read())
-
-
-def command_runs_git_stash(command, text):
-    names = [word.text.rsplit('/', 1)[-1] for word in command.words]
-    if 'git' in names:
-        following = [word.text for word in command.words[names.index('git') + 1 :]]
-        if 'stash' in following:
-            return True
-    return any(runs_git_stash(script) for script in scripts_it_may_run(command, names, text))
-
-
-def scripts_it_may_run(command, names, text):
-    if 'eval' in names:
-        yield ' '.join(word.text for word in command.words[names.index('eval') + 1 :])
-    shell = next((index for index, name in enumerate(names) if name in SHELLS), None)
-    following = command.words[shell + 1 :] if shell is not None else []
-    if any(re.match(r'-[^-]*c', word.text) for word in following):
-        for word in following:
-            yield word.text
-    for redirection in command.redirections:
-        heredoc = redirection.heredoc
-        if heredoc is not None and (shell is not None or not heredoc.closed):
-            yield text[heredoc.body_start : heredoc.body_end]
-        elif redirection.operator == '<<<' and shell is not None and redirection.target:
-            yield redirection.target.text
-
-
-def mentions_git_stash(text):
-    return any(MENTIONS_GIT_STASH.search(line) for line in text.split('\n'))
-
-
-def took_too_long(signal_number, frame):
-    raise TimeoutError('the command took too long to read')
-
-
-def git_stash_answer(text):
-    signal.signal(signal.SIGALRM, took_too_long)
-    try:
-        signal.setitimer(signal.ITIMER_REAL, READING_TIME_LIMIT)
-        runs = runs_git_stash(text)
-        signal.setitimer(signal.ITIMER_REAL, 0)
-    except Exception:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        runs = mentions_git_stash(text)
-    return 'git stash' if runs else ''
+def outside_entries(text):
+    entries = [
+        (redirection.heredoc.body_start, redirection.heredoc.end)
+        for command, arguments in ledger_commands(Reader(text).read())
+        if ledger_kind(arguments)
+        for redirection in command.redirections
+        if is_entry_heredoc(redirection)
+    ]
+    kept = []
+    position = 0
+    for start, end in sorted(entries):
+        kept.append(text[position:start])
+        position = max(position, end)
+    kept.append(text[position:])
+    return ''.join(kept)
 
 
 def main():
@@ -541,10 +500,13 @@ def main():
     question = sys.argv[1] if len(sys.argv) > 1 else ''
     if question == 'refusal':
         answer = refusal(command)
-    elif question == 'runs-git-stash':
-        answer = git_stash_answer(command)
+    elif question == 'outside-entries':
+        try:
+            answer = outside_entries(command)
+        except Exception:
+            answer = command
     else:
-        sys.exit('usage: command-reader.py refusal|runs-git-stash < hook-payload.json')
+        sys.exit('usage: command-reader.py refusal|outside-entries < hook-payload.json')
     sys.stdout.buffer.write(answer.encode('utf-8', 'replace'))
 
 
