@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   allEntries,
   decisionsInForce,
@@ -21,15 +21,12 @@ describe('the ledger record', () => {
   let path: string
   let database: DatabaseSync
 
-  beforeEach(async () => {
+  beforeEach(async ({ onTestFinished }) => {
     directory = mkdtempSync(join(tmpdir(), 'seasoned-skills-ledger-'))
+    onTestFinished(() => rmSync(directory, { recursive: true, force: true }))
     path = join(directory, 'ledger.db')
     database = await openRecord(path)
-  })
-
-  afterEach(() => {
-    database.close()
-    rmSync(directory, { recursive: true, force: true })
+    onTestFinished(() => database.close())
   })
 
   function decision(body: string, replaces?: number) {
