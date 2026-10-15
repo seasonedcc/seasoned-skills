@@ -58,8 +58,10 @@ TEXT_REFUSAL = (
     ' expand or lose the text, and $( ) or backticks in it would run as commands.'
 )
 UNCLOSED_REFUSAL = (
-    "Refused: the entry's heredoc never closes. End the entry with a line that is"
-    ' exactly ENTRY.'
+    'Refused: a heredoc in this command never closes. Shells disagree about where'
+    " an unclosed heredoc's text ends, and some would read the entry into another"
+    ' one and expand it. End every heredoc with a line that is exactly its'
+    ' delimiter, and the entry with a line that is exactly ENTRY.'
 )
 SOURCE_REFUSAL = (
     'Refused: --source holds a backtick or a $ outside single quotes, so the shell'
@@ -438,8 +440,16 @@ def ledger_commands(commands):
             yield command, arguments
 
 
+def heredocs(commands):
+    for command in commands:
+        for redirection in command.redirections:
+            if redirection.heredoc is not None:
+                yield redirection.heredoc
+
+
 def refusal(text):
-    found = list(ledger_commands(Reader(text).read()))
+    commands = Reader(text).read()
+    found = list(ledger_commands(commands))
     if any(command.comment for command, _ in found):
         return COMMENT_REFUSAL
     writes = [(command, arguments) for command, arguments in found if ledger_kind(arguments)]
@@ -453,12 +463,12 @@ def refusal(text):
     inputs = standard_inputs(write)
     if write.piped or len(inputs) != 1 or not is_entry_heredoc(inputs[0]):
         return TEXT_REFUSAL + FORM
-    heredoc = inputs[0].heredoc
-    if not heredoc.closed:
+    entry = inputs[0].heredoc
+    if not all(heredoc.closed for heredoc in heredocs(commands)):
         return UNCLOSED_REFUSAL + FORM
     if source_expands(arguments):
         return SOURCE_REFUSAL + FORM
-    if write.substituted or write.followed_by not in ('\n', '') or text[heredoc.end :].strip():
+    if write.substituted or write.followed_by not in ('\n', '') or text[entry.end :].strip():
         return TRAILING_REFUSAL + FORM
     return ''
 

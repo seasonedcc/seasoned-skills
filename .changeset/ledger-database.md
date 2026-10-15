@@ -17,13 +17,13 @@ Sync registers two new hooks. After every compaction (Claude Code
 summarizing the conversation to free room), one puts the decisions in force
 back in front of the agent, word for word. Before every Bash command, the
 ledger write guard refuses a ledger write the shell could damage: text that
-doesn't arrive through `<<'ENTRY'`, an entry whose heredoc never closes, a
-second write in the same command, anything after the entry, and a
-`--source` holding a `$` or a backtick outside single quotes. It also
-refuses any `ledger` command with an unquoted word starting with `#`, such
-as `ledger show #47`, since the shell reads the rest of that line as a
-comment. A write command run with `--help` writes nothing, so it needs no
-heredoc.
+doesn't arrive through `<<'ENTRY'`, a heredoc anywhere in the command that
+never closes, a second write in the same command, anything after the
+entry, and a `--source` holding a `$` or a backtick outside single quotes.
+It also refuses any `ledger` command with an unquoted word starting with
+`#`, such as `ledger show #47`, since the shell reads the rest of that line
+as a comment. A write command run with `--help` writes nothing, so it
+needs no heredoc.
 
 The `git stash` guard no longer reads an entry's text, so an entry can
 mention a forbidden command. It now also refuses a `git stash` that shell
