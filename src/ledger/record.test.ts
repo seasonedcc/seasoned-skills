@@ -312,13 +312,13 @@ describe('the ledger record', () => {
 
     const blank = "' \t\n\r'"
 
-    for (const [what, columns, values] of [
-      ['text', 'source', `'progress', ${blank}, 'orchestrator', NULL`],
-      ['writer', 'source', `'progress', 'x', ${blank}, NULL`],
-      ['source', 'source', `'finding', 'x', 'researcher', ${blank}`],
-    ]) {
+    for (const [what, values] of [
+      ['text', `'progress', ${blank}, 'orchestrator', NULL`],
+      ['writer', `'progress', 'x', ${blank}, NULL`],
+      ['source', `'finding', 'x', 'researcher', ${blank}`],
+    ] as const) {
       it(`refuses a blank ${what}`, () => {
-        expect(insert(columns, values)).toThrow(/CHECK constraint failed/)
+        expect(insert('source', values)).toThrow(/CHECK constraint failed/)
       })
     }
 
