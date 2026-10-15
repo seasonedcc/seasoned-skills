@@ -16,6 +16,8 @@ import {
   writeEntry,
 } from './record.js'
 
+const SQLITE_BUSY = 5
+
 describe('the ledger record', () => {
   let directory: string
   let path: string
@@ -92,21 +94,29 @@ describe('the ledger record', () => {
 
   it('waits out a write lock another connection holds on a new record', async () => {
     const fresh = join(directory, 'fresh.db')
-    const { DatabaseSync } = await import('node:sqlite')
+    const { DatabaseSync, StatementSync } = await import('node:sqlite')
     const holder = new DatabaseSync(fresh)
     holder.exec('BEGIN IMMEDIATE')
-    const exec = vi.spyOn(DatabaseSync.prototype, 'exec')
-    const opening = openRecord(fresh)
-    await vi.waitFor(
-      () =>
-        expect(exec.mock.results).toContainEqual(
-          expect.objectContaining({ type: 'throw' }),
+    const calls = [
+      vi.spyOn(DatabaseSync.prototype, 'exec'),
+      vi.spyOn(DatabaseSync.prototype, 'prepare'),
+      ...(['all', 'get', 'iterate', 'run'] as const).map((method) =>
+        vi.spyOn(StatementSync.prototype, method),
+      ),
+    ]
+    const refusedAsBusy = () =>
+      calls.some((call) =>
+        call.mock.results.some(
+          (result) =>
+            result.type === 'throw' &&
+            (result.value as { errcode?: number }).errcode === SQLITE_BUSY,
         ),
-      { timeout: 5000 },
-    )
+      )
+    const opening = openRecord(fresh)
+    await vi.waitFor(() => expect(refusedAsBusy()).toBe(true), { timeout: 5000 })
     holder.exec('COMMIT')
     holder.close()
-    exec.mockRestore()
+    for (const call of calls) call.mockRestore()
     const opened = await opening
     expect(opened.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' })
     opened.close()

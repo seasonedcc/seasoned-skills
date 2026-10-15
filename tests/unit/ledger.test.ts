@@ -34,7 +34,8 @@ const packageManifest = fileURLToPath(new URL('../../package.json', import.meta.
 /**
  * Preloaded into a child command line: on file descriptor 3 it says
  * `reading` the first time the command reads its standard input, and
- * `writing` each time it opens a write transaction on a record.
+ * `writing` each time it begins a transaction on a record, whichever form
+ * of BEGIN it uses and whether it runs the statement or prepares it.
  */
 const momentSignals = `data:text/javascript,${encodeURIComponent(`
 import { writeSync } from 'node:fs'
@@ -48,10 +49,12 @@ stdin.read = function (...args) {
 }
 try {
   const { DatabaseSync } = await import('node:sqlite')
-  const exec = DatabaseSync.prototype.exec
-  DatabaseSync.prototype.exec = function (sql) {
-    if (sql === 'BEGIN IMMEDIATE') signal('writing')
-    return exec.call(this, sql)
+  for (const method of ['exec', 'prepare']) {
+    const original = DatabaseSync.prototype[method]
+    DatabaseSync.prototype[method] = function (sql, ...rest) {
+      if (/^\\s*BEGIN\\b/i.test(sql)) signal('writing')
+      return original.call(this, sql, ...rest)
+    }
   }
 } catch {}
 `)}`
