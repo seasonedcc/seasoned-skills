@@ -47,7 +47,10 @@ const progress = (text: string, writer = 'orchestrator') =>
     'ENTRY',
   )
 
-const unquotedProgress = progress('Next: $(gh pr merge 12)').replace("<<'ENTRY'", '<<ENTRY')
+const unquotedProgress = progress('Next: $(gh pr merge 12)').replace(
+  "<<'ENTRY'",
+  '<<ENTRY',
+)
 
 describe('the ledger write guard', () => {
   const refusedWith = (command: string, reason: string) => {
@@ -149,6 +152,7 @@ describe('the ledger write guard', () => {
         'pnpm exec seasoned-skills ledger show 47 --session 1b2c3d4e-0000-0000-0000-000000000000',
       )
       passes('pnpm exec seasoned-skills ledger print > ledger.txt')
+      passes(lines('# check what is in force', 'pnpm exec seasoned-skills ledger'))
       passes('git status # what changed')
       passes(lines("cat <<'ENTRY'", 'pnpm exec seasoned-skills ledger progress', 'ENTRY'))
     })
@@ -216,11 +220,40 @@ describe('the ledger write guard', () => {
         "pnpm exec seasoned-skills ledger progress --as orchestrator <<< 'Pushed.'",
         reason,
       )
+      refusedWith(
+        progress('Pushed.').replace("<<'ENTRY'", "<<'ENTRY' < note.txt"),
+        reason,
+      )
+      refusedWith(
+        progress('Pushed.').replace("<<'ENTRY'", "< note.txt <<'ENTRY'"),
+        reason,
+      )
       refusedWith(unquotedProgress.replace('--as orchestrator', '--help'), reason)
       refusedWith(
         'echo "Pushed $(git rev-parse HEAD)" | pnpm exec seasoned-skills ledger progress -h',
         reason,
       )
+    })
+
+    it("text that does not arrive through <<'ENTRY', however the write is spelled", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      const write = 'pnpm exec seasoned-skills ledger progress --as orchestrator'
+      refusedWith(`NOTES=1 ${write}`, reason)
+      refusedWith(`if ${write} < note.txt; then echo recorded; fi`, reason)
+      refusedWith(`! ${write}`, reason)
+      refusedWith(
+        write.replace('seasoned-skills ledger', 'seasoned-skills -- ledger'),
+        reason,
+      )
+      refusedWith(
+        write.replace(
+          'ledger progress',
+          'ledger --session 1b2c3d4e-0000-0000-0000-000000000000 progress',
+        ),
+        reason,
+      )
+      refusedWith(write.replace('ledger progress', 'ledger \\\n  progress'), reason)
+      refusedWith(lines('cat <<-EOF', '\tnotes', '\tEOF', unquotedProgress), reason)
     })
 
     it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
@@ -288,6 +321,7 @@ describe('the ledger write guard', () => {
       )
       refusedWith(finding.replace("'node -e on Node 22.22'", '"`date`"'), reason)
       refusedWith(finding.replace("'node -e on Node 22.22'", '$HOME/notes'), reason)
+      refusedWith(finding.replace("'node -e on Node 22.22'", '\\$HOME/notes'), reason)
       refusedWith(
         finding.replace("--source 'node -e on Node 22.22'", '--source="$PWD"'),
         reason,
@@ -366,6 +400,13 @@ describe('the stash hook', () => {
   it("reads every heredoc but a ledger entry's", () => {
     refused(lines("cat <<'ENTRY'", 'git stash', 'ENTRY'))
     refused(lines("cat > notes.sh <<'EOF'", 'git stash pop', 'EOF'))
+    refused(
+      lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
+    )
+  })
+
+  it('reads the whole command when the command reader cannot read it', () => {
+    refused(`git stash\necho ${'$('.repeat(1000)}`)
   })
 })
 

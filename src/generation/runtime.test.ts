@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { MANAGED_HOOKS } from '../footprint/settings.js'
 import { materializeRuntime } from './runtime.js'
 import { writeGeneratedFiles } from './write.js'
 
@@ -27,6 +28,13 @@ describe('materializeRuntime', () => {
     expect(paths).toContain('requests-from-meetings/assets/style.css')
     expect(paths).toContain('shaping/assets/document.css')
     expect(paths).toContain('shaping/assets/drawing/fonts/OFL.txt')
+  })
+
+  it('marks every hook a managed settings entry runs as executable', () => {
+    const files = materializeRuntime()
+    for (const { script } of MANAGED_HOOKS) {
+      expect(files.find((file) => file.path === script)?.executable, script).toBe(true)
+    }
   })
 
   it('has the session-end hook kill what the sweep lists, not only list it', () => {
