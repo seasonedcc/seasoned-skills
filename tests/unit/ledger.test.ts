@@ -338,25 +338,28 @@ describe('the ledger commands', () => {
       expect(existsSync(sessions)).toBe(false)
     })
 
-    it("refuses ledger's own --session or --hook before a subcommand", async () => {
-      await write(
-        'A rule.\n',
-        '--session',
-        OTHER_SESSION,
-        'decision',
-        '--as',
-        'orchestrator',
-        '--by',
-        'person',
+    it("refuses ledger's own --session or --hook before every subcommand, creating nothing", async () => {
+      const ledger = buildProgram().commands.find(
+        (command) => command.name() === 'ledger',
       )
-      expect(complaints()).toContain('--session before a subcommand would be ignored')
-      freshOutput()
-      await write('A rule.\n', '--hook', 'progress', '--as', 'orchestrator')
-      expect(complaints()).toContain("--hook is the compaction hook's mode")
-      freshOutput()
-      await run('ledger', '--session', OTHER_SESSION, 'print')
-      expect(complaints()).toContain('--session before a subcommand would be ignored')
-      expect(process.exitCode).toBe(1)
+      const subcommands = ledger?.commands ?? []
+      expect(subcommands.length).toBeGreaterThan(0)
+      for (const subcommand of subcommands) {
+        const operands = subcommand.registeredArguments.map(() => '1')
+        for (const [options, refusal] of [
+          [
+            ['--session', OTHER_SESSION],
+            '--session before a subcommand would be ignored',
+          ],
+          [['--hook'], "--hook is the compaction hook's mode"],
+        ] as const) {
+          freshOutput()
+          process.exitCode = undefined
+          await write('A rule.\n', ...options, subcommand.name(), ...operands)
+          expect(complaints()).toContain(refusal)
+          expect(process.exitCode).toBe(1)
+        }
+      }
       expect(existsSync(sessions)).toBe(false)
     })
 
