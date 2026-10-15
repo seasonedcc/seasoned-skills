@@ -414,7 +414,7 @@ describe('the ledger record', () => {
       expect(searched('registry')).toEqual(['Only declared lanes get one.'])
     })
 
-    it('excerpts the text without rewording it, ending in an ellipsis when shortened', () => {
+    it('excerpts the text without rewording it, marked with an ellipsis where it was cut', () => {
       const words = Array.from({ length: 80 }, (_, index) => `word${index}`)
       finding(`${words.join(' ')} needle`)
       finding('short needle')

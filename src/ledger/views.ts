@@ -4,8 +4,8 @@ import type { Entry, SearchResults } from './record.js'
  * Everything the ledger prints. Times are stored in UTC and shown in the
  * machine's local time: the full stamp with its offset wherever one entry is
  * printed, and in a list the time of day for today's entries and the date and
- * time for older ones. Shortened text ends in an ellipsis and is never
- * reworded; the whole entry is one `show` away.
+ * time for older ones. Shortened text is marked with an ellipsis where it
+ * was cut and is never reworded; the whole entry is one `show` away.
  */
 
 interface InForce {
