@@ -149,11 +149,22 @@ interface EntryRow {
   written_at: string
 }
 
+/**
+ * Node's SQLite, once it is known to hold the search index: before Node 22.13
+ * `node:sqlite` needs a flag, and before 22.16 it comes without FTS5.
+ */
 async function loadSqlite() {
   try {
-    return await import('node:sqlite')
+    const sqlite = await import('node:sqlite')
+    const probe = new sqlite.DatabaseSync(':memory:')
+    try {
+      probe.exec('CREATE VIRTUAL TABLE probe USING fts5 (text)')
+    } finally {
+      probe.close()
+    }
+    return sqlite
   } catch {
-    throw new Error('The ledger needs Node 22.13 or later.')
+    throw new Error('The ledger needs Node 22.16 or later.')
   }
 }
 
@@ -389,6 +400,7 @@ export {
   entryById,
   findingCounts,
   latestProgress,
+  loadSqlite,
   openExistingRecord,
   openRecord,
   replacementLine,

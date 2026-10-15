@@ -526,6 +526,70 @@ describe('the ledger commands', () => {
     })
   })
 
+  describe('on a Node whose SQLite cannot hold the ledger', () => {
+    const NEEDS_NODE = 'The ledger needs Node 22.16 or later.'
+
+    function withoutSqlite(): never {
+      throw new Error('No such built-in module: node:sqlite')
+    }
+
+    async function withoutFullTextSearch() {
+      const actual = await vi.importActual<typeof import('node:sqlite')>('node:sqlite')
+      class DatabaseSync extends actual.DatabaseSync {
+        exec(sql: string) {
+          if (/\bfts5\b/i.test(sql)) throw new Error('no such module: fts5')
+          super.exec(sql)
+        }
+      }
+      return { ...actual, DatabaseSync }
+    }
+
+    afterEach(() => {
+      vi.doUnmock('node:sqlite')
+    })
+
+    for (const [node, sqlite] of [
+      ['without node:sqlite', withoutSqlite],
+      ['whose node:sqlite lacks FTS5', withoutFullTextSearch],
+    ] as const) {
+      it(`refuses every ledger command on a Node ${node}, creating nothing`, async () => {
+        vi.doMock('node:sqlite', sqlite)
+        for (const args of [
+          ['decision', '--as', 'orchestrator', '--by', 'person'],
+          ['finding', '--as', 'researcher', '--source', 'probe'],
+          ['progress', '--as', 'orchestrator'],
+          [],
+          ['search', 'anything'],
+          ['show', '1'],
+          ['print'],
+        ]) {
+          freshOutput()
+          process.exitCode = undefined
+          await write('Text.\n', ...args)
+          expect(complaints()).toBe(NEEDS_NODE)
+          expect(printed()).toBe('')
+          expect(process.exitCode).toBe(1)
+        }
+        expect(existsSync(sessions)).toBe(false)
+      })
+    }
+
+    it('keeps the compaction hook silent and every other command working', async () => {
+      await decide('The person decided this.\n')
+      freshOutput()
+      vi.doMock('node:sqlite', withoutFullTextSearch)
+      stdin(JSON.stringify({ session_id: SESSION }))
+      await run('ledger', '--hook')
+      expect(printed()).toBe('')
+      vi.doMock('node:sqlite', withoutSqlite)
+      await run('ledger', '--hook')
+      expect(printed()).toBe('')
+      await run('session-folder')
+      expect(printed()).toBe(join(sessions, SESSION))
+      expect(process.exitCode).toBeUndefined()
+    })
+  })
+
   describe('as the compaction hook', () => {
     function hookPayload(payload: string) {
       stdin(payload)

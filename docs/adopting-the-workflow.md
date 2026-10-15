@@ -83,10 +83,11 @@ must meet per enabled option:
 
 ## What the machine needs
 
-The package itself runs on Node 22.13 or later. On an earlier Node 22,
-every command works except `ledger`, which keeps each session's record of
-decisions, findings, and progress in the database that comes inside Node
-from 22.13 on.
+The package needs Node 22.16 or later. On an earlier Node 22, every command
+but `ledger` still works. The ledger keeps each session's record of
+decisions, findings, and progress in the SQLite database that comes inside
+Node, and that database gained the full-text search the ledger needs in
+Node 22.16.
 
 The binaries the enabled workflow depends on: `git`, `gh`, `jq`, and
 `python3`, plus the toolchains the always-shipping practices run on:

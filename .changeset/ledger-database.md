@@ -29,8 +29,9 @@ instead of going in the ledger. A session that's running when you upgrade
 keeps its markdown ledger as history and writes every new entry to the
 database; nothing imports the old file.
 
-The package now needs Node 22.13 or later (`engines.node` is `>=22.13.0`).
-On an earlier Node 22 only `ledger` fails, with "The ledger needs Node 22.13
-or later.", and every other command keeps working. The nested `ledger`
+The package now needs Node 22.16 or later (`engines.node` is `>=22.16.0`),
+the first Node whose built-in SQLite has the full-text search the ledger's
+search runs on. On an earlier Node 22 only `ledger` fails, with "The ledger
+needs Node 22.16 or later.", and every other command keeps working. The nested `ledger`
 commands have one side effect: `seasoned-skills <command> --version` is now
 refused, while `seasoned-skills --version` still prints the version.

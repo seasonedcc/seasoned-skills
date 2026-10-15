@@ -320,9 +320,11 @@ record. Outside a Claude Code session a write fails, and a read needs
 `--session`. Reading a session with no record yet prints
 `No ledger yet in this session.` and exits 0.
 
-The ledger needs Node 22.13 or later. On an earlier Node 22 it prints
-`The ledger needs Node 22.13 or later.` and exits 1, and every other
-command keeps working.
+The ledger needs Node 22.16 or later, the first Node whose built-in SQLite
+has full-text search. On an earlier Node every `ledger` command prints
+`The ledger needs Node 22.16 or later.` and exits 1 before creating
+anything, the compaction hook prints nothing, and every other command keeps
+working.
 
 | Flag | What it does |
 | --- | --- |

@@ -14,6 +14,7 @@ import {
   entryById,
   findingCounts,
   latestProgress,
+  loadSqlite,
   type NewEntry,
   openExistingRecord,
   openRecord,
@@ -50,9 +51,13 @@ function refuse(message: string): never {
   throw new Error(message)
 }
 
-/** Run a ledger command, printing why it cannot when it cannot. */
+/**
+ * Run a ledger command, printing why it cannot when it cannot. A Node whose
+ * SQLite cannot hold the ledger is refused before anything is created.
+ */
 async function reporting(work: () => Promise<void>) {
   try {
+    await loadSqlite()
     await work()
   } catch (error) {
     console.error((error as Error).message)

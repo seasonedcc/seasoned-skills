@@ -350,11 +350,14 @@
               </li>
               <li>
                 <p>
-                  <code>node:sqlite</code> needs no flag from Node 22.13 on. Node 22
-                  prints <code>ExperimentalWarning: SQLite is an experimental
+                  <code>node:sqlite</code> needs no flag from Node 22.13 on, but FTS5
+                  arrives in it only with Node 22.16: Node 22.13 to 22.15 bundle an
+                  SQLite built without it, and creating the search index there fails
+                  with <code>no such module: fts5</code>. Node 22 prints
+                  <code>ExperimentalWarning: SQLite is an experimental
                   feature</code> on every run; Node 24 prints none. FTS5, JSON functions,
-                  and <code>STRICT</code> tables work on both. <code>engines.node</code> becomes
-                  <code>&gt;=22.13.0</code>, up from <code>&gt;=22.0.0</code>. A new
+                  and <code>STRICT</code> tables work on both from 22.16. <code>engines.node</code> becomes
+                  <code>&gt;=22.16.0</code>, up from <code>&gt;=22.0.0</code>. A new
                   warning filter replaces Node's <code>warning</code> listener with one
                   that drops only the SQLite experimental warning and prints everything
                   else. It is installed in <code>bin/seasoned-skills.js</code> before the
@@ -364,8 +367,12 @@
                   actions, never from <code>src/cli/program.ts</code>: <code>engines</code>
                   is only advisory, and on Node 22.0 to 22.12 a static import breaks
                   every command, <code>sync</code> in <code>prepare</code> and the
-                  session-end hook included. There, only <code>ledger</code> fails, with
-                  &ldquo;The ledger needs Node 22.13 or later.&rdquo;
+                  session-end hook included. Before anything else, every
+                  <code>ledger</code> command checks that <code>node:sqlite</code> loads
+                  and creates an FTS5 table in memory. On a Node where either fails,
+                  only <code>ledger</code> fails, with &ldquo;The ledger needs Node 22.16
+                  or later.&rdquo;, before it creates a folder or a file, and the
+                  compaction hook prints nothing.
                 </p>
               </li>
               <li>
