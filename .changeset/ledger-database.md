@@ -22,8 +22,19 @@ second write in the same command, anything after the entry, and a
 `--source` holding a `$` or a backtick outside single quotes. It also
 refuses any `ledger` command with an unquoted word starting with `#`, such
 as `ledger show #47`, since the shell reads the rest of that line as a
-comment. The `git stash` guard no longer reads an entry's text, so an entry
-can mention a forbidden command.
+comment.
+
+The `git stash` guard now reads a command the way the shell runs it, instead
+of matching its text. It refuses `git stash` wherever the shell would run
+it: after a `;`, inside parentheses or `$( )`, in backticks within a
+double-quoted message, behind `sudo` or a variable assignment, and in text
+handed to a shell to run, such as `bash -c '…'`, `eval`, or a heredoc fed to
+`bash`. Several of these used to slip past it. Text that only mentions it
+now passes where it used to be refused: a commit message, a pull request
+body sent through a quoted heredoc, a ledger entry, a comment after `#`.
+Backticks inside double quotes still run, so name it in single quotes or a
+quoted heredoc. When a command is too tangled to read, the guard falls back
+to matching its text, so it errs toward refusing.
 
 Subagents now write their findings straight into the session's ledger, each
 under its own task name, and their reports point at those entries. Decisions
