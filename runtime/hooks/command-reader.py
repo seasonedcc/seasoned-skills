@@ -9,7 +9,8 @@ standard input, named by its one argument:
                    nothing when it passes
   outside-entries  the command without the text of its ledger entries, for
                    guards that match on command text: an entry is recorded,
-                   never run
+                   never run. A command it cannot read, or cannot read
+                   within two seconds, comes back whole.
 
 The hooks run it as a script with python3 -B, so it never leaves bytecode
 beside them. Standard library only, and Python 3.9 compatible.
@@ -17,6 +18,7 @@ beside them. Standard library only, and Python 3.9 compatible.
 
 import json
 import re
+import signal
 import sys
 
 KINDS = ('decision', 'finding', 'progress')
@@ -30,6 +32,7 @@ REDIRECTION = re.compile(r'(\d*)(<<<|<<-|<<|<>|<&|<|>>|>&|>\||>)|&>>|&>')
 STANDARD_INPUT = {'<<<', '<<-', '<<', '<>', '<&', '<'}
 METACHARACTERS = set(' \t\n;&|<>()')
 PARAMETER = re.compile(r'\$([A-Za-z_][A-Za-z0-9_]*|[0-9#?$!@*-])?')
+READING_TIME_LIMIT = 2
 
 FORM = (
     "\n\nWrite each entry as one command that ends with it, its text on standard"
@@ -491,6 +494,10 @@ def outside_entries(text):
     return ''.join(kept)
 
 
+def took_too_long(signal_number, frame):
+    raise TimeoutError('the command took too long to read')
+
+
 def main():
     payload = json.loads(sys.stdin.buffer.read().decode('utf-8', 'replace'))
     tool_input = payload.get('tool_input') if isinstance(payload, dict) else None
@@ -501,9 +508,13 @@ def main():
     if question == 'refusal':
         answer = refusal(command)
     elif question == 'outside-entries':
+        signal.signal(signal.SIGALRM, took_too_long)
+        signal.setitimer(signal.ITIMER_REAL, READING_TIME_LIMIT)
         try:
             answer = outside_entries(command)
+            signal.setitimer(signal.ITIMER_REAL, 0)
         except Exception:
+            signal.setitimer(signal.ITIMER_REAL, 0)
             answer = command
     else:
         sys.exit('usage: command-reader.py refusal|outside-entries < hook-payload.json')

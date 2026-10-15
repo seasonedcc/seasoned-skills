@@ -512,6 +512,14 @@ describe('the stash hook', () => {
     refused(lines('git stash', `echo ${'x'.repeat(200_000)}`))
   })
 
+  it('reads the whole command when the command reader takes too long', {
+    timeout: 15_000,
+  }, () => {
+    const started = Date.now()
+    refused(lines('git stash', ...Array(30_000).fill('(( a')))
+    expect(Date.now() - started).toBeLessThan(5_000)
+  })
+
   it('reads the whole command when the command reader cannot read it', () => {
     refused(`git stash\necho ${'$('.repeat(1000)}`)
   })
