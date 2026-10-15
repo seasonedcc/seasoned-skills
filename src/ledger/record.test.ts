@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
+import { setTimeout as delay } from 'node:timers/promises'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   allEntries,
@@ -80,6 +81,20 @@ describe('the ledger record', () => {
       })
     }
     reader?.close()
+  })
+
+  it('waits out a write lock another connection holds on a new record', async () => {
+    const fresh = join(directory, 'fresh.db')
+    const { DatabaseSync } = await import('node:sqlite')
+    const holder = new DatabaseSync(fresh)
+    holder.exec('BEGIN IMMEDIATE')
+    const opening = openRecord(fresh)
+    await delay(200)
+    holder.exec('COMMIT')
+    holder.close()
+    const opened = await opening
+    expect(opened.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' })
+    opened.close()
   })
 
   it("stamps each entry with the database's own clock, in UTC", () => {

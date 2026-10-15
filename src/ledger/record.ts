@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import type { DatabaseSync } from 'node:sqlite'
+import { setTimeout as delay } from 'node:timers/promises'
 
 /**
  * The ledger's record: one SQLite database per session, which accepts new
@@ -49,6 +50,10 @@ interface SearchResults {
 }
 
 const SEARCH_LIMIT = 20
+
+const BUSY_TIMEOUT = 5000
+
+const SQLITE_BUSY = 5
 
 const SQLITE_CORRUPT_VTAB = 267
 
@@ -168,11 +173,27 @@ async function loadSqlite() {
   }
 }
 
+/**
+ * Switch the record to WAL, where reads never wait for a write. On a new file
+ * the switch does not wait out the busy timeout while another connection holds
+ * a write lock, so it is tried again until the timeout has passed.
+ */
+async function switchToWal(database: DatabaseSync, deadline: number): Promise<void> {
+  try {
+    database.exec('PRAGMA journal_mode = WAL')
+  } catch (error) {
+    if ((error as { errcode?: number }).errcode !== SQLITE_BUSY || Date.now() > deadline)
+      throw error
+    await delay(10)
+    await switchToWal(database, deadline)
+  }
+}
+
 async function connect(path: string) {
   const { DatabaseSync } = await loadSqlite()
   const database = new DatabaseSync(path)
-  database.exec('PRAGMA busy_timeout = 5000')
-  database.exec('PRAGMA journal_mode = WAL')
+  database.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT}`)
+  await switchToWal(database, Date.now() + BUSY_TIMEOUT)
   return database
 }
 
