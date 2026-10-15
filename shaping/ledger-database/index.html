@@ -652,7 +652,10 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   command. That also closes the last way an entry could run: a line in
                   the text that is exactly <code>ENTRY</code> ends the heredoc early,
                   the lines after it become commands, and the hook sees text after the
-                  closing line and refuses. It refuses a write whose text does not
+                  closing line and refuses. It refuses a write in a command where any
+                  heredoc never closes, since shells disagree about where an unclosed
+                  heredoc's text ends, and some would read the entry into it and expand
+                  it. It refuses a write whose text does not
                   arrive through
                   <code>&lt;&lt;'ENTRY'</code>, which also refuses
                   <code>echo &hellip; |</code> and a missing heredoc. A request for help,
