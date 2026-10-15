@@ -96,16 +96,21 @@ written into the workflow rather than left to habit, in two places:
   Claude Code to compact every session, and every helper agent a
   session delegates to, once its context reaches around 300,000 tokens,
   a little under a third of the window.
-- **Every long effort keeps a ledger**: a running file of the durable
-  facts and lessons the effort must not lose, kept current at every
-  moment rather than reconstructed when it is needed. It lives in the
-  session's own folder inside your main checkout (the copy of the
-  repository you cloned, which every worktree branches from), never in a
-  temporary directory a reboot can empty. After every compaction the
-  session goes back to the ledger and the real sources before its next
-  step, never trusting its summary alone.
-  [Running a session](running-a-session.md) shows what that looks like
-  from your chair.
+- **Every long effort keeps a ledger**: the session's record of what
+  the person decided, what the session learned about the product, and
+  where the work stands, each written down as it happens. It is a small
+  database in the session's own folder inside your main checkout (the
+  copy of the repository you cloned, which every worktree branches
+  from), never in a temporary directory a reboot can empty. The database
+  only takes new entries, and it refuses every edit and every delete.
+  That matters most right before a compaction, when an agent's memory is
+  nearly full and it is at its least capable: a file it could rewrite is
+  a file it would one day boil down to a summary, history and all. After
+  every compaction, the decisions still in force come back in front of
+  the session in the words they were written in, and the session checks
+  the real sources before its next step, never trusting its summary
+  alone. [Running a session](running-a-session.md) shows what that looks
+  like from your chair.
 
 ## How work enters the system
 
@@ -329,9 +334,21 @@ treats every claim an agent reports as unverified until it has checked the
 work itself: gates are re-run, diffs are read, and nothing advances on an
 agent's word alone.
 
-The orchestrator also keeps the effort's ledger, the running file of
-durable facts introduced earlier, which is what lets the effort survive
-its own context being compacted several times along the way.
+The orchestrator also keeps the effort's ledger, introduced earlier,
+which is what lets the effort survive its own context being compacted
+several times along the way. Every entry is one of three kinds. A
+decision is something that now governs the work, and it says who made
+it: when it was the person, it carries their own words. A finding is
+something learned about the product, and it says where it came from: a
+file and line, a command and what it printed, a page, a test. Progress
+is where the work stands: what was launched, on which branch, what a
+check returned. The agents the orchestrator delegates to write their
+findings straight into the same ledger, under their own names, and
+point at them in their reports. Decisions and progress stay with the
+orchestrator, which reads and checks everything those agents report.
+Nothing in the ledger is ever edited. When the person changes their
+mind, or a finding turns out wrong, a new entry replaces the old one,
+and the old one stays readable, marked with what replaced it.
 
 ### Lanes: isolated copies of the project
 
@@ -433,16 +450,19 @@ outside a goal, and once per goal when the goal is met, the workflow
 mines the finished effort for durable lessons. Only quick mode skips this
 pass.
 
-The mining reads the real record, not memory: the ledger, the
-conversation, the pull request threads. The person's own corrections rank
-above every other source, because anything the person had to say twice is
-something the system failed to absorb the first time. After that come
-failures traced to their root cause, then wins that would not be
-rediscovered cheaply. A lesson is kept only when it clears a real
-bar: it will matter beyond the task that taught it, a future session
-reading it would act differently, and it is worth the attention it will
-cost every session that reads it from now on. Finding nothing worth
-keeping is a valid outcome, stated plainly.
+The mining reads the real record, not memory: the conversation, the
+ledger, the pull request threads. Lessons about how we work are never
+written to the ledger; they stay in the conversation until this pass
+picks them up, and the ledger, printed whole for the occasion, adds what
+was decided, learned, and done, with the real time of each. The person's
+own corrections rank above every other source, because anything the
+person had to say twice is something the system failed to absorb the
+first time. After that come failures traced to their root cause, then
+wins that would not be rediscovered cheaply. A lesson is kept only when
+it clears a real bar: it will matter beyond the task that taught it, a
+future session reading it would act differently, and it is worth the
+attention it will cost every session that reads it from now on. Finding
+nothing worth keeping is a valid outcome, stated plainly.
 
 Every lesson that clears the bar becomes exactly one issue, and the pass
 itself changes no instructions. It isn't a third way around shaping
