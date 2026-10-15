@@ -105,8 +105,8 @@ function replaced(options: WriteOptions) {
 }
 
 /**
- * `ledger`'s own --session and --hook belong before no subcommand: a write
- * would ignore them and record into the current session unnoticed.
+ * Refuse `ledger`'s own --session or --hook given before a subcommand, which
+ * would ignore it: a write would record into the current session unnoticed.
  */
 function refuseLedgerOptions(ledger: Command) {
   const { session, hook } = ledger.opts<{ session?: string; hook?: boolean }>()
@@ -135,12 +135,13 @@ async function write(entry: NewEntry) {
 /** The session a read names with --session, or the current one. */
 function sessionToRead(session: string | undefined) {
   if (session !== undefined) return session
-  if (process.env.CLAUDE_CODE_SESSION_ID === undefined) {
+  const current = process.env.CLAUDE_CODE_SESSION_ID
+  if (current === undefined || current === '') {
     refuse(
       'CLAUDE_CODE_SESSION_ID is not set — the ledger belongs to a Claude Code session, so read it from inside one, or name the session with --session <id>.',
     )
   }
-  return claudeCodeSessionId(process.env.CLAUDE_CODE_SESSION_ID)
+  return claudeCodeSessionId(current)
 }
 
 function recordPathOf(sessionId: string) {

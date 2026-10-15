@@ -462,9 +462,12 @@ describe('the ledger commands', () => {
     })
 
     it('needs --session outside a Claude Code session', async () => {
-      vi.stubEnv('CLAUDE_CODE_SESSION_ID', undefined)
-      await run('ledger')
-      expect(complaints()).toContain('or name the session with --session <id>')
+      for (const unset of [undefined, '']) {
+        freshOutput()
+        vi.stubEnv('CLAUDE_CODE_SESSION_ID', unset)
+        await run('ledger')
+        expect(complaints()).toContain('or name the session with --session <id>')
+      }
       expect(process.exitCode).toBe(1)
     })
 

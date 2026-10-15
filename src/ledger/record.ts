@@ -392,7 +392,6 @@ export {
   openExistingRecord,
   openRecord,
   replacementLine,
-  SEARCH_LIMIT,
   searchEntries,
   writeEntry,
 }
