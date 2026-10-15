@@ -8,6 +8,7 @@ import { corpusBuiltBy, corpusCacheRoot } from '../corpus/cache.js'
 import { checkTarget, deriveChecks, renderReport, runChecks } from '../doctor/doctor.js'
 import { applyInstall, planInstall } from '../install/install.js'
 import { collectAnswers } from '../install/interactive.js'
+import { declareLedger } from '../ledger/commands.js'
 import {
   type ClassifiedBrowser,
   killBrowserProcesses,
@@ -43,6 +44,7 @@ export function buildProgram(): Command {
       'The Seasoned workflow — installed with one command and kept current by upgrading a version.',
     )
     .version(version)
+    .enablePositionalOptions()
 
   program
     .command('sync')
@@ -345,6 +347,8 @@ export function buildProgram(): Command {
         process.exitCode = 1
       },
     )
+
+  declareLedger(program)
 
   return program
 }

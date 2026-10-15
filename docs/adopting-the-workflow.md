@@ -83,6 +83,11 @@ must meet per enabled option:
 
 ## What the machine needs
 
+The package itself runs on Node 22.13 or later. On an earlier Node 22,
+every command works except `ledger`, which keeps each session's record of
+decisions, findings, and progress in the database that comes inside Node
+from 22.13 on.
+
 The binaries the enabled workflow depends on: `git`, `gh`, `jq`, and
 `python3`, plus the toolchains the always-shipping practices run on:
 `whisper-cli` with the pinned `ggml-large-v3` and `ggml-silero-v5.1.2`

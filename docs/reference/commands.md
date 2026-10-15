@@ -1,6 +1,6 @@
 # Commands
 
-Eight commands, all through one binary. The package is installed as a
+Nine commands, all through one binary. The package is installed as a
 dependency of your project, not globally, so the binary is not on your PATH. Run
 every command from your project's root as `pnpm exec seasoned-skills <command>`.
 In a new worktree, run `pnpm install` first. Three of them work on a lane. A
@@ -17,6 +17,7 @@ databases, and env files, so two pieces of work never collide on this machine.
 | `teardown` | Remove a lane and everything it owns. |
 | `session-folder` | Print the folder where this Claude Code session keeps its files, creating it. |
 | `sweep` | List leftover browsers, lane processes, or session folders, and clean up only what your Claude Code session or an ended one left behind. |
+| `ledger` | Write to this session's ledger, and read back what is in force, search it, or print it whole. |
 
 ## seasoned-skills
 
@@ -288,6 +289,135 @@ cannot honor instead of ignoring part of it: two kinds at once, `--kill` or
 | `--remove` | With `--sessions`: remove the expired session folders, then list again. |
 | `--lane <lane>` | With `--lane-processes`: only that lane's processes, named by its directory name. |
 | `--hook` | With `--lane-processes` or `--sessions`: run quietly as the session-end hook, never blocking the session from ending. For lane processes it reads the hook payload and acts only when the session is truly over; session folders are removed whenever any session ends, since an expired folder belongs to no session that could come back. Without `--kill` (lane processes) or `--remove` (session folders) it does nothing; the generated hook passes them. |
+
+## seasoned-skills ledger
+
+Keep this session's ledger: the record of what was decided, what the session
+learned, and where the work stands, so the session can find its way back
+after a compaction (Claude Code summarizing the conversation to free room).
+The record is one database file, `ledger.db`, in the session's folder, the
+one `session-folder` prints. The first write creates it. It accepts new
+entries and refuses every edit and every delete, whoever asks and through
+whatever tool.
+
+Every entry is one of three kinds. A decision governs the work and says who
+decided it. A finding is something learned about the product and says where
+it came from. Progress is where the work stands. A new decision or finding
+can replace an older one of its own kind; the older one stays readable,
+marked with what replaced it. An entry is in force until something replaces
+it, and progress is never replaced.
+
+On its own, `ledger` prints what is in force: every decision in force,
+newest first, with who decided it, who wrote it, and when; the last ten
+progress entries whole; and one line counting the findings in force and the
+replaced ones. Findings are reached by searching. In a list, a time is the
+time of day for today's entries and the date and time for older ones; where
+one entry is printed, it is the full local stamp with its offset.
+
+Every `ledger` command runs from your project's root or one of its
+worktrees, like `session-folder`, so all the agents in one session share one
+record. Outside a Claude Code session a write fails, and a read needs
+`--session`. Reading a session with no record yet prints
+`No ledger yet in this session.` and exits 0.
+
+The ledger needs Node 22.13 or later. On an earlier Node 22 it prints
+`The ledger needs Node 22.13 or later.` and exits 1, and every other
+command keeps working.
+
+| Flag | What it does |
+| --- | --- |
+| `--session <id>` | Read that session's record instead of the current one's, by its session id. Nothing is created for an id with no folder. Before a subcommand it is refused; each read takes its own after its name. |
+| `--hook` | Run as the compaction hook. It reads the session from the hook payload on stdin, prints the in-force view fitted under 9,500 characters, prints nothing when there is no record, and always exits 0. The progress entries and the findings line come first, each entry cut to its first line and 200 characters. Decisions fill the rest, newest first and only whole, followed by how many older ones did not fit. A decision too long to fit on its own shows as one line pointing at `ledger show`. |
+
+### seasoned-skills ledger decision
+
+Record something that now governs the work. Only the orchestrator, the main
+agent you talk to, records decisions, so `--as` is always `orchestrator`.
+The text arrives on stdin, through a quoted heredoc that ends at a line that
+is exactly `ENTRY`, so the shell never runs any of it:
+
+```sh
+pnpm exec seasoned-skills ledger decision --as orchestrator --by person <<'ENTRY'
+Every agent in the session writes to the same record.
+ENTRY
+```
+
+The command answers with the entry's number, kind, and time, such as
+`#47 decision, 2026-10-14 14:02:11 -03:00`, and nothing else. The time comes
+from the database's clock. Empty text, or a terminal instead of piped text,
+is refused, and the text is kept exactly as it arrives, less the heredoc's
+trailing newline.
+
+| Flag | What it does |
+| --- | --- |
+| `--as <writer>` | Who is writing. Required, and always `orchestrator` for a decision. |
+| `--by <who>` | Who decided it: `person` or `agent`. Required. |
+| `--replaces <number>` | The decision this one replaces, by its number, with or without a leading `#`. A decision replaces only a decision that exists and nothing has replaced yet. |
+
+### seasoned-skills ledger finding
+
+Record something learned about the product, with where it came from. Any
+agent records findings, including a subagent, the helper agent with one
+task that the orchestrator launches, under its task's name. Any writer can
+replace a finding with a corrected one, so a subagent that disproves a
+finding records the correction with the source that disproved it.
+
+```sh
+pnpm exec seasoned-skills ledger finding --as sqlite-research --source 'node -e on Node 22.22' <<'ENTRY'
+node:sqlite prints an ExperimentalWarning on every run on Node 22; Node 24.21 prints none.
+ENTRY
+```
+
+| Flag | What it does |
+| --- | --- |
+| `--as <writer>` | Who is writing: `orchestrator`, or the subagent's task name. Required. |
+| `--source <where>` | Where it came from: a file and line, a command and what it printed, a page, a test. Required. |
+| `--replaces <number>` | The finding this one replaces, by its number, with or without a leading `#`. |
+
+### seasoned-skills ledger progress
+
+Record where the work stands: what was launched and under which id, on which
+branch, what a check returned. Only the orchestrator records progress. It
+answers like the other writes, and its text arrives the same way.
+
+| Flag | What it does |
+| --- | --- |
+| `--as <writer>` | Who is writing. Required, and always `orchestrator` for progress. |
+
+### seasoned-skills ledger search
+
+Search every entry, in force or replaced, for any of the words `<words...>`,
+in each entry's text and its source. The words are plain text, never search
+syntax: every argument is split on whitespace, and `node:sqlite`, `#418`, a
+hyphen, or `OR` is just a word. Entries matching more of the words come
+first, then the newest. Each result shows its number, kind, writer, time,
+source, and an excerpt of its text, and a replaced entry says what replaced
+it. It prints the 20 best matches, then how many more there are.
+
+| Flag | What it does |
+| --- | --- |
+| `--session <id>` | Search that session's record instead of the current one's. |
+
+### seasoned-skills ledger show
+
+Print one entry whole, with its source and its line of replacements both
+ways: what it replaced and what replaced it. The entry's number `<number>`
+takes a leading `#` or none.
+
+| Flag | What it does |
+| --- | --- |
+| `--session <id>` | Read that session's record instead of the current one's. |
+
+### seasoned-skills ledger print
+
+Print the whole record as plain text, oldest first, with every entry whole:
+every replaced entry says what replaced it, and every replacement says what
+it replaced. It is the one read that grows with the session, meant for a
+person who wants to read the record end to end, copy it, or keep it.
+
+| Flag | What it does |
+| --- | --- |
+| `--session <id>` | Print that session's record instead of the current one's. |
 
 ## Where to go next
 
