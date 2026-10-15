@@ -89,6 +89,16 @@ describe('the ledger write guard', () => {
       )
     })
 
+    it('a write behind a wrapper, or through the command line source', () => {
+      passes(`timeout 30 ${finding}`)
+      passes(
+        finding.replace(
+          'pnpm exec seasoned-skills',
+          'node --experimental-transform-types src/cli/index.ts',
+        ),
+      )
+    })
+
     it('an entry whose text the shell would expand anywhere else', () => {
       passes(
         progress(
@@ -123,7 +133,7 @@ describe('the ledger write guard', () => {
       passes(
         'gh pr create --title "Ledger" --body "echo x | pnpm exec seasoned-skills ledger progress --as orchestrator is refused"',
       )
-      passes('echo pnpm exec seasoned-skills ledger finding --as reviewer')
+      passes('echo "pnpm exec seasoned-skills ledger finding --as reviewer"')
     })
 
     it('the reads, and every other command', () => {
@@ -226,6 +236,27 @@ describe('the ledger write guard', () => {
       refusedWith(`echo "\${name:-it's}" && ${unquotedProgress}`, reason)
       refusedWith(`notes=$((cd /work && ${unquotedProgress}\n) )`, reason)
       refusedWith(`echo ${'$(('.repeat(40)}\n${unquotedProgress}`, reason)
+    })
+
+    it("text that does not arrive through <<'ENTRY', whatever runs the binary", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      const write = 'pnpm exec seasoned-skills ledger progress --as orchestrator'
+      refusedWith(`timeout 30 ${unquotedProgress}`, reason)
+      refusedWith(`corepack ${unquotedProgress}`, reason)
+      refusedWith(unquotedProgress.replace('pnpm', '$PNPM'), reason)
+      refusedWith(`echo "$(date)" | xargs ${write}`, reason)
+      refusedWith(`timeout 10 ${write} < note.txt`, reason)
+      refusedWith(
+        unquotedProgress.replace(
+          'pnpm exec seasoned-skills',
+          'node --experimental-transform-types src/cli/index.ts',
+        ),
+        reason,
+      )
+      refusedWith(
+        unquotedProgress.replace('pnpm exec seasoned-skills', 'node dist/cli/index.js'),
+        reason,
+      )
     })
 
     it('an entry that never closes', () => {

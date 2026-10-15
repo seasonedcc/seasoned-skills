@@ -22,27 +22,8 @@ import sys
 KINDS = ('decision', 'finding', 'progress')
 ENTRY_HEREDOC = "'ENTRY'"
 BINARY = re.compile(
-    r'(^|/)seasoned-skills(@[^/]*)?$|(^|/)seasoned-skills\.js$|(^|/)dist/cli/index\.js$'
+    r'(^|/)seasoned-skills(@[^/]*)?$|(^|/)seasoned-skills\.js$|(^|/)cli/index\.[jt]s$'
 )
-LAUNCHERS = {
-    'bun',
-    'bunx',
-    'command',
-    'env',
-    'exec',
-    'nice',
-    'node',
-    'nohup',
-    'npm',
-    'npx',
-    'pnpm',
-    'pnpx',
-    'sudo',
-    'time',
-    'yarn',
-}
-RESERVED_WORDS = {'!', '{', 'if', 'then', 'elif', 'else', 'while', 'until', 'do', 'time'}
-ASSIGNMENT = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\+?=')
 OPERATORS = ('&&', '||', ';;', ';', '|&', '|', '&')
 REDIRECTION = re.compile(r'(\d*)(<<<|<<-|<<|<>|<&|<|>>|>&|>\||>)|&>>|&>')
 STANDARD_INPUT = {'<<<', '<<-', '<<', '<>', '<&', '<'}
@@ -361,17 +342,6 @@ class Reader:
 
 def ledger_arguments(command):
     words = command.words
-    index = 0
-    while index < len(words) and (
-        words[index].raw in RESERVED_WORDS or ASSIGNMENT.match(words[index].raw)
-    ):
-        index += 1
-    words = words[index:]
-    if not words:
-        return None
-    program = words[0].text
-    if not BINARY.search(program) and program.rsplit('/', 1)[-1] not in LAUNCHERS:
-        return None
     for index, word in enumerate(words):
         if BINARY.search(word.text):
             following = words[index + 1 :]
