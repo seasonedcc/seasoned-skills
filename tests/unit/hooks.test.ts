@@ -533,7 +533,7 @@ describe('the stash hook', () => {
     timeout: 15_000,
   }, () => {
     const started = Date.now()
-    refused(lines('git stash', ...Array(30_000).fill('(( a')))
+    refused(lines('git stash', Array(300_000).fill('(( a').join('\n')))
     expect(Date.now() - started).toBeLessThan(5_000)
   })
 
