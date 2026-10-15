@@ -39,7 +39,7 @@
           written.
         </p>
         <!-- Flip data-built to "true" the day it ships. There is no third state. -->
-        <p class="status" data-built="false">
+        <p class="status" data-built="true">
           <span class="status-dot" aria-hidden="true"></span>
           <span class="status-label-unbuilt">Not built yet</span>
           <span class="status-label-built">Built</span>
@@ -491,10 +491,7 @@
             </p>
             <ul>
               <li>
-                <p>
-                  <code>BEFORE UPDATE</code> refuses every edit, upserts
-                  (<code>ON CONFLICT DO UPDATE</code>) included.
-                </p>
+                <p><code>BEFORE UPDATE</code> refuses every edit.</p>
               </li>
               <li>
                 <p><code>BEFORE DELETE</code> refuses every delete, whole-table included.</p>
@@ -502,7 +499,10 @@
               <li>
                 <p>
                   <code>BEFORE INSERT … WHEN EXISTS (an entry with NEW.id)</code> refuses
-                  <code>INSERT OR REPLACE</code> and <code>REPLACE INTO</code>. Without it,
+                  <code>INSERT OR REPLACE</code>, <code>REPLACE INTO</code>, and upserts
+                  (<code>ON CONFLICT DO UPDATE</code>): it fires before SQLite resolves
+                  the conflict, and the primary key is the only key a conflict can be
+                  on. Without it,
                   a replace silently swaps the row: its implicit delete fires no delete
                   trigger while <code>recursive_triggers</code> is off, which is SQLite's
                   default and a per-connection setting nobody else's connection will turn
@@ -649,7 +649,8 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   hook refuses a second ledger write in the same Bash command, and
                   anything after the closing <code>ENTRY</code> line: a write may be
                   preceded by <code>cd &hellip; &amp;&amp;</code> but must end the
-                  command. That also closes the last way an entry could run: a line in
+                  command, and its line ends at <code>&lt;&lt;'ENTRY'</code>. That
+                  also closes the last way an entry could run: a line in
                   the text that is exactly <code>ENTRY</code> ends the heredoc early,
                   the lines after it become commands, and the hook sees text after the
                   closing line and refuses. It refuses a write in a command where any
@@ -822,9 +823,9 @@ ledger print              [--session &lt;id&gt;]</code></pre>
                   <code>ledger</code> shows only what is in force. Replaced entries never
                   appear in it; search, show, and print mark them. <code>ledger</code>
                   prints progress entries whole; only the compaction hook shortens them.
-                  Wherever text is shortened, a search excerpt or a hook line, it ends in
-                  an ellipsis and is never reworded, and the whole entry is one
-                  <code>show</code> away.
+                  Wherever text is shortened, a search excerpt or a hook line, it is
+                  marked with an ellipsis where it was cut and is never reworded, and
+                  the whole entry is one <code>show</code> away.
                 </p>
               </li>
               <li>
