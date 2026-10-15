@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import {
   existsSync,
   mkdirSync,
@@ -31,10 +31,15 @@ const typescriptSourceLoader = fileURLToPath(
 
 const packageManifest = fileURLToPath(new URL('../../package.json', import.meta.url))
 
+const packageBinary = fileURLToPath(
+  new URL('../../bin/seasoned-skills.js', import.meta.url),
+)
+
 /**
  * Preloaded into a child command line: on file descriptor 3 it says
  * `reading` the first time the command reads its standard input, and
- * `writing` each time it opens a write transaction on a record.
+ * `writing` each time it begins a transaction on a record, whichever form
+ * of BEGIN it uses and whether it runs the statement or prepares it.
  */
 const momentSignals = `data:text/javascript,${encodeURIComponent(`
 import { writeSync } from 'node:fs'
@@ -48,10 +53,12 @@ stdin.read = function (...args) {
 }
 try {
   const { DatabaseSync } = await import('node:sqlite')
-  const exec = DatabaseSync.prototype.exec
-  DatabaseSync.prototype.exec = function (sql) {
-    if (sql === 'BEGIN IMMEDIATE') signal('writing')
-    return exec.call(this, sql)
+  for (const method of ['exec', 'prepare']) {
+    const original = DatabaseSync.prototype[method]
+    DatabaseSync.prototype[method] = function (sql, ...rest) {
+      if (/^\\s*BEGIN\\b/i.test(sql)) signal('writing')
+      return original.call(this, sql, ...rest)
+    }
   }
 } catch {}
 `)}`
@@ -403,6 +410,20 @@ describe('the ledger commands', () => {
       expect(results.map((result) => result.stderr)).toEqual(['', '', '', ''])
       expect(results.map((result) => result.code)).toEqual([0, 0, 0, 0])
     })
+
+    it("prints nothing on standard error through the package's binary, on Node 22 too", {
+      timeout: 60_000,
+    }, () => {
+      for (const args of [['progress', '--as', 'orchestrator'], ['print']]) {
+        const result = spawnSync(process.execPath, [packageBinary, 'ledger', ...args], {
+          cwd: root,
+          input: 'Launched.\n',
+          encoding: 'utf8',
+          env: { ...process.env, NODE_OPTIONS: '', NODE_NO_WARNINGS: '' },
+        })
+        expect(result).toMatchObject({ status: 0, stderr: '' })
+      }
+    })
   })
 
   describe('reading', () => {
@@ -490,6 +511,28 @@ describe('the ledger commands', () => {
       await run('ledger', 'show', '9')
       expect(complaints()).toBe("There is no entry #9 in this session's ledger.")
       expect(process.exitCode).toBe(1)
+    })
+
+    it('reads at once, never waiting out the busy timeout, while another connection holds a write open', {
+      timeout: 60_000,
+    }, async () => {
+      await decide('Reads never wait for a write.\n')
+      const holder = await openRecord(recordOf())
+      holder.exec('BEGIN IMMEDIATE')
+      try {
+        for (const args of [[], ['search', 'wait'], ['show', '1'], ['print']]) {
+          freshOutput()
+          const started = Date.now()
+          await run('ledger', ...args)
+          const elapsed = Date.now() - started
+          expect(complaints()).toBe('')
+          expect(printed()).toContain('Reads never wait for a write.')
+          expect(elapsed).toBeLessThan(5_000)
+        }
+      } finally {
+        holder.exec('ROLLBACK')
+        holder.close()
+      }
     })
 
     it("reads another session's record with --session, after the subcommand", async () => {

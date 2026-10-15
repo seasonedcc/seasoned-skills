@@ -8,7 +8,8 @@ import { setTimeout as delay } from 'node:timers/promises'
  * A decision or a finding is in force until a later entry of its own kind
  * replaces it; progress is never replaced. The search index is derived from
  * the entries and is the one part a stray command can empty, so every search
- * checks it first and rebuilds it when it fails.
+ * checks it first, unless another connection holds a write open, and rebuilds
+ * it when it fails.
  */
 
 type EntryKind = 'decision' | 'finding' | 'progress'
@@ -378,16 +379,28 @@ function searchTerms(words: string[]) {
 /**
  * Rebuild the search index when FTS5's own check finds it out of step with
  * the entries. Only the check with a rank of 1 compares the index against the
- * entries, so only it notices an index a stray command emptied.
+ * entries, so only it notices an index a stray command emptied. The check is
+ * a write, so it runs only when the write lock is free at once: while another
+ * connection holds a write open, the search reads the index as it is rather
+ * than wait for it.
  */
 function repairSearchIndex(database: DatabaseSync) {
+  database.exec('PRAGMA busy_timeout = 0')
   try {
-    database.exec(
-      `INSERT INTO entries_search (entries_search, rank) VALUES ('integrity-check', 1)`,
-    )
+    inTransaction(database, () => {
+      try {
+        database.exec(
+          `INSERT INTO entries_search (entries_search, rank) VALUES ('integrity-check', 1)`,
+        )
+      } catch (error) {
+        if ((error as { errcode?: number }).errcode !== SQLITE_CORRUPT_VTAB) throw error
+        database.exec(`INSERT INTO entries_search (entries_search) VALUES ('rebuild')`)
+      }
+    })
   } catch (error) {
-    if ((error as { errcode?: number }).errcode !== SQLITE_CORRUPT_VTAB) throw error
-    database.exec(`INSERT INTO entries_search (entries_search) VALUES ('rebuild')`)
+    if ((error as { errcode?: number }).errcode !== SQLITE_BUSY) throw error
+  } finally {
+    database.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT}`)
   }
 }
 

@@ -16,6 +16,8 @@ import {
   writeEntry,
 } from './record.js'
 
+const SQLITE_BUSY = 5
+
 describe('the ledger record', () => {
   let directory: string
   let path: string
@@ -92,21 +94,29 @@ describe('the ledger record', () => {
 
   it('waits out a write lock another connection holds on a new record', async () => {
     const fresh = join(directory, 'fresh.db')
-    const { DatabaseSync } = await import('node:sqlite')
+    const { DatabaseSync, StatementSync } = await import('node:sqlite')
     const holder = new DatabaseSync(fresh)
     holder.exec('BEGIN IMMEDIATE')
-    const exec = vi.spyOn(DatabaseSync.prototype, 'exec')
-    const opening = openRecord(fresh)
-    await vi.waitFor(
-      () =>
-        expect(exec.mock.results).toContainEqual(
-          expect.objectContaining({ type: 'throw' }),
+    const calls = [
+      vi.spyOn(DatabaseSync.prototype, 'exec'),
+      vi.spyOn(DatabaseSync.prototype, 'prepare'),
+      ...(['all', 'get', 'iterate', 'run'] as const).map((method) =>
+        vi.spyOn(StatementSync.prototype, method),
+      ),
+    ]
+    const refusedAsBusy = () =>
+      calls.some((call) =>
+        call.mock.results.some(
+          (result) =>
+            result.type === 'throw' &&
+            (result.value as { errcode?: number }).errcode === SQLITE_BUSY,
         ),
-      { timeout: 5000 },
-    )
+      )
+    const opening = openRecord(fresh)
+    await vi.waitFor(() => expect(refusedAsBusy()).toBe(true), { timeout: 5000 })
     holder.exec('COMMIT')
     holder.close()
-    exec.mockRestore()
+    for (const call of calls) call.mockRestore()
     const opened = await opening
     expect(opened.prepare('PRAGMA journal_mode').get()).toEqual({ journal_mode: 'wal' })
     opened.close()
@@ -298,6 +308,36 @@ describe('the ledger record', () => {
       )
     })
 
+    it('accepts only the three kinds', () => {
+      expect(insert('decided_by', `'note', 'x', 'orchestrator', NULL`)).toThrow(
+        /CHECK constraint failed/,
+      )
+    })
+
+    it('accepts only the person or the agent as who decided', () => {
+      expect(
+        insert('decided_by', `'decision', 'x', 'orchestrator', 'committee'`),
+      ).toThrow(/CHECK constraint failed/)
+    })
+
+    const blank = "' \t\n\r'"
+
+    for (const [what, values] of [
+      ['text', `'progress', ${blank}, 'orchestrator', NULL`],
+      ['writer', `'progress', 'x', ${blank}, NULL`],
+      ['source', `'finding', 'x', 'researcher', ${blank}`],
+    ] as const) {
+      it(`refuses a blank ${what}`, () => {
+        expect(insert('source', values)).toThrow(/CHECK constraint failed/)
+      })
+    }
+
+    it('declares that a replacement refers to an entry', () => {
+      expect(database.prepare(`PRAGMA foreign_key_list('entries')`).all()).toEqual([
+        expect.objectContaining({ table: 'entries', from: 'replaces', to: 'id' }),
+      ])
+    })
+
     it('lists the latest progress newest first, with the total', () => {
       for (const step of ['one', 'two', 'three']) progress(step)
       const latest = latestProgress(database, 2)
@@ -378,6 +418,15 @@ describe('the ledger record', () => {
       expect(matches).toHaveLength(20)
       expect(total).toBe(25)
       expect(matches[0]?.body).toBe('match number 24')
+    })
+
+    it('indexes each entry as it is written, before any search', () => {
+      const learned = finding('indexed on arrival', { source: 'a probe' })
+      const indexed = database.prepare(
+        'SELECT rowid FROM entries_search WHERE entries_search MATCH ?',
+      )
+      expect(indexed.all('arrival')).toEqual([{ rowid: learned.id }])
+      expect(indexed.all('probe')).toEqual([{ rowid: learned.id }])
     })
 
     it('rebuilds an index a stray command emptied before it searches', () => {
