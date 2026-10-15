@@ -501,6 +501,27 @@ describe('the ledger commands', () => {
       expect(printed()).toContain(`Ledger of session ${OTHER_SESSION}: 1 entry`)
     })
 
+    it("reaches the main checkout's record from a linked worktree, both ways", async () => {
+      const worktree = join(root, 'lane-a')
+      execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
+        cwd: root,
+      })
+      execFileSync('git', ['worktree', 'add', '--quiet', worktree], { cwd: root })
+      process.chdir(worktree)
+      await learn('Learned in the worktree.\n')
+      process.chdir(root)
+      await learn('Learned in the main checkout.\n')
+      for (const directory of [root, worktree]) {
+        process.chdir(directory)
+        freshOutput()
+        await run('ledger', 'print')
+        expect(printed()).toContain('Learned in the worktree.')
+        expect(printed()).toContain('Learned in the main checkout.')
+      }
+      expect(existsSync(recordOf())).toBe(true)
+      expect(existsSync(join(worktree, '.sessions'))).toBe(false)
+    })
+
     it('refuses a --session that is not a session id, creating nothing', async () => {
       await run('ledger', 'print', '--session', '../escape')
       expect(complaints()).toBe(
