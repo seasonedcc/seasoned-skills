@@ -57,6 +57,9 @@ const SQLITE_BUSY = 5
 
 const SQLITE_CORRUPT_VTAB = 267
 
+const ALREADY_REPLACED =
+  'That entry was already replaced: replace the entry in force in its place instead.'
+
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS entries (
     id integer PRIMARY KEY,
@@ -76,20 +79,20 @@ const SCHEMA = `
   CREATE TRIGGER IF NOT EXISTS entries_are_never_edited
   BEFORE UPDATE ON entries
   BEGIN
-    SELECT RAISE(ABORT, 'Ledger entries are never edited: #' || OLD.id || ' stays exactly as it was written. Record a new entry instead.');
+    SELECT RAISE(ABORT, 'Ledger entries are never edited: each one stays exactly as it was written. Record a new entry instead.');
   END;
 
   CREATE TRIGGER IF NOT EXISTS entries_are_never_deleted
   BEFORE DELETE ON entries
   BEGIN
-    SELECT RAISE(ABORT, 'Ledger entries are never deleted: #' || OLD.id || ' stays exactly as it was written.');
+    SELECT RAISE(ABORT, 'Ledger entries are never deleted: each one stays exactly as it was written.');
   END;
 
   CREATE TRIGGER IF NOT EXISTS entries_are_never_overwritten
   BEFORE INSERT ON entries
   WHEN EXISTS (SELECT 1 FROM entries WHERE id = NEW.id)
   BEGIN
-    SELECT RAISE(ABORT, 'Ledger entries are never overwritten: #' || NEW.id || ' stays exactly as it was written.');
+    SELECT RAISE(ABORT, 'Ledger entries are never overwritten: each one stays exactly as it was written.');
   END;
 
   CREATE TRIGGER IF NOT EXISTS replacements_replace_what_is_in_force
@@ -98,16 +101,14 @@ const SCHEMA = `
   BEGIN
     SELECT RAISE(ABORT, 'Progress is never replaced and never replaces anything.')
     WHERE NEW.kind = 'progress';
-    SELECT RAISE(ABORT, 'There is no entry #' || NEW.replaces || ' to replace.')
+    SELECT RAISE(ABORT, 'There is no entry by that number to replace.')
     WHERE NOT EXISTS (SELECT 1 FROM entries WHERE id = NEW.replaces);
-    SELECT RAISE(ABORT, '#' || NEW.replaces || ' is progress, and progress is never replaced.')
+    SELECT RAISE(ABORT, 'That entry is progress, and progress is never replaced.')
     WHERE (SELECT kind FROM entries WHERE id = NEW.replaces) = 'progress';
-    SELECT RAISE(ABORT, '#' || NEW.replaces || ' is a ' || replaced.kind || ', and a ' || NEW.kind || ' replaces only a ' || NEW.kind || '.')
-    FROM entries AS replaced
-    WHERE replaced.id = NEW.replaces AND replaced.kind <> NEW.kind;
-    SELECT RAISE(ABORT, '#' || NEW.replaces || ' was already replaced by #' || later.id || ': replace #' || later.id || ' instead.')
-    FROM entries AS later
-    WHERE later.replaces = NEW.replaces;
+    SELECT RAISE(ABORT, 'A decision replaces only a decision, and a finding only a finding.')
+    WHERE (SELECT kind FROM entries WHERE id = NEW.replaces) <> NEW.kind;
+    SELECT RAISE(ABORT, '${ALREADY_REPLACED}')
+    WHERE EXISTS (SELECT 1 FROM entries WHERE replaces = NEW.replaces);
   END;
 
   CREATE VIEW IF NOT EXISTS entries_in_force AS
@@ -248,23 +249,36 @@ function entriesOf(rows: unknown[]): Entry[] {
   return (rows as EntryRow[]).map(entryOf)
 }
 
-/** Record a new entry, stamped by the database's own clock. */
+/**
+ * Record a new entry, stamped by the database's own clock. Replacing an entry
+ * something already replaced is refused with the number of the one in force
+ * in its place, which is the one to replace.
+ */
 function writeEntry(database: DatabaseSync, entry: NewEntry): Entry {
-  const { id } = database
-    .prepare(
-      `INSERT INTO entries (kind, body, decided_by, source, written_by, replaces)
-       VALUES (?, ?, ?, ?, ?, ?)
-       RETURNING id`,
+  const replaces = entry.kind === 'progress' ? null : (entry.replaces ?? null)
+  try {
+    const { id } = database
+      .prepare(
+        `INSERT INTO entries (kind, body, decided_by, source, written_by, replaces)
+         VALUES (?, ?, ?, ?, ?, ?)
+         RETURNING id`,
+      )
+      .get(
+        entry.kind,
+        entry.body,
+        entry.kind === 'decision' ? entry.decidedBy : null,
+        entry.kind === 'finding' ? entry.source : null,
+        entry.writtenBy,
+        replaces,
+      ) as { id: number }
+    return entryById(database, id) as Entry
+  } catch (error) {
+    if (replaces === null || (error as Error).message !== ALREADY_REPLACED) throw error
+    const inForce = replacementLine(database, replaces).at(-1)
+    throw new Error(
+      `#${replaces} was already replaced: replace #${inForce}, which is in force in its place.`,
     )
-    .get(
-      entry.kind,
-      entry.body,
-      entry.kind === 'decision' ? entry.decidedBy : null,
-      entry.kind === 'finding' ? entry.source : null,
-      entry.writtenBy,
-      entry.kind === 'progress' ? null : (entry.replaces ?? null),
-    ) as { id: number }
-  return entryById(database, id) as Entry
+  }
 }
 
 function entryById(database: DatabaseSync, id: number): Entry | undefined {

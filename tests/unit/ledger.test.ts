@@ -248,7 +248,7 @@ describe('the ledger commands', () => {
     it("passes the database's refusals on as they are", async () => {
       await write('Launched.\n', 'progress', '--as', 'orchestrator')
       await decide('A rule.\n', '--replaces', '1')
-      expect(complaints()).toBe('#1 is progress, and progress is never replaced.')
+      expect(complaints()).toBe('That entry is progress, and progress is never replaced.')
       freshOutput()
       await decide('A rule.\n', '--replaces', 'forty-seven')
       expect(complaints()).toBe("--replaces takes an entry's number, such as 47.")
