@@ -623,19 +623,40 @@ describe('the ledger commands', () => {
       })
     }
 
-    it('keeps the compaction hook silent and every other command working', async () => {
+    it('keeps the compaction hook silent on a Node whose node:sqlite lacks FTS5', async () => {
       await decide('The person decided this.\n')
       freshOutput()
       vi.doMock('node:sqlite', withoutFullTextSearch)
       stdin(JSON.stringify({ session_id: SESSION }))
       await run('ledger', '--hook')
       expect(printed()).toBe('')
-      vi.doMock('node:sqlite', withoutSqlite)
-      await run('ledger', '--hook')
-      expect(printed()).toBe('')
-      await run('session-folder')
-      expect(printed()).toBe(join(sessions, SESSION))
       expect(process.exitCode).toBeUndefined()
+    })
+
+    it('keeps the compaction hook silent and every other command working on a Node without node:sqlite', {
+      timeout: 60_000,
+    }, async () => {
+      const node = ['--no-experimental-sqlite']
+      expect(
+        await commandLineInChildProcess(
+          ['ledger', 'progress', '--as', 'orchestrator'],
+          'Text.\n',
+          { node },
+        ),
+      ).toEqual({ code: 1, stdout: '', stderr: `${NEEDS_NODE}\n` })
+      expect(existsSync(sessions)).toBe(false)
+
+      await decide('The person decided this.\n')
+      expect(
+        await commandLineInChildProcess(
+          ['ledger', '--hook'],
+          JSON.stringify({ session_id: SESSION }),
+          { node },
+        ),
+      ).toEqual({ code: 0, stdout: '', stderr: '' })
+      expect(
+        await commandLineInChildProcess(['session-folder'], '', { node }),
+      ).toMatchObject({ code: 0, stdout: join(sessions, SESSION) })
     })
   })
 
