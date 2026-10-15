@@ -491,10 +491,7 @@
             </p>
             <ul>
               <li>
-                <p>
-                  <code>BEFORE UPDATE</code> refuses every edit, upserts
-                  (<code>ON CONFLICT DO UPDATE</code>) included.
-                </p>
+                <p><code>BEFORE UPDATE</code> refuses every edit.</p>
               </li>
               <li>
                 <p><code>BEFORE DELETE</code> refuses every delete, whole-table included.</p>
@@ -502,7 +499,10 @@
               <li>
                 <p>
                   <code>BEFORE INSERT … WHEN EXISTS (an entry with NEW.id)</code> refuses
-                  <code>INSERT OR REPLACE</code> and <code>REPLACE INTO</code>. Without it,
+                  <code>INSERT OR REPLACE</code>, <code>REPLACE INTO</code>, and upserts
+                  (<code>ON CONFLICT DO UPDATE</code>): it fires before SQLite resolves
+                  the conflict, and the primary key is the only key a conflict can be
+                  on. Without it,
                   a replace silently swaps the row: its implicit delete fires no delete
                   trigger while <code>recursive_triggers</code> is off, which is SQLite's
                   default and a per-connection setting nobody else's connection will turn
