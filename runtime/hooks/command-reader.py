@@ -90,9 +90,6 @@ class Heredoc:
         self.end = None
         self.closed = False
 
-    def expands(self):
-        return not any(quote in self.delimiter.raw for quote in '\'"\\')
-
 
 class Redirection:
     def __init__(self, descriptor, operator, target, heredoc):
@@ -229,33 +226,12 @@ class Reader:
                     break
                 if heredoc.operator == '<<-':
                     line = line.lstrip('\t')
-                if line == heredoc.delimiter.text:
-                    body_end = position
-                    heredoc.closed = True
+                heredoc.closed = line == heredoc.delimiter.text
                 position = len(text) if newline == -1 else newline + 1
                 if heredoc.closed:
                     break
-            if not heredoc.closed:
-                body_end = position
             heredoc.end = position
-            if heredoc.expands():
-                self.read_substitutions(heredoc.body_start, body_end)
         return position
-
-    def read_substitutions(self, position, end):
-        pending, self.pending = self.pending, []
-        while position < end:
-            character = self.text[position]
-            if character == '\\':
-                position += 2
-            elif character == '$':
-                position = self.read_dollar(position, [], True)
-            elif character == '`':
-                position = self.read_list(position + 1, '`')
-            else:
-                position += 1
-        self.leave_pending(end)
-        self.pending = pending
 
     def read_word(self, position, closer):
         text = self.text

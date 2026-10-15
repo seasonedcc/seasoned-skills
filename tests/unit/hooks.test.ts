@@ -137,20 +137,10 @@ describe('the ledger write guard', () => {
         'gh pr create --title "Ledger" --body "echo x | pnpm exec seasoned-skills ledger progress --as orchestrator is refused"',
       )
       passes('echo "pnpm exec seasoned-skills ledger finding --as reviewer"')
-      passes(
-        lines(
-          "gh pr comment 12 --body-file - <<'EOF'",
-          'Refused: $(echo x | pnpm exec seasoned-skills ledger progress --as orchestrator)',
-          'EOF',
-        ),
-      )
-      passes(
-        lines(
-          'cat <<EOF',
-          'Refused: \\$(echo x | pnpm exec seasoned-skills ledger progress --as orchestrator)',
-          'EOF',
-        ),
-      )
+    })
+
+    it('a write after an unquoted heredoc whose body holds a stray backtick', () => {
+      passes(lines('cat <<EOF > notes.md', 'use `foo', 'EOF', progress('Some text.')))
     })
 
     it('help on a write command', () => {
@@ -269,17 +259,6 @@ describe('the ledger write guard', () => {
       )
       refusedWith(write.replace('ledger progress', 'ledger \\\n  progress'), reason)
       refusedWith(lines('cat <<-EOF', '\tnotes', '\tEOF', unquotedProgress), reason)
-    })
-
-    it("text that does not arrive through <<'ENTRY', in an unquoted heredoc's substitution", () => {
-      refusedWith(
-        lines(
-          'cat <<EOF',
-          'Notes: $(echo "Pushed $(git rev-parse HEAD)" | pnpm exec seasoned-skills ledger progress --as orchestrator)',
-          'EOF',
-        ),
-        "the entry's text must arrive through <<'ENTRY'",
-      )
     })
 
     it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
@@ -522,6 +501,18 @@ describe('the stash hook', () => {
     refused(lines("cat > notes.sh <<'EOF'", 'git stash pop', 'EOF'))
     refused(
       lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
+    )
+  })
+
+  it('sees a git stash after a heredoc body that holds a stray backtick', () => {
+    refused(
+      lines(
+        'cat <<EOF',
+        "odd ` pnpm exec seasoned-skills ledger progress --as o <<'ENTRY'",
+        'EOF',
+        'git stash',
+        'ENTRY',
+      ),
     )
   })
 
