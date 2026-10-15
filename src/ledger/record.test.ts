@@ -70,6 +70,21 @@ describe('the ledger record', () => {
     reopened?.close()
   })
 
+  it('finds no record while the first write is still creating its schema', async () => {
+    const fresh = join(directory, 'fresh.db')
+    const { DatabaseSync } = await import('node:sqlite')
+    const firstWrite = new DatabaseSync(fresh)
+    firstWrite.exec('PRAGMA journal_mode = WAL')
+    firstWrite.exec('BEGIN IMMEDIATE')
+    firstWrite.exec('CREATE TABLE entries (id integer PRIMARY KEY)')
+    try {
+      expect(await openExistingRecord(fresh)).toBeUndefined()
+    } finally {
+      firstWrite.exec('ROLLBACK')
+      firstWrite.close()
+    }
+  })
+
   it('keeps its entries in one STRICT table, whose integer primary key is its only unique constraint', () => {
     expect(database.prepare(`PRAGMA table_list('entries')`).get()).toMatchObject({
       strict: 1,
@@ -375,11 +390,13 @@ describe('the ledger record', () => {
       finding('this or that')
       finding('nothing else here')
       finding('a "quoted" word')
+      finding('they say"hello')
       expect(searched('node:sqlite')).toEqual(['node:sqlite needs Node 22.13'])
       expect(searched('#418')).toEqual(['issue #418 ran four commands'])
       expect(searched('busy-timeout')).toEqual(['a busy-timeout pragma'])
       expect(searched('OR')).toEqual(['this or that'])
       expect(searched('"quoted"')).toEqual(['a "quoted" word'])
+      expect(searched('say"hello')).toEqual(['they say"hello'])
       expect(searched('-', '#', 'AND', 'NOT', '*')).toEqual([])
     })
 
