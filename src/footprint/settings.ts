@@ -42,11 +42,23 @@ export const MANAGED_HOOKS: ManagedHook[] = [
   },
   {
     event: 'PreToolUse',
+    matcher: 'Bash',
+    script: '.claude/hooks/ledger-write-guard.sh',
+    timeout: 10,
+  },
+  {
+    event: 'PreToolUse',
     matcher: 'Agent',
     script: '.claude/hooks/isolation-guard.sh',
     timeout: 10,
   },
   { event: 'SessionEnd', script: '.claude/hooks/session-end-sweep.sh', timeout: 60 },
+  {
+    event: 'SessionStart',
+    matcher: 'compact',
+    script: '.claude/hooks/ledger-after-compaction.sh',
+    timeout: 10,
+  },
 ]
 
 const STATUS_LINE_SCRIPT = '.claude/statusline.sh'

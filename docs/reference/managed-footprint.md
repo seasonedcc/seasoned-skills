@@ -22,7 +22,7 @@ including your own hook registrations and the rest of your permissions block.
 | `skillListingBudgetFraction` | `0.02` | Caps how much of the context window the list of available skills may take. |
 | `permissions.defaultMode` | `auto` | Agents work in long delegated stretches with nobody at the keyboard, and a prompt before every step would stall them. It is the one permissions key sync writes, and it replaces the mode you chose; the rest of the block stays yours. |
 | `statusLine` | A command running `.claude/statusline.sh` | The context bar shows how full the session is and turns red past a third of the window, where automatic compaction should already have fired, so the workflow ships the status line that draws it rather than assuming one. |
-| `hooks` | Three registrations | The shipped guards and the session-end sweep only run if something registers them. |
+| `hooks` | Five registrations | The shipped guards, the session-end sweep, and the ledger's return after a compaction only run if something registers them. |
 
 `model`, `effortLevel`, `alwaysThinkingEnabled`, `autoCompactEnabled`,
 `autoCompactWindow`, `autoMemoryEnabled`, and `skillListingBudgetFraction` are
@@ -38,8 +38,10 @@ it so your editor knows the file, and a value you already have is left alone.
 | Hook | Runs | Timeout |
 | --- | --- | --- |
 | `PreToolUse`, matching `Bash` | `.claude/hooks/block-git-stash.sh` | 10 seconds |
+| `PreToolUse`, matching `Bash` | `.claude/hooks/ledger-write-guard.sh` | 10 seconds |
 | `PreToolUse`, matching `Agent` | `.claude/hooks/isolation-guard.sh` | 10 seconds |
 | `SessionEnd` | `.claude/hooks/session-end-sweep.sh` | 60 seconds |
+| `SessionStart`, matching `compact` | `.claude/hooks/ledger-after-compaction.sh` | 10 seconds |
 
 Sync re-asserts each of these on every run: a group already pointing at the same
 script is replaced, and everything else under `hooks` survives untouched.
@@ -78,14 +80,17 @@ demo videos, and your per-user meeting settings.
 | --- | --- |
 | `.claude/skills/<name>/` | One entry per generated skill folder. |
 | `.claude/hooks/block-git-stash.sh` | The stash guard. |
+| `.claude/hooks/ledger-write-guard.sh` | The ledger write guard. |
+| `.claude/hooks/command-reader.py` | The command reader both Bash guards share. |
 | `.claude/hooks/isolation-guard.sh` | The worktree isolation guard. |
 | `.claude/hooks/session-end-sweep.sh` | The session-end sweep. |
+| `.claude/hooks/ledger-after-compaction.sh` | The hook that brings the ledger back after a compaction. |
 | `.claude/statusline.sh` | The status line. |
 | `.claude/seasoned-skills-manifest.json` | The list of everything generated. |
 | `CLAUDE.md` | The standing instructions. |
 | `shaping/assets/` | The assets shaping documents load. |
 | `requests-from-meetings/assets/style.css` | The stylesheet meeting records load. |
-| `.sessions/` | One folder per Claude Code session, holding its ledger, scratch files, and logs. |
+| `.sessions/` | One folder per Claude Code session, holding its ledger database (`ledger.db`), scratch files, and logs. |
 | `/demo-videos/*/*.mp4` | The finished demo video every assembly copies beside its screenplay. |
 | `requests-from-meetings/config.local.json` | Per-user meeting settings. |
 
