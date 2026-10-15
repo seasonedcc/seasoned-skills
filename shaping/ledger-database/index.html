@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ledger database — shaping document</title>
+    <link rel="stylesheet" href="../assets/document.css" />
+    <link rel="stylesheet" href="../assets/drawing/drawing.css" />
+    <script src="../assets/document.js"></script>
+    <script src="../assets/drawing/shaping-drawing.js"></script>
+  </head>
+  <body>
+    <div class="doc-bar">
+      <div class="doc-bar-inner">
+        <button
+          type="button"
+          class="tech-switch"
+          role="switch"
+          aria-checked="true"
+          data-technical-toggle
+        >
+          Technical details
+          <span class="tech-switch-track" aria-hidden="true">
+            <span class="tech-switch-thumb"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <main class="doc">
+      <!-- Part one: the title and the one-sentence essence. -->
+      <!-- Part two: the status — one bit, built or not. -->
+      <header class="masthead">
+        <p class="masthead-eyebrow">Shaping document</p>
+        <h1>Ledger database</h1>
+        <p class="essence">
+          Each session's ledger becomes a database that refuses every edit and every
+          delete, so what was decided, learned, and done comes back exactly as it was
+          written.
+        </p>
+        <!-- Flip data-built to "true" the day it ships. There is no third state. -->
+        <p class="status" data-built="false">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-label-unbuilt">Not built yet</span>
+          <span class="status-label-built">Built</span>
+        </p>
+      </header>
+
+      <!-- Part three: the framing. Plain words only — no system names, no table names,
+           no jargon. If a sentence needs the reader to know how software works, rewrite
+           it. The people who hold the business rules read this to tell us where we have
+           it wrong, before anything gets built. -->
+      <section class="part" id="framing">
+        <header class="part-header">
+          <p class="part-kicker">Why this matters</p>
+          <h2>The framing</h2>
+          <p class="part-note">
+            The problem this project sets out to solve, and how we will know it is
+            solved &mdash; told in the words of the people who live it.
+          </p>
+        </header>
+
+        <h3>The struggling moment</h3>
+        <p>
+          Late in August, deep into a long shaping session, the person running it told the
+          agent that the conversation was about to be compacted: summarized, to free room
+          for more work, with everything not in the summary gone from the agent's memory.
+          The agent had been keeping a ledger all along: the running file where a
+          session writes down what was decided, what it learned, and where the work
+          stands, so it can find its way back after a compaction. To get ready, the agent
+          rewrote that ledger into a short summary of the current state, and in doing so
+          deleted the history it had built up over the session.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>If it is a ledger, why did you remove the history?</p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/159"
+              >The person who caught it, in issue #159</a
+            >
+          </figcaption>
+        </figure>
+
+        <p>
+          The person also named why this is the worst possible moment to rewrite anything.
+          An agent whose memory is nearly full is at its least capable, so the rewrite is a
+          summary made by the weakest version of the agent, under exactly the strain the
+          ledger exists to protect against. Whatever it drops is gone for good once the
+          compaction lands. Nothing in the file stopped the rewrite, and nothing in it
+          showed what had been lost.
+        </p>
+
+        <h3>Today's way, and where it breaks</h3>
+        <p>
+          Today each session, meaning one conversation with Claude Code, keeps its ledger
+          as a plain text file in its own folder. Agents add to it one line at a time,
+          by typing commands or editing the file, and read it the same way. In
+          one session we followed from start to finish, the ledger was written 198 times
+          and only ever read by its last few lines. It holds three kinds of things: what
+          the person decided, what the session learned about the product while researching
+          it, and where the work stands: what is running, on which branch, with which
+          result.
+        </p>
+        <p>It breaks in four places.</p>
+        <ul>
+          <li>
+            <p>
+              <strong>Anything can rewrite it.</strong> A file accepts any edit, so
+              history gets replaced, as in the story above. Ledgers also keep a short
+              summary of where things stand at the top, meant to be kept current, and it
+              goes stale: one ledger reached 1,484 lines while its top section still
+              described work from five days earlier.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  The ledger had reached 1,484 lines and 1.15 MB. Its head, titled as the
+                  live roster and next actions, still described the first wave of the
+                  first goal from five days earlier&hellip;
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/486"
+                  >Issue #486</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <p>
+              <strong>Writing it can do damage.</strong> When an entry goes in through the
+              program that runs the agent's commands, that program can mistake text for an
+              order. One entry listed four next steps as a reminder, among them
+              merging a change into the shared code without anyone's approval. The
+              computer tried to run all four. They failed only because of where the agent
+              happened to be working at that moment, and nothing merged.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  The shell ran all four. [&hellip;] The write that was supposed to make
+                  compaction safe was one <code>cd</code> away from an unauthorized merge.
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/418"
+                  >Issue #418</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <p>
+              <strong>Its times are made up.</strong> Agents type each entry's time from
+              memory, and the times drift: minutes, hours, and once by two days. Writing the
+              rule down did not help.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  the stamp-from-the-clock rule was restated four times in the ledger and
+                  the drift still reached 6h45m ahead of the machine clock
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/383"
+                  >Issue #383</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <p>
+              <strong>Finding anything gets more expensive every day.</strong> A
+              finding from research sits somewhere in a long log, between launch notes and
+              test results. Getting it back means searching a file that keeps growing, and
+              reading the file costs more of the agent's memory (its context window) the
+              longer the session runs.
+            </p>
+            <figure class="quote">
+              <blockquote>
+                <p>
+                  had filled 19% of a fresh context window before any work started
+                </p>
+              </blockquote>
+              <figcaption>
+                <a href="https://github.com/seasonedcc/seasoned-skills/issues/199"
+                  >Issue #199</a
+                >
+              </figcaption>
+            </figure>
+          </li>
+        </ul>
+        <p>
+          To cope, agents restate rules inside the ledger, read it in pieces once it grows
+          too big to open in one go, and repair it by hand when a write goes wrong. None of
+          it makes the record trustworthy again.
+        </p>
+
+        <h3>The outcome test</h3>
+        <ol>
+          <li>
+            <p>
+              <strong
+                >Nothing written can be changed or removed through the database.</strong
+              >
+              Every edit or delete is refused by the database itself, not by a rule the
+              agent is asked to follow.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>What we learn about the product stays learned.</strong> A finding
+              from research &mdash; how a piece of functionality behaves, why the code is
+              the way it is, a premise that turned out false &mdash; is recorded the moment
+              we have it, with where it came from. When the same question comes up later in
+              the effort, the session finds the finding instead of researching it again.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong
+                >Whenever the session consults the record, it gets back exactly what was
+                written.</strong
+              >
+              What the person decided, what the session learned, and where the work stands
+              each come back in their original words, stamped with the real time they were
+              written. What is still in force is shown apart from what was later
+              replaced, and the replaced entries stay readable.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The history never gets in the way.</strong> However long the session
+              runs, the agent reads only what still applies, and finds anything else by
+              searching.
+            </p>
+          </li>
+        </ol>
+        <p>
+          Nobody makes the session study the whole record at a fixed moment. Agents reach
+          for the ledger when a question needs it, and whenever they do, the record has to
+          be there, whole and quick to search.
+        </p>
+
+        <h3>Why now</h3>
+        <p>
+          Two recent changes raised the stakes. Ledgers moved out of a temporary folder the
+          computer could wipe and into each project's own session folder, so the file now
+          survives. Compaction now happens on its own, whenever the agent's memory fills,
+          rather than when someone announces it. There is no longer a moment to
+          prepare, and what the session wrote down along the way is all it gets back. The
+          ledger is now the one record every long session leans on, and the remaining
+          question is whether it still says what was written. The payoff is time: every
+          lost or doubtful entry is research done twice, or a session spent working out
+          again where things stood.
+        </p>
+
+        <h3>The big hire and the little hires</h3>
+        <p>
+          <strong>The big hire</strong> is the person who upgrades the package in a
+          project (seasoned-skills, the shared instructions and tools our projects
+          install): from then on, every session there keeps its ledger in the database. To
+          make that switch they must lose nothing they have today, and one thing they have
+          today is a ledger anyone can open. People read ledgers directly, copy them, and
+          have rebuilt a lost one by hand. So the whole record has to stay readable as
+          plain text, by a person as easily as by an agent.
+        </p>
+        <p>
+          <strong>The little hires</strong> are the agents, every time they write an entry
+          or look something up, and this is where the switch really gets decided. Adding a
+          line to a file costs nothing and is a deep habit: 198 times in a single session.
+          If writing an entry takes more thought than that, an agent under load drifts
+          back to a loose file beside the database, and the record quietly stops being
+          the truth. So writing an entry has to be one short command, as easy as adding a
+          line and safe with any text. Looking something up has to beat searching a file.
+        </p>
+      </section>
+
+      <!-- Part four: the shape. Still plain language, now about the solution. Drawings
+           stay lo-fi on purpose: enough to argue with, not enough to mistake for a
+           design. Technical detail belongs in a <details class="technical" open> note beside
+           the thing it defines — never gathered into a technical section. A solved time
+           bomb goes in the note of the element it concerns, never in a list of its own. -->
+      <section class="part" id="shape">
+        <header class="part-header">
+          <p class="part-kicker">What we will build</p>
+          <h2>The shape</h2>
+          <p class="part-note">
+            The solution at the level of what people see and do. The drawings are rough
+            sketches of how it works, not of how it will look.
+          </p>
+        </header>
+
+        <h3>In plain language</h3>
+        <p>
+          We'll replace each session's ledger file with a small database in the same
+          session folder, plus a handful of commands in the package's command line for
+          writing to it and reading from it. The database only ever accepts new entries:
+          it refuses every edit and every delete on its own, whoever asks. Agents write an
+          entry with one short command that stamps the real time and takes any text
+          safely. They read back what is in force, search everything, and print the whole
+          record as plain text whenever a person wants to read it.
+        </p>
+
+        <div id="drawing-record"></div>
+
+        <h3>The record</h3>
+        <p>
+          We'll give each conversation one record: a single database file in its
+          session folder, the same folder where the ledger file lives today, so it
+          survives a reboot and is cleaned up with the folder when Claude Code deletes
+          the conversation's saved history. The first write creates it. Every agent in
+          the conversation reaches the same record on its own, whichever copy of this
+          project's code it is working in.
+        </p>
+        <p>
+          We'll build it on the database that comes inside Node, the software the
+          package already runs on, so nothing new gets installed. Projects on an early
+          release of Node 22 will need to update it for the ledger; every other command
+          keeps working until they do.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The file, the runtime, and several writers at once
+          </summary>
+          <div class="technical-body">
+            <ul>
+              <li>
+                <p>
+                  The record lives at <code>.sessions/&lt;session id&gt;/ledger.db</code>
+                  in the main checkout, resolved exactly as <code>session-folder</code>
+                  resolves the folder (<code>CLAUDE_CODE_SESSION_ID</code>, then
+                  <code>git rev-parse --git-common-dir</code> for the main checkout).
+                  Outside a Claude Code session every write fails the way
+                  <code>session-folder</code> does, and a read needs
+                  <code>--session</code> (see the read commands). The folder sweep already
+                  removes everything in the folder, the database's
+                  <code>-wal</code> and <code>-shm</code> companions included, so it needs
+                  no change, as long as the ledger commands create the folder through
+                  <code>sessionFolder()</code> itself: the sweep keeps forever any folder
+                  without the <code>.projects</code> file only that function writes
+                  (<code>src/sessions/folders.ts</code>).
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>node:sqlite</code> needs no flag from Node 22.13 on. Node 22
+                  prints <code>ExperimentalWarning: SQLite is an experimental
+                  feature</code> on every run; Node 24 prints none. FTS5, JSON functions,
+                  and <code>STRICT</code> tables work on both. <code>engines.node</code> becomes
+                  <code>&gt;=22.13.0</code>, up from <code>&gt;=22.0.0</code>. A new
+                  warning filter replaces Node's <code>warning</code> listener with one
+                  that drops only the SQLite experimental warning and prints everything
+                  else. It is installed in <code>bin/seasoned-skills.js</code> before the
+                  command line is loaded with a dynamic <code>import()</code>, so it is in
+                  place before anything imports <code>node:sqlite</code>. The ledger
+                  commands import <code>node:sqlite</code> lazily, inside their own
+                  actions, never from <code>src/cli/program.ts</code>: <code>engines</code>
+                  is only advisory, and on Node 22.0 to 22.12 a static import breaks
+                  every command, <code>sync</code> in <code>prepare</code> and the
+                  session-end hook included. There, only <code>ledger</code> fails, with
+                  &ldquo;The ledger needs Node 22.13 or later.&rdquo;
+                </p>
+              </li>
+              <li>
+                <p>
+                  Every connection sets a 5-second <code>PRAGMA busy_timeout</code>
+                  (the pragma also works on Node 22 versions older than the
+                  <code>timeout</code> option). Agents write at the same moment all the
+                  time, each command on its own connection, and without the wait most of
+                  those writes fail with <code>database is locked</code>. WAL mode lets
+                  reads run while a write is open.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </details>
+
+        <h3>Entries</h3>
+        <p>
+          Every entry is one of three kinds, and the kind decides what it has to carry.
+        </p>
+        <ul>
+          <li>
+            <p>
+              <strong>A decision</strong> is something that now governs the work. It
+              always says who decided it: the person or the agent. When the person
+              decided, the entry carries their own words.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>A finding</strong> is something we learned about the product. It
+              always says where it came from: a file and line, a command and what it
+              printed, a page, a test.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>Progress</strong> is where the work stands: what was launched and
+              under which id, on which branch, what a check returned.
+            </p>
+          </li>
+        </ul>
+        <p>
+          A decision or a finding can later be <strong>replaced</strong> by a new entry
+          that names it: a decision the person changed, a finding that turned out
+          wrong. An entry is in force until something replaces it. The replaced entry
+          stays exactly as it was, readable forever, with a pointer to what replaced it.
+          Progress is never replaced; it just gets older.
+        </p>
+        <p>
+          The ledger holds nothing else. Questions still waiting on the person stay in the
+          conversation. Lessons about how we work stay in the conversation too, until the
+          review we run at the end of every task picks them up; that review already reads
+          the whole conversation. This is a change: today's rule puts those lessons in
+          the ledger.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Schema</span>
+            An entry
+          </summary>
+          <div class="technical-body">
+            <p>
+              One table, <code>STRICT</code>. The integer primary key is the only unique
+              constraint: any other <code>UNIQUE</code> column would open a way for
+              <code>INSERT OR REPLACE</code> to delete a row without firing a delete
+              guard (a unique <code>replaces</code> column would let one replacement
+              silently wipe out another).
+              Rules that need uniqueness are enforced by <code>BEFORE INSERT</code>
+              triggers instead.
+            </p>
+            <pre><code>entries(
+  id          integer primary key,
+  kind        text  -- 'decision' | 'finding' | 'progress'
+  body        text  -- the entry, verbatim as written
+  decided_by  text  -- 'person' | 'agent'; required on a decision, absent otherwise
+  source      text  -- required on a finding, absent otherwise
+  written_by  text  -- 'orchestrator', or the subagent's task name
+  replaces    integer references entries(id)
+  written_at  text  -- UTC, from the database clock; our commands never take a time
+)</code></pre>
+            <p>
+              Refused on insert: a <code>replaces</code> pointing at a progress entry, at
+              an entry of another kind, at an entry that does not exist yet, or at an entry something already
+              replaced. In force means: a decision or finding no later entry replaces.
+            </p>
+          </div>
+        </details>
+
+        <h3>The guards</h3>
+        <p>
+          We'll set the database to refuse every change and every removal of an entry
+          itself, whoever asks and through whatever tool: our own commands, a stray
+          script, or someone typing into the database by hand. Every time our issue
+          reports show an agent damaging a ledger, it was an accident under load: a
+          rewrite before compaction, a note the computer ran as commands. Each took one
+          ordinary command against a text file. Against a database none of them can
+          happen by accident: there is no file to overwrite with one careless command,
+          and an edit or a delete is refused. Getting around the guards takes
+          deliberate steps nobody takes by mistake, and we won't build anything to catch
+          those (see the no-gos).
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Schema</span>
+            What the guards refuse, and what escapes them
+          </summary>
+          <div class="technical-body">
+            <p>
+              Three <code>BEFORE</code> triggers, each ending in
+              <code>RAISE(ABORT, …)</code>:
+            </p>
+            <ul>
+              <li>
+                <p>
+                  <code>BEFORE UPDATE</code> refuses every edit, upserts
+                  (<code>ON CONFLICT DO UPDATE</code>) included.
+                </p>
+              </li>
+              <li>
+                <p><code>BEFORE DELETE</code> refuses every delete, whole-table included.</p>
+              </li>
+              <li>
+                <p>
+                  <code>BEFORE INSERT … WHEN EXISTS (an entry with NEW.id)</code> refuses
+                  <code>INSERT OR REPLACE</code> and <code>REPLACE INTO</code>. Without it,
+                  a replace silently swaps the row: its implicit delete fires no delete
+                  trigger while <code>recursive_triggers</code> is off, which is SQLite's
+                  default and a per-connection setting nobody else's connection will turn
+                  on. This is also why the primary key is the only unique constraint.
+                </p>
+              </li>
+            </ul>
+            <p>
+              What escapes, deliberately out of scope: <code>DROP TRIGGER</code>,
+              <code>DROP TABLE</code>, renaming and recreating the table, editing the
+              schema through <code>PRAGMA writable_schema</code> (refused under Node 24's
+              defensive default; allowed on Node 22 and by the <code>sqlite3</code>
+              command line), and
+              deleting the file.
+            </p>
+          </div>
+        </details>
+
+        <h3>Who writes</h3>
+        <p>
+          We'll let every agent in the session write to the same record: the orchestrator
+          (the main agent the person talks to, which hands out pieces of the work) and
+          every subagent it launches (a helper agent with one task, such as building one
+          piece in its own copy of the code, which we call a lane, or researching a
+          question). Each entry says who wrote it: the orchestrator, or the subagent's
+          name for its task. Today a subagent is forbidden from writing to the session's
+          ledger, because a file can be overwritten by accident, so its findings reach
+          the session's ledger only if the orchestrator copies them over from its
+          report. A record that can't be rewritten removes that danger. A
+          subagent writes its findings straight in, with their sources, and its report
+          points at them.
+        </p>
+        <p>
+          Subagents write findings and nothing else. Decisions and progress belong to the
+          orchestrator. A decision governs the whole session, so it comes from the
+          person or from the orchestrator's own judgment, never from one lane's choice;
+          when a lane's choice matters, the orchestrator records it after reading the
+          report. Progress is recorded only once its result has been read, and the
+          orchestrator is the one who reads and checks what subagents report. A lane's
+          working notes stay in its report.
+        </p>
+        <p>
+          What is in force stays the orchestrator's call. An entry a subagent wrote says
+          so plainly, and when the orchestrator checks a claim and finds it wrong, it
+          replaces it. Nothing changes about verifying what subagents say; the claim is
+          simply never lost.
+        </p>
+
+        <h3>Writing an entry</h3>
+        <p>
+          We'll add one command per kind: <code>ledger decision</code>,
+          <code>ledger finding</code>, and <code>ledger progress</code>. Each asks only for
+          what its kind has to carry, and every one of them says who is writing. A real
+          finding from the session that shaped this document looks like this:
+        </p>
+        <pre><code>pnpm exec seasoned-skills ledger finding --as sqlite-research --source 'node -e on Node 22.22' &lt;&lt;'ENTRY'
+node:sqlite prints an ExperimentalWarning on every run on Node 22; Node 24.21 prints none.
+ENTRY</code></pre>
+        <p>
+          The command answers with the entry's number, kind, and time, such as
+          <code>#61 finding, 2026-10-14 15:12:40 -03:00</code>, and nothing else. The
+          time comes from the database's clock, never from the agent.
+        </p>
+        <p>
+          We'll take the text of an entry in a way that never lets the computer run any
+          of it as a command, however it is written. A new check on every command agents
+          run will refuse a ledger write that skips that protection, so a
+          note that quotes a command can never run it again.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The write commands
+          </summary>
+          <div class="technical-body">
+            <pre><code>ledger decision --as &lt;writer&gt; --by person|agent [--replaces &lt;id&gt;]   &lt; text
+ledger finding  --as &lt;writer&gt; --source &lt;where&gt;  [--replaces &lt;id&gt;]   &lt; text
+ledger progress --as &lt;writer&gt;                                        &lt; text</code></pre>
+            <ul>
+              <li>
+                <p>
+                  The text arrives only on standard input, never as an argument. The
+                  shell expands a command line before running it, and inside a
+                  double-quoted argument it runs anything between backticks or inside
+                  <code>$( )</code>. An unquoted heredoc expands the same way, which is
+                  how the entry in issue #418 ran four commands it was only quoting. A
+                  quoted heredoc reaches the command untouched. Every ledger write uses
+                  the same one, <code>&lt;&lt;'ENTRY'</code>, so the guard hook and the
+                  standing instructions name a single form, and an entry's text can
+                  hold any line except one that is exactly <code>ENTRY</code>.
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>--as</code> is required on every write, the orchestrator's included
+                  (<code>--as orchestrator</code>). Nothing in the environment tells an
+                  orchestrator from a subagent: both carry the same
+                  <code>CLAUDE_CODE_SESSION_ID</code>, and
+                  <code>CLAUDE_CODE_CHILD_SESSION=1</code> is set in the orchestrator too.
+                  A default would record a forgetful subagent as the orchestrator.
+                  <code>ledger decision</code> and <code>ledger progress</code> refuse
+                  any writer but <code>orchestrator</code>, so a subagent that reaches
+                  for them by mistake is stopped; only <code>ledger finding</code>
+                  takes a subagent's name. Any writer may replace a finding with a
+                  finding, so a subagent that disproves one records the correction as
+                  its replacement, with the source that disproved it. What is in force
+                  stays the orchestrator's call: when it checks the correction and finds
+                  it wrong, it replaces it in turn, and the chain shows all three.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Every <code>ledger</code> command runs from the project's root or one
+                  of its worktrees where <code>pnpm install</code> has run, as
+                  <code>session-folder</code> already does, so the conversation has one
+                  record even when a lane also works in another repository: that
+                  repository's checkout would resolve to a different session folder. An
+                  agent in a plain worktree with no installed dependencies runs its
+                  ledger commands from the project's root.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Empty or whitespace-only standard input, or a terminal instead of a
+                  pipe, is refused: an entry always has text. The text is stored exactly
+                  as it arrives, less the one trailing newline the heredoc adds.
+                  <code>--replaces</code> takes a number with or without a leading
+                  <code>#</code>, and the standing instructions teach the bare number.
+                </p>
+              </li>
+              <li>
+                <p>
+                  A new managed <code>PreToolUse</code> hook on <code>Bash</code>
+                  (timeout 10 seconds, like the stash hook), beside
+                  <code>runtime/hooks/block-git-stash.sh</code>, today the only hook
+                  that reads Bash commands. A ledger write is a command whose own words,
+                  outside quotes and heredoc bodies, run the package's binary, in any
+                  form (<code>pnpm exec seasoned-skills</code>, <code>npx</code>,
+                  <code>node bin/seasoned-skills.js</code>), with <code>ledger
+                  decision</code>, <code>finding</code>, or <code>progress</code>; a
+                  commit message or PR body that only mentions one is not a write. The
+                  hook refuses a second ledger write in the same Bash command, and
+                  anything after the closing <code>ENTRY</code> line: a write may be
+                  preceded by <code>cd &hellip; &amp;&amp;</code> but must end the
+                  command. That also closes the last way an entry could run: a line in
+                  the text that is exactly <code>ENTRY</code> ends the heredoc early,
+                  the lines after it become commands, and the hook sees text after the
+                  closing line and refuses. It refuses a write whose text does not
+                  arrive through
+                  <code>&lt;&lt;'ENTRY'</code>, which also refuses
+                  <code>echo &hellip; |</code> and a missing heredoc. It refuses a
+                  <code>--source</code> holding a backtick or a <code>$</code> unless it
+                  is single-quoted, since a source is often a command and what it
+                  printed, and inside double quotes the shell would run it or swap in a
+                  variable's value. And it refuses any <code>ledger</code> command with an
+                  unquoted word starting with <code>#</code>: the shell reads
+                  <code>--replaces #47 &lt;&lt;'ENTRY'</code> as a comment from
+                  <code>#</code> on, the heredoc disappears, and every line of the entry
+                  runs as a command, exactly the #418 failure.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Guard hooks that match on command text, the stash hook included, skip
+                  a ledger write's body: the lines after the one holding
+                  <code>&lt;&lt;'ENTRY'</code>, up to the line <code>ENTRY</code>. The
+                  line holding <code>&lt;&lt;'ENTRY'</code> is checked as usual, so
+                  <code>&hellip; &lt;&lt;'ENTRY' &amp;&amp; git stash</code> is still
+                  refused. Only a ledger write's heredoc is skipped, never any other.
+                  An entry that mentions a forbidden command is recorded rather than
+                  refused. Hooks a project registers on its own are outside the package's
+                  reach and keep reading the whole command.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Both hooks need the same reading of a command: which words sit outside
+                  quotes and heredoc bodies, across <code>&amp;&amp;</code> chains and
+                  <code>$( )</code>. That reading lives in one small Python helper
+                  shipped beside them in <code>runtime/hooks/</code>, as today's hooks
+                  already run inline <code>python3</code>. It is never a
+                  <code>seasoned-skills</code> command: starting the package through
+                  <code>pnpm exec</code> costs about a quarter of a second, and these
+                  hooks run before every Bash command any agent sends.
+                </p>
+              </li>
+              <li>
+                <p>
+                  The <code>ledger</code> commands are the command line's first nested
+                  commands. The reference test in
+                  <code>tests/unit/reference-docs.test.ts</code> reads
+                  <code>program.commands</code>, their flags, and their positional
+                  arguments one level deep, so it would never notice an undocumented
+                  <code>ledger search</code>, its words, or its flags. It will walk the
+                  command tree to any depth, checking each command's flags and positional
+                  arguments under a heading that carries its full name, before the
+                  <code>ledger</code> commands land. The golden command-line test
+                  (<code>tests/golden/cli-surface.test.ts</code>) pins only top-level
+                  names and descriptions, and gets the same walk.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </details>
+
+        <h3>Reading it back</h3>
+        <p>
+          We'll add four ways to read. Three of them keep the history out of the
+          agent's way: it reads only what still applies, and searches for the rest.
+        </p>
+        <ul>
+          <li>
+            <p>
+              <strong><code>ledger</code></strong> on its own shows what is in force:
+              every decision still in force, newest first, each with who decided it, who
+              wrote it, and when; then the last ten progress entries; then only a count of
+              the findings, with a reminder to search them. Decisions are the rules of the
+              work and a long session holds dozens, not thousands. Older progress is
+              history. Findings pile up into the hundreds, and the session only needs one
+              when its question comes back. That question carries the words to search
+              for, so a count and a reminder are enough here.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong><code>ledger search &lt;words&gt;</code></strong> searches every
+              entry, in force or not, ranked by how well it matches. Each result is a short
+              excerpt with its number, kind, source, writer, and time. A replaced entry says
+              &ldquo;replaced by #N&rdquo;, so a finding that turned out wrong is never
+              mistaken for a current one.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong><code>ledger show &lt;number&gt;</code></strong> prints one entry
+              whole, with its source, and its line of replacements both ways: what it
+              replaced and what replaced it.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong><code>ledger print</code></strong> prints the whole record as plain
+              text, in order, for a person who wants to read it end to end, copy it, or
+              keep it, and for the review at the end of a task, which reads everything on
+              purpose. Every replaced entry says what replaced it, and every replacement
+              says what it replaced. It is the one read that grows with the session, and
+              the agent never uses it to find its way back.
+            </p>
+          </li>
+        </ul>
+
+        <figure class="quote">
+          <pre><code>In force (7 decisions, newest first)
+  #52  person  orchestrator  14:31  No jobs, tasks, or statuses: a ledger for context, not a project management tool.
+  #47  person  orchestrator  14:02  Every agent in the session writes to the same record.
+  ...
+Latest progress (last 10)
+  #58  orchestrator  15:10  Pushed 4e1a2c0 to shaping/ledger-database.
+  ...
+Findings: 41 in force, 3 replaced. Search them with: ledger search &lt;words&gt;</code></pre>
+          <figcaption>Roughly what <code>ledger</code> prints. We'll settle the exact layout while we build it.</figcaption>
+        </figure>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The read commands
+          </summary>
+          <div class="technical-body">
+            <pre><code>ledger                    [--session &lt;id&gt;] [--hook]
+ledger search &lt;words...&gt;  [--session &lt;id&gt;]
+ledger show &lt;number&gt;      [--session &lt;id&gt;]
+ledger print              [--session &lt;id&gt;]</code></pre>
+            <ul>
+              <li>
+                <p>
+                  <code>--session &lt;id&gt;</code> names a folder under
+                  <code>.sessions/</code> and wins over the environment, so a person in
+                  their own terminal, or an agent in today's session, can read today's
+                  record or yesterday's. Without it, a read uses the current session, and
+                  outside a Claude Code session it fails the way
+                  <code>session-folder</code> does. The id is checked against the
+                  session-id pattern in <code>src/sessions/folders.ts</code>, so nothing
+                  like <code>../</code> gets through. Reads resolve the folder without
+                  creating it, unlike <code>sessionFolder()</code>, which always creates
+                  one; a mistyped id must never leave behind a folder the sweep would keep
+                  forever. Writes never take <code>--session</code>. Each read command
+                  declares its own <code>--session</code>, and positional options are
+                  turned on for both the program and <code>ledger</code>, since
+                  Commander otherwise hands a subcommand's flag to the parent (tried on
+                  Commander 15: with <code>ledger</code> alone, <code>ledger search foo
+                  --session X</code> read the current record). <code>ledger</code>'s own
+                  <code>--session</code> and <code>--hook</code> are refused when a
+                  subcommand follows them, so <code>ledger --session X decision</code>
+                  never writes to the current record unnoticed. A side effect:
+                  <code>seasoned-skills &lt;command&gt; --version</code> stops working;
+                  <code>seasoned-skills --version</code> still does.
+                </p>
+              </li>
+              <li>
+                <p>
+                  A read with no record yet prints &ldquo;No ledger yet in this
+                  session.&rdquo; and exits 0. <code>show</code> takes a number with or
+                  without a leading <code>#</code>.
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>ledger</code> shows only what is in force. Replaced entries never
+                  appear in it; search, show, and print mark them. <code>ledger</code>
+                  prints progress entries whole; only the compaction hook shortens them.
+                  Wherever text is shortened, a search excerpt or a hook line, it ends in
+                  an ellipsis and is never reworded, and the whole entry is one
+                  <code>show</code> away.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Times are stored in UTC and shown in the machine's local time: the
+                  full stamp with its offset where one entry is printed; in the lists,
+                  the time of day for today's entries and the date and time for older
+                  ones, so a decision from five days ago shows its age.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Search takes plain words, never FTS5 syntax. Every argument is split on
+                  whitespace, so <code>"busy timeout"</code> is two words, never a
+                  phrase, and each word is quoted as a plain term, so <code>node:sqlite</code>, <code>#418</code>, a hyphen,
+                  or an uppercase <code>OR</code> is just text. It covers each entry's
+                  text and its source. The terms are joined with <code>OR</code>; results
+                  are ordered by how many of the words they match, then newest first, so
+                  a lane relaunched under a new task id finds its latest launch on top.
+                  Recency stands in for <code>bm25</code> here: in a ledger, the newest
+                  match is the one that matters. It prints the 20 best matches, then
+                  &ldquo;N more not shown&rdquo;.
+                </p>
+              </li>
+              <li>
+                <p>
+                  <code>--hook</code> is the compaction hook's mode, like
+                  <code>sweep --hook</code>: it reads the hook's JSON payload from
+                  standard input, takes the session from its <code>session_id</code>,
+                  fits the view under the hook's budget, prints nothing when there is no
+                  record, and always exits 0.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Cost means how much text the agent has to read. <code>ledger</code>
+                  prints the decisions in force, the last ten progress entries, and one
+                  line about findings, and search prints at most 20 excerpts, whatever
+                  the size of the record.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Schema</span>
+            Search and what is in force
+          </summary>
+          <div class="technical-body">
+            <p>
+              Search is an FTS5 external-content index over the entry text and source,
+              fed by an <code>AFTER INSERT</code> trigger, and excerpted with
+              <code>snippet</code>; results are ordered as the read commands say. The
+              <code>porter unicode61</code> tokenizer matches
+              &ldquo;lanes&rdquo; on &ldquo;lane&rdquo;. In force is a view: a decision or
+              finding with no later entry naming it in <code>replaces</code>. A replacement
+              line is a recursive query over <code>replaces</code>.
+            </p>
+            <p>
+              The search index is derived data, not the record, and it is the one part a
+              stray command can empty: FTS5's own <code>'delete'</code> and
+              <code>'delete-all'</code> commands bypass every trigger, and a virtual table
+              accepts no triggers of its own. A row count cannot see the damage: on an
+              external-content index, <code>count(*)</code> reads the table, so it keeps
+              counting every entry after the index is emptied. FTS5's
+              <code>integrity-check</code> with a rank of 1 does fail on it. So every
+              search runs that check first and rebuilds the index when it fails. The
+              record itself is never at risk from this.
+            </p>
+          </div>
+        </details>
+
+        <h3>After a compaction</h3>
+        <p>
+          We'll add a hook, a small script Claude Code runs on its own at set moments,
+          that runs every time a conversation is compacted and puts the
+          decisions in force back in front of the agent, word for word, before it takes
+          its next step. Nobody has to remember to look: in the one session we followed
+          end to end, the agent never opened its ledger after any of five compactions. It
+          found its way back from the summary alone. A summary paraphrases, and our issue
+          reports show what happens next: the paraphrase of a decision becomes the
+          decision. With the hook, the person's decisions come back in the person's own
+          words every time.
+        </p>
+        <p>
+          The hook only shows; it never makes the agent read anything else. Searching
+          for findings stays the agent's call, when a question comes back. When the
+          conversation has no record yet, the hook prints nothing, and it can never stop
+          a compaction.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The compaction hook
+          </summary>
+          <div class="technical-body">
+            <ul>
+              <li>
+                <p>
+                  A managed <code>SessionStart</code> hook with the <code>compact</code>
+                  matcher (timeout 10 seconds), shipped in <code>runtime/hooks/</code>
+                  and registered beside the session-end hook. Like the session-end hook,
+                  it starts with <code>cd "$CLAUDE_PROJECT_DIR"</code> and sets
+                  <code>COREPACK_ENABLE_DOWNLOAD_PROMPT=0</code>, so Corepack's prompt
+                  can never eat the payload, then pipes its payload to <code>pnpm exec seasoned-skills ledger --hook</code>, which
+                  takes the session from the payload rather than trusting a hook
+                  process's environment. It prints the in-force view as plain text, which
+                  Claude Code adds to the agent's context. It always exits 0.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Claude Code caps what a hook can add at 10,000 characters; past that it
+                  saves the text to a file and shows only a 2,000-character preview. So
+                  the hook prints the same view as <code>ledger</code>, fitted under
+                  9,500 characters. The findings line and the last ten progress entries,
+                  each cut to its first line and 200 characters, are set aside first.
+                  Decisions in force fill the rest, newest first and only whole, stopping
+                  at the first one that doesn't fit, followed by &ldquo;N older decisions
+                  in force: run <code>pnpm exec seasoned-skills ledger</code>&rdquo;. A
+                  decision is never cut mid-text, and none is skipped to fit an older
+                  one. The one exception is a single decision longer than all the room
+                  left for decisions once progress and the findings line are set aside:
+                  it appears as one line, &ldquo;#N is too long for this view: run
+                  <code>pnpm exec seasoned-skills ledger show N</code>&rdquo;, and the
+                  fitting goes on.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Claude Code's hooks documentation does not say whether
+                  <code>SessionStart</code> fires when a subagent compacts. The hook is
+                  built for the orchestrator, where the person's decisions live; a
+                  subagent can always run <code>ledger</code> itself.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </details>
+
+        <h3>What changes in the way we work</h3>
+        <p>
+          We'll rewrite the rules agents follow along with the record, so no agent keeps
+          writing a markdown file out of habit.
+        </p>
+        <ul>
+          <li>
+            <p>
+              The rule about ledgers in each project's standing instructions stops saying
+              &ldquo;keep a ledger file with all the durable lessons and state&rdquo; and
+              says to keep the session's ledger with the <code>ledger</code> commands,
+              run from the project's root or one of its worktrees. The advice after it stays, reworded: after
+              a compaction the decisions in force are already in front of the agent, and
+              going back to the real sources before the next step still applies. It also
+              says that a session older than the upgrade may have a markdown ledger
+              beside the record, to be read as history.
+            </p>
+          </li>
+          <li>
+            <p>
+              The ledger part of the orchestrator's playbook loses the rules for keeping a
+              summary at the top of the file, moving old summaries to an archive, and
+              reading the file in pieces. It gains short rules for what to record and
+              when: a finding the moment it is learned, with its source; a decision the
+              moment it is made, in the person's own words when it is theirs; progress only
+              after its result has been read, never written in the same step as the
+              command that produces it; and a change of mind always as a replacement.
+            </p>
+          </li>
+          <li>
+            <p>
+              Instructions to subagents stop forbidding them from writing to the ledger,
+              and subagents stop keeping ledgers of their own.
+              Each one gives the subagent its <code>--as</code> name and tells it to
+              record its findings with their sources.
+            </p>
+          </li>
+          <li>
+            <p>
+              Smaller mentions follow: the agent finds a launched task's number by
+              searching the record; when the person rules on review comments, those
+              rulings are recorded as decisions; the end-of-task review writes
+              <code>ledger print</code> to a file in the session folder and reads it the
+              way it reads the conversation, in slices, never whole into its context,
+              and no longer looks for ledgers kept by subagents; and the lightweight mode for small fixes still keeps no
+              ledger.
+            </p>
+          </li>
+          <li>
+            <p>
+              The pages people read describe the ledger as it now is: the way of
+              working, running a session, the command reference, and the list of files
+              the package manages.
+            </p>
+          </li>
+        </ul>
+
+        <h3>Walkthrough</h3>
+        <p>
+          The same long shaping session from the story, replayed with the record in
+          place.
+        </p>
+        <ol class="walkthrough">
+          <li>
+            <p>
+              Early in the session, the person settles how the problem is framed. The
+              agent records it as a decision by the person, in the person's words, and
+              the command answers with the entry's number and the real time. A subagent
+              sent to research how a piece of the product behaves records what it found,
+              with the file and line it found it in, and its report back points at that
+              entry.
+            </p>
+          </li>
+          <li>
+            <p>
+              Hours later the person changes their mind about one of those decisions. The
+              agent records the new decision as replacing the old one. The old entry is
+              still there, word for word, now marked as replaced by the new one.
+            </p>
+          </li>
+          <li>
+            <p>
+              The agent's memory fills. Nobody announces the compaction, and nobody
+              needs to: there is nothing to tidy up beforehand. Had the agent still tried
+              to boil the record down to a summary, the database would have refused to
+              delete or edit a single entry. A summary it wrote would only have become one
+              more entry, after all the others.
+            </p>
+          </li>
+          <li>
+            <p>
+              The compaction lands. Before the agent takes its next step, the decisions in
+              force appear in front of it, newest first, each in the words it was written
+              in, with who decided it and when. The replaced decision is not among them.
+              The agent works from the person's rulings, not from the summary's paraphrase
+              of them.
+            </p>
+          </li>
+          <li>
+            <p>
+              Later, a question the subagent already answered comes back. The agent
+              searches the record for a few words from the question, finds the finding
+              with its source, and goes on. Nobody researches it twice, and none of the
+              day's history got in the way.
+            </p>
+          </li>
+          <li>
+            <p>
+              At the end of the day the person prints the record and reads it from top to
+              bottom: every decision, every finding, every step of progress, in the order
+              they happened, with the real times. The question from August has nothing
+              left to ask about: the history is all there.
+            </p>
+          </li>
+        </ol>
+
+        <h3>No-gos</h3>
+        <p>Things this project deliberately does not do, so nobody has to wonder.</p>
+        <ul class="no-gos">
+          <li>
+            <strong>No jobs, tasks, or statuses.</strong> This is a ledger that helps the agent remember,
+            not a project management tool. The record is one flat stream per
+            conversation: it never groups entries into pieces of work, never tracks what
+            is open or done, and never asks anyone to start or close anything. A decision
+            from an earlier piece of work stays in force until something replaces it,
+            and its time and writer show how old it is.
+          </li>
+          <li>
+            <strong>No defense against deliberate tampering.</strong> Someone who drops
+            the database's guards on purpose, or deletes the file, can do it, and we
+            won't build any tamper detection to catch it. The guards exist for the
+            accidents our issue reports actually show.
+          </li>
+          <li>
+            <strong>No import of old markdown ledgers.</strong> A markdown ledger has
+            no kinds, no sources, and no reliable times, so an importer would have to
+            invent all three, and the record would start its life with made-up sources
+            and times. A session that is running when its project upgrades keeps its
+            markdown file where it is, readable as history, and writes every new entry
+            to the database. Session folders go away when Claude Code deletes the
+            conversation's saved history, so these old files disappear on their own.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Part five: the goal. Technical — the toggle hides this whole section. Keep
+           the text under 4,000 characters; the meter tracks it. -->
+      <section class="part technical-section" id="goal">
+        <header class="part-header">
+          <p class="part-kicker">How the build starts</p>
+          <h2>The goal</h2>
+          <p class="part-note">
+            The text that ignites the build, ready to paste, with a live count against
+            its 4,000-character limit.
+          </p>
+        </header>
+
+        <div class="goal" data-goal>
+<pre class="goal-text" data-goal-text>Build the ledger database: each session's ledger becomes a database that refuses every edit and every delete, so what was decided, learned, and done comes back exactly as it was written.
+
+Before anything else, you and every builder read shaping/ledger-database/index.html raw and whole, drawings included. It is the single source of truth for this build.
+
+What to build, exactly as the document shapes it: the record (one database per conversation in its session folder, on Node's built-in SQLite), its entries and their three kinds, the guards, the write commands, the four reads, the compaction hook, and every change to the standing instructions and the pages people read. Every Contract and Schema note must be followed, and so must the no-gos. This repository's standing rules apply too.
+
+Work branches from main.
+
+Done means, in order:
+
+1. The framing's outcome test holds in the shipped package, each of its four points shown with evidence: an edit and a delete refused by the database itself, both on the package's own database connection and through the sqlite3 command line; a finding found by search with its source; replaced entries kept out of the in-force view and still readable through search, show, and print, with real times; and the history never getting in the way: on a record of thousands of entries, the in-force view shows only what still applies and a search prints at most 20 matches.
+
+2. The document's walkthrough replayed for real in a live session, every step of it. Ask the person for the steps only they can take: the compaction (/compact) and printing the record from their own terminal. Record what you saw at each step.
+
+3. The closing audit: audit the complete implementation against the document, section by section (every element, every technical note, every no-go) and fix every shortfall before calling the goal met. The audit is part of this goal, never a follow-up.
+
+4. The pull request closes every open issue the build solves. Start from #159, #383, #418, #486, and #199, and re-derive the full list from the issue tracker.
+
+5. Flip this document's built bit when it ships.</pre>
+          <div class="goal-footer">
+            <div class="goal-meter" aria-hidden="true">
+              <div class="goal-meter-fill" data-goal-meter-fill></div>
+            </div>
+            <p class="goal-count" data-goal-count aria-live="polite"></p>
+            <button type="button" class="goal-copy" data-goal-copy>Copy</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // Drawing 1 — the record, who writes to it, and the ways back out.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'ledger-record',
+          width: 900,
+          height: 490,
+          style: 'marker',
+          label:
+            'Subagents and the orchestrator write entries into one record per conversation; edits and deletes are refused; four commands read it back, and after a compaction the decisions in force return to the orchestrator.'
+        })
+
+        s.rect(30, 40, 230, 85, { width: 7 })
+        s.text('SUBAGENTS', 145, 80, { size: 24, weight: 700, align: 'middle', caps: true })
+        s.text('lanes, researchers', 145, 108, { size: 15, align: 'middle' })
+
+        s.rect(30, 185, 230, 85, { width: 7 })
+        s.text('ORCHESTRATOR', 145, 236, { size: 24, weight: 700, align: 'middle', caps: true })
+
+        s.arrow([266, 84], [334, 150], { width: 6 })
+        s.arrow([266, 226], [334, 196], { width: 6 })
+        s.text('write', 296, 172, { size: 17, align: 'middle' })
+
+        s.rect(340, 40, 230, 300, { width: 7 })
+        s.text('THE RECORD', 455, 82, { size: 24, weight: 700, align: 'middle', caps: true })
+        s.text('one per conversation', 455, 108, { size: 14, align: 'middle' })
+        ;[150, 185, 220, 255, 290].forEach(function (y, index) {
+          s.text('#' + (index + 1), 362, y, { size: 16, weight: 600 })
+          s.squiggle(400, y - 6, 145, { width: 5, amplitude: 5 })
+        })
+
+        s.arrow([455, 405], [455, 348], { width: 6, color: 'accent' })
+        s.text('EDIT  DELETE', 455, 428, {
+          size: 20,
+          weight: 700,
+          align: 'middle',
+          caps: true,
+          color: 'accent',
+          strike: true
+        })
+        s.text('refused', 455, 456, { size: 16, align: 'middle', color: 'accent' })
+
+        s.arrow([576, 190], [608, 190], { width: 6 })
+        s.brace(618, 62, 340, { width: 6, reach: 18 })
+        s.text('LEDGER', 652, 88, { size: 20, weight: 700, caps: true })
+        s.text('what is in force', 652, 112, { size: 15 })
+        s.text('SEARCH', 652, 162, { size: 20, weight: 700, caps: true })
+        s.text('any words, ranked', 652, 186, { size: 15 })
+        s.text('SHOW #N', 652, 236, { size: 20, weight: 700, caps: true })
+        s.text('one entry, whole', 652, 260, { size: 15 })
+        s.text('PRINT', 652, 310, { size: 20, weight: 700, caps: true })
+        s.text('everything, for people', 652, 334, { size: 15 })
+
+        s.arrow([352, 346], [262, 400], { width: 6, color: 'accent', curve: 'arc' })
+        s.text('AFTER A COMPACTION', 145, 420, {
+          size: 19,
+          weight: 700,
+          align: 'middle',
+          caps: true,
+          color: 'accent'
+        })
+        s.text('decisions in force, word for word', 145, 446, {
+          size: 14,
+          align: 'middle',
+          color: 'accent'
+        })
+        s.arrow([145, 398], [145, 280], { width: 6, color: 'accent' })
+
+        s.callout(1, 300, 40, { radius: 22 })
+        s.callout(2, 560, 420, { radius: 22, color: 'accent' })
+        s.callout(3, 860, 40, { radius: 22 })
+        s.callout(4, 40, 470, { radius: 22, color: 'accent' })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'Subagents write findings; the orchestrator writes decisions and progress too. Every entry says who wrote it, the text goes in untouched, and the time comes from the database’s clock.',
+            'The database refuses every edit and every delete. A change of mind is a new entry that replaces an old one, and the old one stays.',
+            'Four ways back out. Three of them show only what still applies or what you searched for; printing everything is for people.',
+            'Every compaction puts the decisions in force back in front of the orchestrator, in the words they were written in.'
+          ],
+          caption: 'One record per conversation: many writers, no edits, four ways to read it.'
+        }).mount('#drawing-record')
+      })()
+    </script>
+  </body>
+</html>
