@@ -649,7 +649,8 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   hook refuses a second ledger write in the same Bash command, and
                   anything after the closing <code>ENTRY</code> line: a write may be
                   preceded by <code>cd &hellip; &amp;&amp;</code> but must end the
-                  command. That also closes the last way an entry could run: a line in
+                  command, and its line ends at <code>&lt;&lt;'ENTRY'</code>. That
+                  also closes the last way an entry could run: a line in
                   the text that is exactly <code>ENTRY</code> ends the heredoc early,
                   the lines after it become commands, and the hook sees text after the
                   closing line and refuses. It refuses a write in a command where any

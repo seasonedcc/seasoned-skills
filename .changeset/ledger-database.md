@@ -19,7 +19,7 @@ back in front of the agent, word for word. Before every Bash command, the
 ledger write guard refuses a ledger write the shell could damage: text that
 doesn't arrive through `<<'ENTRY'`, a heredoc anywhere in the command that
 never closes, a second write in the same command, anything after the
-entry, and a `--source` holding a `$` or a backtick outside single quotes.
+write, and a `--source` holding a `$` or a backtick outside single quotes.
 It also refuses any `ledger` command with an unquoted word starting with
 `#`, such as `ledger show #47`, since the shell reads the rest of that line
 as a comment. A write command run with `--help` writes nothing, so it

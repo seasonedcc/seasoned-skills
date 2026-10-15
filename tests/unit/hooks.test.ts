@@ -189,14 +189,19 @@ describe('the ledger write guard', () => {
     })
 
     it('anything after the write on its line', () => {
-      refusedWith(
-        progress('Pushed.').replace("<<'ENTRY'", "<<'ENTRY' && git push"),
-        'something follows the ledger write',
-      )
-      refusedWith(
-        progress('Pushed.').replace("<<'ENTRY'", "<<'ENTRY' | tee note.txt"),
-        'something follows the ledger write',
-      )
+      for (const after of [
+        '&& git push',
+        '| tee note.txt',
+        '$(touch pwned)',
+        '`touch pwned`',
+        '> note.txt',
+        '--replaces 47',
+      ]) {
+        refusedWith(
+          progress('Pushed.').replace("<<'ENTRY'", `<<'ENTRY' ${after}`),
+          'something follows the ledger write',
+        )
+      }
     })
 
     it('anything after the closing ENTRY line', () => {

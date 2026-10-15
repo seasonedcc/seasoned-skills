@@ -94,11 +94,12 @@ class Heredoc:
 
 
 class Redirection:
-    def __init__(self, descriptor, operator, target, heredoc):
+    def __init__(self, descriptor, operator, target, heredoc, end):
         self.descriptor = descriptor
         self.operator = operator
         self.target = target
         self.heredoc = heredoc
+        self.end = end
 
 
 class Command:
@@ -208,7 +209,7 @@ class Reader:
         if operator in ('<<', '<<-') and target is not None:
             heredoc = Heredoc(operator, target)
             self.pending.append(heredoc)
-        command.redirections.append(Redirection(descriptor, operator, target, heredoc))
+        command.redirections.append(Redirection(descriptor, operator, target, heredoc, position))
         return position
 
     def read_heredoc_bodies(self, position):
@@ -468,7 +469,13 @@ def refusal(text):
         return UNCLOSED_REFUSAL + FORM
     if source_expands(arguments):
         return SOURCE_REFUSAL + FORM
-    if write.substituted or write.followed_by not in ('\n', '') or text[entry.end :].strip():
+    rest_of_line = text[inputs[0].end :].partition('\n')[0]
+    if (
+        write.substituted
+        or write.followed_by not in ('\n', '')
+        or rest_of_line.strip()
+        or text[entry.end :].strip()
+    ):
         return TRAILING_REFUSAL + FORM
     return ''
 
