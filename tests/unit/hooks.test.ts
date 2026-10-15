@@ -1,11 +1,24 @@
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 const hooks = fileURLToPath(new URL('../../runtime/hooks/', import.meta.url))
+
+const commandLine = fileURLToPath(new URL('../../src/cli/index.ts', import.meta.url))
+
+const typescriptSourceLoader = fileURLToPath(
+  new URL('./typescript-source-loader.mjs', import.meta.url),
+)
 
 function runHook(script: string, command: string) {
   const result = spawnSync(join(hooks, script), {
@@ -334,5 +347,79 @@ describe('the compaction hook', () => {
     expect(compact({ CLAUDE_PROJECT_DIR: '' }).exitCode).toBe(0)
     expect(compact({ CLAUDE_PROJECT_DIR: join(root, 'missing') }).exitCode).toBe(0)
     expect(() => recorded('arguments')).toThrow()
+  })
+})
+
+describe('the compaction hook, run against the real ledger', () => {
+  const session = '1b2c3d4e-0000-4000-8000-000000000000'
+  const decision =
+    "Never merge without the person's word: not `gh pr merge`, not $(git push origin main)."
+  let root: string
+  let project: string
+  let environment: NodeJS.ProcessEnv
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'seasoned-skills-compaction-ledger-'))
+    project = join(root, 'project')
+    mkdirSync(join(project, 'node_modules', '.bin'), { recursive: true })
+    spawnSync('git', ['init', '--quiet'], { cwd: project })
+    writeFileSync(join(project, 'package.json'), '{ "private": true }\n')
+    writeFileSync(
+      join(project, 'node_modules', '.bin', 'seasoned-skills'),
+      lines(
+        '#!/bin/sh',
+        'exec "$NODE_BINARY" --experimental-transform-types --no-warnings --import "$SOURCE_LOADER" "$COMMAND_LINE" "$@"',
+      ),
+      { mode: 0o755 },
+    )
+    const { CLAUDE_PROJECT_DIR: _, ...inherited } = process.env
+    environment = {
+      ...inherited,
+      CLAUDE_CONFIG_DIR: join(root, 'claude-config'),
+      NODE_BINARY: process.execPath,
+      SOURCE_LOADER: typescriptSourceLoader,
+      COMMAND_LINE: commandLine,
+    }
+  })
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  const compact = (sessionId: string) => {
+    const result = spawnSync(join(hooks, 'ledger-after-compaction.sh'), {
+      input: JSON.stringify({ session_id: sessionId, source: 'compact' }),
+      encoding: 'utf8',
+      env: { ...environment, CLAUDE_PROJECT_DIR: project },
+    })
+    return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr }
+  }
+
+  it('puts a decision back word for word, from the session the payload names', {
+    timeout: 30_000,
+  }, () => {
+    const written = spawnSync(
+      'pnpm',
+      'exec seasoned-skills ledger decision --as orchestrator --by person'.split(' '),
+      {
+        cwd: project,
+        input: `${decision}\n`,
+        encoding: 'utf8',
+        env: { ...environment, CLAUDE_CODE_SESSION_ID: session },
+      },
+    )
+    expect(written.stdout, written.stderr).toMatch(/^#1 decision, /)
+    expect(existsSync(join(project, '.sessions', session, 'ledger.db'))).toBe(true)
+    const { exitCode, stdout, stderr } = compact(session)
+    expect(stdout).toMatch(/^In force: 1 decision, newest first\n/)
+    expect(stdout).toContain(decision)
+    expect({ exitCode, stderr }).toEqual({ exitCode: 0, stderr: '' })
+  })
+
+  it('prints nothing for a session with no record, and creates none', {
+    timeout: 30_000,
+  }, () => {
+    expect(compact(session)).toEqual({ exitCode: 0, stdout: '', stderr: '' })
+    expect(existsSync(join(project, '.sessions'))).toBe(false)
   })
 })
