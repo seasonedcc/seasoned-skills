@@ -111,13 +111,10 @@ class Command:
         return not self.words and not self.redirections
 
 
-def closing_backtick(line):
-    index = 0
-    while index < len(line):
-        if line[index] == '`':
-            return index
-        index += 2 if line[index] == '\\' else 1
-    return None
+def closing_backtick(text, position):
+    while position < len(text) and text[position] != '`':
+        position += 2 if text[position] == '\\' else 1
+    return min(position, len(text))
 
 
 class Reader:
@@ -127,8 +124,8 @@ class Reader:
         self.pending = []
         self.not_arithmetic = set()
 
-    def read(self):
-        self.read_list(0, None)
+    def read(self, position=0):
+        self.read_list(position, None)
         self.leave_pending(len(self.text))
         return self.commands
 
@@ -158,7 +155,7 @@ class Reader:
                 if not command.is_empty():
                     self.finish(command, '\n')
                     command = Command(False)
-                position = self.read_heredoc_bodies(position + 1, closer)
+                position = self.read_heredoc_bodies(position + 1)
             elif character == '#':
                 command.comment = not command.is_empty()
                 newline = text.find('\n', position)
@@ -179,9 +176,9 @@ class Reader:
                     continue
                 redirection = REDIRECTION.match(text, position)
                 if redirection and not text.startswith(('<(', '>('), position):
-                    position = self.read_redirection(redirection, command, closer)
+                    position = self.read_redirection(redirection, command)
                 else:
-                    word, position = self.read_word(position, closer)
+                    word, position = self.read_word(position)
                     command.words.append(word)
         self.finish(command, '')
         return position
@@ -194,7 +191,7 @@ class Reader:
                 return operator
         return None
 
-    def read_redirection(self, match, command, closer):
+    def read_redirection(self, match, command):
         text = self.text
         descriptor = match.group(1) or ''
         operator = match.group(2) or match.group(0)
@@ -203,7 +200,7 @@ class Reader:
             position += 1
         target = None
         if position < len(text) and text[position] not in METACHARACTERS:
-            target, position = self.read_word(position, closer)
+            target, position = self.read_word(position)
         heredoc = None
         if operator in ('<<', '<<-') and target is not None:
             heredoc = Heredoc(operator, target)
@@ -211,7 +208,7 @@ class Reader:
         command.redirections.append(Redirection(descriptor, operator, target, heredoc))
         return position
 
-    def read_heredoc_bodies(self, position, closer):
+    def read_heredoc_bodies(self, position):
         text = self.text
         while self.pending:
             heredoc = self.pending.pop(0)
@@ -220,10 +217,6 @@ class Reader:
                 newline = text.find('\n', position)
                 line_end = len(text) if newline == -1 else newline
                 line = text[position:line_end]
-                backtick = closing_backtick(line) if closer == '`' else None
-                if backtick is not None:
-                    position += backtick
-                    break
                 if heredoc.operator == '<<-':
                     line = line.lstrip('\t')
                 heredoc.closed = line == heredoc.delimiter.text
@@ -233,7 +226,19 @@ class Reader:
             heredoc.end = position
         return position
 
-    def read_word(self, position, closer):
+    def read_substitution(self, position):
+        pending, self.pending = self.pending, []
+        end = self.read_list(position, ')')
+        self.leave_pending(end)
+        self.pending = pending
+        return end
+
+    def read_backticks(self, position):
+        end = closing_backtick(self.text, position + 1)
+        self.commands.extend(Reader(self.text[:end]).read(position + 1))
+        return min(end + 1, len(self.text))
+
+    def read_word(self, position):
         text = self.text
         start = position
         value = []
@@ -241,10 +246,10 @@ class Reader:
         while position < len(text):
             character = text[position]
             if text.startswith(('<(', '>('), position):
-                end = self.read_list(position + 2, ')')
+                end = self.read_substitution(position + 2)
                 value.append(text[position:end])
                 position = end
-            elif character in METACHARACTERS or character == closer:
+            elif character in METACHARACTERS:
                 break
             elif character == '\\':
                 if not text.startswith('\\\n', position):
@@ -264,7 +269,7 @@ class Reader:
                 position = self.read_dollar(position, value, False)
             elif character == '`':
                 expands = True
-                end = self.read_list(position + 1, '`')
+                end = self.read_backticks(position)
                 value.append(text[position:end])
                 position = end
             else:
@@ -290,7 +295,7 @@ class Reader:
                 position = self.read_dollar(position, value, True)
             elif character == '`':
                 expands = True
-                end = self.read_list(position + 1, '`')
+                end = self.read_backticks(position)
                 value.append(text[position:end])
                 position = end
             else:
@@ -301,9 +306,9 @@ class Reader:
     def read_dollar(self, position, value, quoted):
         text = self.text
         if text.startswith('$((', position):
-            end = self.read_arithmetic(position + 3, quoted) or self.read_list(position + 2, ')')
+            end = self.read_arithmetic(position + 3, quoted) or self.read_substitution(position + 2)
         elif text.startswith('$(', position):
-            end = self.read_list(position + 2, ')')
+            end = self.read_substitution(position + 2)
         elif text.startswith('${', position):
             end = min(self.read_expansion(position + 2, '}', quoted) + 1, len(text))
         elif text.startswith("$'", position) and not quoted:
@@ -321,12 +326,11 @@ class Reader:
     def read_arithmetic(self, position, quoted):
         if position in self.not_arithmetic:
             return None
-        commands, pending = len(self.commands), list(self.pending)
+        commands = len(self.commands)
         end = self.read_expansion(position, ')', quoted)
         if self.text.startswith('))', end):
             return end + 2
         del self.commands[commands:]
-        self.pending = pending
         self.not_arithmetic.add(position)
         return None
 
@@ -348,7 +352,7 @@ class Reader:
             elif character == '$':
                 position = self.read_dollar(position, [], quoted)
             elif character == '`':
-                position = self.read_list(position + 1, '`')
+                position = self.read_backticks(position)
             else:
                 if character == opener:
                     depth += 1
