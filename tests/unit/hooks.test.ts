@@ -24,6 +24,7 @@ function runHook(script: string, command: string) {
   const result = spawnSync(join(hooks, script), {
     input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }),
     encoding: 'utf8',
+    timeout: 10_000,
   })
   return { exitCode: result.status, stderr: result.stderr }
 }
@@ -45,6 +46,8 @@ const progress = (text: string, writer = 'orchestrator') =>
     text,
     'ENTRY',
   )
+
+const unquotedProgress = progress('Next: $(gh pr merge 12)').replace("<<'ENTRY'", '<<ENTRY')
 
 describe('the ledger write guard', () => {
   const refusedWith = (command: string, reason: string) => {
@@ -96,6 +99,12 @@ describe('the ledger write guard', () => {
           ),
         ),
       )
+    })
+
+    it('a write after arithmetic, a subshell, or a parameter expansion', () => {
+      passes(lines('for (( i = 0; i < 3; i++ )); do echo "$i"; done', finding))
+      passes(lines('((cd lane && git status); (git log -1))', finding))
+      passes(`echo "\${x:-'}'}" && ${finding}`)
     })
 
     it('a single-quoted source holding a $', () => {
@@ -195,13 +204,28 @@ describe('the ledger write guard', () => {
 
     it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
       const reason = "the entry's text must arrive through <<'ENTRY'"
-      const unquoted = progress('Next: $(gh pr merge 12)').replace("<<'ENTRY'", '<<ENTRY')
-      refusedWith(`grep -q "ready$" log && ${unquoted}`, reason)
-      refusedWith(`grep -q "ready$'" log; ${unquoted}`, reason)
+      refusedWith(`grep -q "ready$" log && ${unquotedProgress}`, reason)
+      refusedWith(`grep -q "ready$'" log; ${unquotedProgress}`, reason)
       refusedWith(
         'grep -q "ready$" log && echo Pushed $(git rev-parse HEAD) | pnpm exec seasoned-skills ledger progress --as orchestrator && echo "done"',
         reason,
       )
+    })
+
+    it("text that does not arrive through <<'ENTRY', after arithmetic or a parameter expansion", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(`(( shift = 1 << 3 ))\n${unquotedProgress}`, reason)
+      refusedWith(
+        lines(
+          '(( x = 1 << 3 ))',
+          'echo "$(date)" | pnpm exec seasoned-skills ledger progress --as orchestrator',
+        ),
+        reason,
+      )
+      refusedWith(`: \${x:-'}'}; ${unquotedProgress}`, reason)
+      refusedWith(`echo "\${name:-it's}" && ${unquotedProgress}`, reason)
+      refusedWith(`notes=$((cd /work && ${unquotedProgress}\n) )`, reason)
+      refusedWith(`echo ${'$(('.repeat(40)}\n${unquotedProgress}`, reason)
     })
 
     it('an entry that never closes', () => {
@@ -269,6 +293,32 @@ describe('the stash hook', () => {
     refused(progress('Pushed.').replace("<<'ENTRY'", "<<'ENTRY' && git stash"))
     refused(`${progress('Pushed.')}\ngit stash`)
     refused(progress(lines('Pushed.', 'ENTRY', 'git stash')))
+  })
+
+  it('sees a git stash the shell runs past arithmetic, a parameter expansion, or a plain $', () => {
+    refused(
+      lines(
+        "(( pnpm exec seasoned-skills ledger progress <<'ENTRY' ))",
+        'git stash',
+        'ENTRY',
+      ),
+    )
+    refused(
+      lines(
+        ": ${x:-'}'} A'; pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+        "'; git stash #",
+        'ENTRY',
+      ),
+    )
+    refused(
+      lines(
+        `grep -q "x$" /dev/null; cat <<'EOF' >/dev/null`,
+        `""; pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'`,
+        'EOF',
+        'git stash',
+        'ENTRY',
+      ),
+    )
   })
 
   it("reads every heredoc but a ledger entry's", () => {

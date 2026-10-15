@@ -131,6 +131,7 @@ class Reader:
         self.text = text
         self.commands = []
         self.pending = []
+        self.not_arithmetic = set()
 
     def read(self):
         self.read_list(0, None)
@@ -164,6 +165,9 @@ class Reader:
                 command.comment = not command.is_empty()
                 newline = text.find('\n', position)
                 position = len(text) if newline == -1 else newline
+            elif text.startswith('((', position):
+                arithmetic = self.read_arithmetic(position + 2, False)
+                position = arithmetic or self.read_list(position + 1, ')')
             elif character == '(':
                 position = self.read_list(position + 1, ')')
             elif character == ')':
@@ -298,12 +302,11 @@ class Reader:
     def read_dollar(self, position, value, quoted):
         text = self.text
         if text.startswith('$((', position):
-            end = self.matching_parenthesis(position + 1)
+            end = self.read_arithmetic(position + 3, quoted) or self.read_list(position + 2, ')')
         elif text.startswith('$(', position):
             end = self.read_list(position + 2, ')')
         elif text.startswith('${', position):
-            end = text.find('}', position + 2)
-            end = len(text) if end == -1 else end + 1
+            end = min(self.read_expansion(position + 2, '}', quoted) + 1, len(text))
         elif text.startswith("$'", position) and not quoted:
             end = position + 2
             while end < len(text) and text[end] != "'":
@@ -316,17 +319,43 @@ class Reader:
         value.append(text[position:end])
         return end
 
-    def matching_parenthesis(self, position):
+    def read_arithmetic(self, position, quoted):
+        if position in self.not_arithmetic:
+            return None
+        commands, pending = len(self.commands), list(self.pending)
+        end = self.read_expansion(position, ')', quoted)
+        if self.text.startswith('))', end):
+            return end + 2
+        del self.commands[commands:]
+        self.pending = pending
+        self.not_arithmetic.add(position)
+        return None
+
+    def read_expansion(self, position, closer, quoted):
         text = self.text
-        open_parentheses = 0
+        opener = '(' if closer == ')' else None
+        depth = 0
         while position < len(text):
-            if text[position] == '(':
-                open_parentheses += 1
-            elif text[position] == ')':
-                open_parentheses -= 1
-                if open_parentheses == 0:
-                    return position + 1
-            position += 1
+            character = text[position]
+            if character == closer and depth == 0:
+                return position
+            if character == '\\':
+                position += 2
+            elif character == "'" and not quoted:
+                end = text.find("'", position + 1)
+                position = len(text) if end == -1 else end + 1
+            elif character == '"':
+                position, _ = self.read_double_quoted(position + 1, [])
+            elif character == '$':
+                position = self.read_dollar(position, [], quoted)
+            elif character == '`':
+                position = self.read_list(position + 1, '`')
+            else:
+                if character == opener:
+                    depth += 1
+                elif character == closer:
+                    depth -= 1
+                position += 1
         return position
 
 
