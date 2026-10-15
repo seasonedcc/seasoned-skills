@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { MANAGED_HOOKS } from '../footprint/settings.js'
 import { materializeRuntime } from './runtime.js'
 import { writeGeneratedFiles } from './write.js'
 
@@ -18,12 +19,22 @@ describe('materializeRuntime', () => {
     expect(setup?.executable).toBe(true)
     expect(paths).toContain('.claude/statusline.sh')
     expect(paths).toContain('.claude/hooks/block-git-stash.sh')
+    expect(paths).toContain('.claude/hooks/ledger-write-guard.sh')
+    expect(paths).toContain('.claude/hooks/command-reader.py')
     expect(paths).toContain('.claude/hooks/isolation-guard.sh')
     expect(paths).toContain('.claude/hooks/session-end-sweep.sh')
+    expect(paths).toContain('.claude/hooks/ledger-after-compaction.sh')
     expect(paths).toContain('.claude/skills/requests-from-meetings/scripts/verify.py')
     expect(paths).toContain('requests-from-meetings/assets/style.css')
     expect(paths).toContain('shaping/assets/document.css')
     expect(paths).toContain('shaping/assets/drawing/fonts/OFL.txt')
+  })
+
+  it('marks every hook a managed settings entry runs as executable', () => {
+    const files = materializeRuntime()
+    for (const { script } of MANAGED_HOOKS) {
+      expect(files.find((file) => file.path === script)?.executable, script).toBe(true)
+    }
   })
 
   it('has the session-end hook kill what the sweep lists, not only list it', () => {

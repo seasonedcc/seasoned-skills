@@ -21,20 +21,20 @@ Weigh evidence in this order:
 2. **Failures with a root cause** — an incident traced to its mechanism. An untraced failure is not a lesson yet.
 3. **Wins** — patterns that demonstrably worked and would not be rediscovered cheaply.
 
-Mine the real record, not memory: the session ledger, the conversation (the user's messages above all), per-lane artifacts, PR review threads.
+Mine the real record, not memory: the conversation (the user's messages above all), the session's ledger, per-lane artifacts, PR review threads. Lessons about how we work come from the conversation: they are never written to the ledger, which holds only what was decided, what was learned about the product, and where the work stood, each in the words and at the time it was written.
 
 Where each source lives:
 
-- **The session ledger** — in the session folder, `.sessions/<session id>/` in the project's main checkout; `pnpm exec seasoned-skills session-folder` prints its absolute path.
+- **The session's ledger** — a database in the session folder, `.sessions/<session id>/` in the project's main checkout; `pnpm exec seasoned-skills session-folder` prints its absolute path. From the project's root, print the whole record to a file there — `pnpm exec seasoned-skills ledger print > "$(pnpm exec seasoned-skills session-folder)/self-improvement-ledger.txt"` — and read that file the way you read the conversation: in slices, never whole into your context. A session that started before the project upgraded to the ledger database may also keep a markdown ledger in its folder; read it the same way, as history.
 - **The full conversation** — a JSONL transcript under the Claude config directory at `projects/<cwd with slashes replaced by dashes>/<session-id>.jsonl`; the current session is the most recently modified file there, and compaction summaries cite the exact path. Long sessions grow to hundreds of megabytes — never read one wholesale. Extract layers with a script filtering by role: user messages and hook feedback first (highest signal, smallest volume), assistant narration only if needed, then slice for miners.
-- **Per-lane artifacts** — subagent transcripts live beside the session transcript; lane ledgers live in the session folder beside the session ledger.
+- **Per-lane artifacts** — subagent transcripts live beside the session transcript, and each lane's scratch files sit in the session folder under its prefix. What subagents found is in the session's ledger, under their own names.
 - **PR review threads** — `gh pr view <number> --comments` and `gh api repos/<owner>/<repo>/pulls/<number>/comments`.
 
 ## The filing bar
 
 File a lesson only if all of these hold:
 
-- **Durable**: it will matter beyond the task that taught it. Task-specific trivia dies with the task's ledger.
+- **Durable**: it will matter beyond the task that taught it. Task-specific trivia dies with the task.
 - **Behavior-changing**: a future agent reading it would act differently, and better.
 - **Earns its tokens**: skills load into every relevant context; each sentence costs attention forever.
 

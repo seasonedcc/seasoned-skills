@@ -34,6 +34,9 @@ requests-from-meetings/config.local.json
 .claude/skills/prepare-for-compaction/
 .claude/skills/reground/
 .sessions/
+.claude/hooks/command-reader.py
+.claude/hooks/ledger-after-compaction.sh
+.claude/hooks/ledger-write-guard.sh
 # <<< seasoned-skills <<<
 
 # The golden tier snapshots a generated CLAUDE.md per fixture; those are committed evidence, not this project's own generated doctrine.

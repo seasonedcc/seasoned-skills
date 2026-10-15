@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Argument } from 'commander'
+import type { Argument, Command } from 'commander'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
 import { configurationKeyPaths } from '../../src/config/keys.js'
@@ -35,9 +35,14 @@ import { loadFixture } from '../golden/helpers.js'
  *
  * The pages hold their names in tables whose first column is labelled for the
  * kind it lists — Command, Flag, Key, Export, Skill, File, Setting, Hook,
- * Entry — and a command's flags belong to the section headed with that
- * command. The golden tier still pins the command names and descriptions
- * themselves; this test ties the whole surface to the documentation.
+ * Entry. The Command table lists the top-level commands; every command, at
+ * any depth, has a section headed with its full name — `seasoned-skills
+ * ledger search` — and its flags and positional arguments belong there. A
+ * section runs from its heading to the next heading of any level, so the
+ * commands page heads each top-level command with `##` and each nested one
+ * with `###`, and a nested section ends its parent's. The golden tier still
+ * pins the command names and descriptions themselves; this test ties the
+ * whole surface to the documentation.
  */
 const PAGE_NAMES = [
   'commands',
@@ -46,8 +51,15 @@ const PAGE_NAMES = [
   'managed-footprint',
 ]
 
+interface Section {
+  /** The heading's text, at whatever level. */
+  heading: string
+  /** Everything from the heading down to the next heading of any level. */
+  body: string
+}
+
 interface DocumentedTable {
-  /** The nearest heading above the table, which scopes a command's flags. */
+  /** The heading of the section holding the table, which scopes a command's flags. */
   heading: string
   /** The first column's header cell, naming the kind the table lists. */
   label: string
@@ -65,20 +77,21 @@ describe('the reference pages', () => {
     )
   })
 
+  it('gives every command, at any depth, a section under its full name', () => {
+    const headings = sectionsIn(pageSource('commands')).map((section) => section.heading)
+    const missing = commandTree(buildProgram())
+      .map(({ fullName }) => fullName)
+      .filter((fullName) => !headings.includes(fullName))
+    expect(missing).toEqual([])
+  })
+
   it("documents every flag, under its own command's section", () => {
-    const program = buildProgram()
     const real = new Map<string, string[]>()
-    const sources = [
-      [program.name(), program.options] as const,
-      ...program.commands.map(
-        (command) => [`${program.name()} ${command.name()}`, command.options] as const,
-      ),
-    ]
-    for (const [heading, options] of sources) {
-      if (options.length === 0) continue
+    for (const { fullName, command } of commandTree(buildProgram())) {
+      if (command.options.length === 0) continue
       real.set(
-        heading,
-        options.map((option) => option.flags),
+        fullName,
+        command.options.map((option) => option.flags),
       )
     }
 
@@ -93,11 +106,10 @@ describe('the reference pages', () => {
   })
 
   it("documents every positional argument, in its own command's section", () => {
-    const program = buildProgram()
     const sections = sectionsIn(pageSource('commands'))
     const checked: string[] = []
-    for (const command of program.commands) {
-      const section = sections.get(`${program.name()} ${command.name()}`) ?? ''
+    for (const { fullName, command } of commandTree(buildProgram())) {
+      const section = sections.find(({ heading }) => heading === fullName)?.body ?? ''
       for (const argument of command.registeredArguments) {
         expect(section).toContain(argumentToken(argument))
         checked.push(argument.name())
@@ -215,6 +227,19 @@ function sortedGroups(groups: Map<string, string[]>): Record<string, string[]> {
   )
 }
 
+/** The program and every command under it, at any depth, each with its full name. */
+function commandTree(
+  command: Command,
+  parentName?: string,
+): { fullName: string; command: Command }[] {
+  const fullName =
+    parentName === undefined ? command.name() : `${parentName} ${command.name()}`
+  return [
+    { fullName, command },
+    ...command.commands.flatMap((subcommand) => commandTree(subcommand, fullName)),
+  ]
+}
+
 /** The way a usage line writes one argument: `<lane>`, `[base]`, `<paths...>`. */
 function argumentToken(argument: Argument): string {
   const name = `${argument.name()}${argument.variadic ? '...' : ''}`
@@ -301,41 +326,52 @@ function rowCovering(path: string): string | undefined {
   return undefined
 }
 
-/** Each `##` section's body, keyed by its heading, for the prose a table cannot hold. */
-function sectionsIn(markdown: string): Map<string, string> {
-  const sections = new Map<string, string>()
-  let heading = ''
+/**
+ * Each section of a page: a heading at any level and the text under it, down
+ * to the next heading of any level. A line inside a fenced block is never a
+ * heading, whatever it starts with.
+ */
+function sectionsIn(markdown: string): Section[] {
+  const sections: Section[] = []
+  let current: Section | undefined
+  let fenced = false
   for (const line of markdown.split('\n')) {
-    const started = line.match(/^##\s+(.*)$/)?.[1]
-    if (started !== undefined) {
-      heading = started
-      sections.set(heading, '')
+    if (line.trim().startsWith('```')) fenced = !fenced
+    const heading = fenced ? undefined : line.match(/^#{1,6}\s+(.*)$/)?.[1]
+    if (heading !== undefined) {
+      current = { heading, body: '' }
+      sections.push(current)
       continue
     }
-    if (heading !== '') sections.set(heading, `${sections.get(heading) ?? ''}${line}\n`)
+    if (current !== undefined) current.body += `${line}\n`
   }
   return sections
 }
 
 function tablesIn(markdown: string): DocumentedTable[] {
+  return sectionsIn(markdown).flatMap(({ heading, body }) =>
+    tablesInSection(heading, body),
+  )
+}
+
+function tablesInSection(heading: string, body: string): DocumentedTable[] {
   const found: DocumentedTable[] = []
-  let heading = ''
   let rows: string[][] = []
 
   const closeTable = () => {
-    const [header, divider, ...body] = rows
+    const [header, divider, ...rest] = rows
     rows = []
     if (header === undefined || divider === undefined) return
     if (!divider.every((cell) => /^:?-{3,}:?$/.test(cell))) return
     found.push({
       heading,
       label: header[0] ?? '',
-      rows: body.map((row) => row.map((cell) => cell.replaceAll('`', '').trim())),
+      rows: rest.map((row) => row.map((cell) => cell.replaceAll('`', '').trim())),
     })
   }
 
   let fenced = false
-  for (const line of markdown.split('\n')) {
+  for (const line of body.split('\n')) {
     const trimmed = line.trim()
     if (trimmed.startsWith('```')) {
       closeTable()
@@ -353,7 +389,6 @@ function tablesIn(markdown: string): DocumentedTable[] {
       continue
     }
     closeTable()
-    if (trimmed.startsWith('#')) heading = trimmed.replace(/^#+\s*/, '')
   }
   closeTable()
   return found

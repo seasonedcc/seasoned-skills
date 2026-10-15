@@ -350,11 +350,14 @@
               </li>
               <li>
                 <p>
-                  <code>node:sqlite</code> needs no flag from Node 22.13 on. Node 22
-                  prints <code>ExperimentalWarning: SQLite is an experimental
+                  <code>node:sqlite</code> needs no flag from Node 22.13 on, but FTS5
+                  arrives in it only with Node 22.16: Node 22.13 to 22.15 bundle an
+                  SQLite built without it, and creating the search index there fails
+                  with <code>no such module: fts5</code>. Node 22 prints
+                  <code>ExperimentalWarning: SQLite is an experimental
                   feature</code> on every run; Node 24 prints none. FTS5, JSON functions,
-                  and <code>STRICT</code> tables work on both. <code>engines.node</code> becomes
-                  <code>&gt;=22.13.0</code>, up from <code>&gt;=22.0.0</code>. A new
+                  and <code>STRICT</code> tables work on both from 22.16. <code>engines.node</code> becomes
+                  <code>&gt;=22.16.0</code>, up from <code>&gt;=22.0.0</code>. A new
                   warning filter replaces Node's <code>warning</code> listener with one
                   that drops only the SQLite experimental warning and prints everything
                   else. It is installed in <code>bin/seasoned-skills.js</code> before the
@@ -364,8 +367,12 @@
                   actions, never from <code>src/cli/program.ts</code>: <code>engines</code>
                   is only advisory, and on Node 22.0 to 22.12 a static import breaks
                   every command, <code>sync</code> in <code>prepare</code> and the
-                  session-end hook included. There, only <code>ledger</code> fails, with
-                  &ldquo;The ledger needs Node 22.13 or later.&rdquo;
+                  session-end hook included. Before anything else, every
+                  <code>ledger</code> command checks that <code>node:sqlite</code> loads
+                  and creates an FTS5 table in memory. On a Node where either fails,
+                  only <code>ledger</code> fails, with &ldquo;The ledger needs Node 22.16
+                  or later.&rdquo;, before it creates a folder or a file, and the
+                  compaction hook prints nothing.
                 </p>
               </li>
               <li>
@@ -645,10 +652,15 @@ ledger progress --as &lt;writer&gt;                                        &lt; 
                   command. That also closes the last way an entry could run: a line in
                   the text that is exactly <code>ENTRY</code> ends the heredoc early,
                   the lines after it become commands, and the hook sees text after the
-                  closing line and refuses. It refuses a write whose text does not
+                  closing line and refuses. It refuses a write in a command where any
+                  heredoc never closes, since shells disagree about where an unclosed
+                  heredoc's text ends, and some would read the entry into it and expand
+                  it. It refuses a write whose text does not
                   arrive through
                   <code>&lt;&lt;'ENTRY'</code>, which also refuses
-                  <code>echo &hellip; |</code> and a missing heredoc. It refuses a
+                  <code>echo &hellip; |</code> and a missing heredoc. A request for help,
+                  <code>--help</code> or <code>-h</code> where it is no option's value,
+                  writes nothing, so it needs no heredoc. It refuses a
                   <code>--source</code> holding a backtick or a <code>$</code> unless it
                   is single-quoted, since a source is often a command and what it
                   printed, and inside double quotes the shell would run it or swap in a
@@ -883,7 +895,9 @@ ledger print              [--session &lt;id&gt;]</code></pre>
               counting every entry after the index is emptied. FTS5's
               <code>integrity-check</code> with a rank of 1 does fail on it. So every
               search runs that check first and rebuilds the index when it fails. The
-              record itself is never at risk from this.
+              check is itself a write, so it runs only when the write lock is free at
+              once; while another connection holds a write open, the search reads the
+              index as it is. The record itself is never at risk from this.
             </p>
           </div>
         </details>

@@ -27,6 +27,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ledger-write-guard.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ledger-write-guard.sh; exit 0",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {
@@ -44,6 +54,18 @@
             "type": "command",
             "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end-sweep.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end-sweep.sh; exit 0",
             "timeout": 60
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ledger-after-compaction.sh ] && exec \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ledger-after-compaction.sh; exit 0",
+            "timeout": 10
           }
         ]
       }
