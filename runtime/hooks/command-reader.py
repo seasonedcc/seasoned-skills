@@ -106,6 +106,7 @@ class Command:
         self.redirections = []
         self.followed_by = ''
         self.comment = False
+        self.substituted = False
 
     def is_empty(self):
         return not self.words and not self.redirections
@@ -228,9 +229,12 @@ class Reader:
 
     def read_substitution(self, position):
         pending, self.pending = self.pending, []
+        commands = len(self.commands)
         end = self.read_list(position, ')')
         self.leave_pending(end)
         self.pending = pending
+        for command in self.commands[commands:]:
+            command.substituted = True
         return end
 
     def read_backticks(self, position):
@@ -454,7 +458,7 @@ def refusal(text):
         return UNCLOSED_REFUSAL + FORM
     if source_expands(arguments):
         return SOURCE_REFUSAL + FORM
-    if write.followed_by not in ('\n', '') or text[heredoc.end :].strip():
+    if write.substituted or write.followed_by not in ('\n', '') or text[heredoc.end :].strip():
         return TRAILING_REFUSAL + FORM
     return ''
 
@@ -463,7 +467,7 @@ def outside_entries(text):
     entries = [
         (redirection.heredoc.body_start, redirection.heredoc.end)
         for command, arguments in ledger_commands(Reader(text).read())
-        if ledger_kind(arguments)
+        if ledger_kind(arguments) and not command.substituted
         for redirection in command.redirections
         if is_entry_heredoc(redirection)
     ]

@@ -213,6 +213,15 @@ describe('the ledger write guard', () => {
         ),
         'something follows the ledger write',
       )
+      refusedWith(
+        lines(
+          "notes=$(pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+          'Next: 1) push',
+          'gh pr merge 12',
+          'ENTRY',
+        ),
+        'something follows the ledger write',
+      )
     })
 
     it("text that does not arrive through <<'ENTRY'", () => {
@@ -546,6 +555,18 @@ describe('the stash hook', () => {
     ]) {
       refused(lines(write, 'git stash', 'ENTRY'))
     }
+  })
+
+  it('reads the entry of a write inside a substitution, which a shell may end early', () => {
+    refused(
+      lines(
+        "notes=$(pnpm exec seasoned-skills ledger progress --as o <<'ENTRY'",
+        'Next: 1) push',
+        'git stash',
+        'ENTRY',
+        ')',
+      ),
+    )
   })
 
   it('sees a git stash past a quote inside backticks', () => {
