@@ -306,7 +306,10 @@ describe('the ledger write guard', () => {
         reason,
       )
       refusedWith(
-        unquotedProgress.replace('pnpm exec seasoned-skills', 'node bin/seasoned-skills.js'),
+        unquotedProgress.replace(
+          'pnpm exec seasoned-skills',
+          'node bin/seasoned-skills.js',
+        ),
         reason,
       )
       refusedWith(
