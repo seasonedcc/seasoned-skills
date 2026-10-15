@@ -373,6 +373,22 @@ def sources(arguments):
             yield word
 
 
+def standard_inputs(command):
+    return [
+        redirection
+        for redirection in command.redirections
+        if redirection.descriptor in ('', '0') and redirection.operator in STANDARD_INPUT
+    ]
+
+
+def asks_for_help(command, arguments):
+    return (
+        any(word.text in ('-h', '--help') for word in arguments)
+        and not command.piped
+        and not standard_inputs(command)
+    )
+
+
 def is_entry_heredoc(redirection):
     return (
         redirection.heredoc is not None
@@ -392,17 +408,17 @@ def refusal(text):
     found = list(ledger_commands(Reader(text).read()))
     if any(command.comment for command, _ in found):
         return COMMENT_REFUSAL
-    writes = [(command, arguments) for command, arguments in found if ledger_kind(arguments)]
+    writes = [
+        (command, arguments)
+        for command, arguments in found
+        if ledger_kind(arguments) and not asks_for_help(command, arguments)
+    ]
     if not writes:
         return ''
     if len(writes) > 1:
         return SECOND_WRITE_REFUSAL + FORM
     write, arguments = writes[0]
-    inputs = [
-        redirection
-        for redirection in write.redirections
-        if redirection.descriptor in ('', '0') and redirection.operator in STANDARD_INPUT
-    ]
+    inputs = standard_inputs(write)
     if write.piped or len(inputs) != 1 or not is_entry_heredoc(inputs[0]):
         return TEXT_REFUSAL + FORM
     heredoc = inputs[0].heredoc

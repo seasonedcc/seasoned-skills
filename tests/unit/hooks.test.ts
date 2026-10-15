@@ -136,6 +136,12 @@ describe('the ledger write guard', () => {
       passes('echo "pnpm exec seasoned-skills ledger finding --as reviewer"')
     })
 
+    it('help on a write command', () => {
+      passes('pnpm exec seasoned-skills ledger finding --help')
+      passes('pnpm exec seasoned-skills ledger progress -h')
+      passes('pnpm exec seasoned-skills ledger decision --as orchestrator --help')
+    })
+
     it('the reads, and every other command', () => {
       passes('pnpm exec seasoned-skills ledger')
       passes('pnpm exec seasoned-skills ledger search busy timeout "#418"')
@@ -208,6 +214,11 @@ describe('the ledger write guard', () => {
       )
       refusedWith(
         "pnpm exec seasoned-skills ledger progress --as orchestrator <<< 'Pushed.'",
+        reason,
+      )
+      refusedWith(unquotedProgress.replace('--as orchestrator', '--help'), reason)
+      refusedWith(
+        'echo "Pushed $(git rev-parse HEAD)" | pnpm exec seasoned-skills ledger progress -h',
         reason,
       )
     })
