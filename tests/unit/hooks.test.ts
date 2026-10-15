@@ -508,6 +508,10 @@ describe('the stash hook', () => {
     )
   })
 
+  it('refuses a git stash in a command too long for a pipe to hold', () => {
+    refused(lines('git stash', `echo ${'x'.repeat(200_000)}`))
+  })
+
   it('reads the whole command when the command reader cannot read it', () => {
     refused(`git stash\necho ${'$('.repeat(1000)}`)
   })
