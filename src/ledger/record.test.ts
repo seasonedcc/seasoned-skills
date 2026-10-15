@@ -439,6 +439,70 @@ describe('the ledger record', () => {
       ).toEqual([])
       expect(searched('record')).toEqual(['the record survives'])
     })
+
+    it('puts the busy timeout back after its check, whether the check ran or met a held write', async () => {
+      finding('the record survives')
+      const busyTimeout = () => database.prepare('PRAGMA busy_timeout').get()
+      expect(searched('record')).toEqual(['the record survives'])
+      expect(busyTimeout()).toEqual({ timeout: 5000 })
+      const holder = await openRecord(path)
+      holder.exec('BEGIN IMMEDIATE')
+      try {
+        expect(searched('record')).toEqual(['the record survives'])
+        expect(busyTimeout()).toEqual({ timeout: 5000 })
+      } finally {
+        holder.exec('ROLLBACK')
+        holder.close()
+      }
+    })
+
+    it('fails when its check fails for any reason but a held write', async () => {
+      finding('the record survives')
+      const { DatabaseSync } = await import('node:sqlite')
+      const readOnly = new DatabaseSync(path, { readOnly: true })
+      try {
+        expect(() => searchEntries(readOnly, ['record'])).toThrow(
+          'attempt to write a readonly database',
+        )
+      } finally {
+        readOnly.close()
+      }
+    })
+
+    it('rebuilds an emptied index before a writer arriving the moment its check fails can write', async ({
+      onTestFinished,
+    }) => {
+      finding('the record survives')
+      database.exec(`INSERT INTO entries_search (entries_search) VALUES ('delete-all')`)
+      const writer = await openRecord(path)
+      onTestFinished(() => writer.close())
+      writer.exec('PRAGMA busy_timeout = 0')
+      let writerArrived = false
+      let writerGotIn = false
+      const { DatabaseSync } = await import('node:sqlite')
+      const exec = DatabaseSync.prototype.exec
+      const arrivesWhenTheCheckFails = vi
+        .spyOn(DatabaseSync.prototype, 'exec')
+        .mockImplementation(function (this: DatabaseSync, sql: string) {
+          try {
+            return exec.call(this, sql)
+          } catch (error) {
+            if (sql.includes('integrity-check')) {
+              writerArrived = true
+              try {
+                exec.call(writer, 'BEGIN IMMEDIATE')
+                writerGotIn = true
+              } catch {}
+            }
+            throw error
+          }
+        })
+      onTestFinished(() => arrivesWhenTheCheckFails.mockRestore())
+      const found = searched('record')
+      if (writerGotIn) exec.call(writer, 'ROLLBACK')
+      expect(writerArrived).toBe(true)
+      expect(found).toEqual(['the record survives'])
+    })
   })
 
   it('holds thousands of entries while the in-force reads stay small', () => {
