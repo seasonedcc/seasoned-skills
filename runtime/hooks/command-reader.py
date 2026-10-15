@@ -9,7 +9,8 @@ standard input, named by its one argument:
                    nothing when it passes
   outside-entries  the command without the text of its ledger entries, for
                    guards that match on command text: an entry is recorded,
-                   never run
+                   never run. A command it cannot read, or cannot read
+                   within two seconds, comes back whole.
 
 The hooks run it as a script with python3 -B, so it never leaves bytecode
 beside them. Standard library only, and Python 3.9 compatible.
@@ -17,9 +18,11 @@ beside them. Standard library only, and Python 3.9 compatible.
 
 import json
 import re
+import signal
 import sys
 
 KINDS = ('decision', 'finding', 'progress')
+VALUE_OPTIONS = ('--as', '--by', '--source', '--replaces', '--session')
 ENTRY_HEREDOC = "'ENTRY'"
 BINARY = re.compile(
     r'(^|/)seasoned-skills(@[^/]*)?$|(^|/)seasoned-skills\.js$|(^|/)cli/index\.[jt]s$'
@@ -29,6 +32,7 @@ REDIRECTION = re.compile(r'(\d*)(<<<|<<-|<<|<>|<&|<|>>|>&|>\||>)|&>>|&>')
 STANDARD_INPUT = {'<<<', '<<-', '<<', '<>', '<&', '<'}
 METACHARACTERS = set(' \t\n;&|<>()')
 PARAMETER = re.compile(r'\$([A-Za-z_][A-Za-z0-9_]*|[0-9#?$!@*-])?')
+READING_TIME_LIMIT = 2
 
 FORM = (
     "\n\nWrite each entry as one command that ends with it, its text on standard"
@@ -86,6 +90,9 @@ class Heredoc:
         self.end = None
         self.closed = False
 
+    def expands(self):
+        return not any(quote in self.delimiter.raw for quote in '\'"\\')
+
 
 class Redirection:
     def __init__(self, descriptor, operator, target, heredoc):
@@ -107,6 +114,15 @@ class Command:
         return not self.words and not self.redirections
 
 
+def closing_backtick(line):
+    index = 0
+    while index < len(line):
+        if line[index] == '`':
+            return index
+        index += 2 if line[index] == '\\' else 1
+    return None
+
+
 class Reader:
     def __init__(self, text):
         self.text = text
@@ -116,9 +132,13 @@ class Reader:
 
     def read(self):
         self.read_list(0, None)
-        for heredoc in self.pending:
-            heredoc.body_start = heredoc.end = len(self.text)
+        self.leave_pending(len(self.text))
         return self.commands
+
+    def leave_pending(self, position):
+        for heredoc in self.pending:
+            heredoc.body_start = heredoc.end = position
+        self.pending = []
 
     def finish(self, command, followed_by):
         if not command.is_empty():
@@ -141,7 +161,7 @@ class Reader:
                 if not command.is_empty():
                     self.finish(command, '\n')
                     command = Command(False)
-                position = self.read_heredoc_bodies(position + 1)
+                position = self.read_heredoc_bodies(position + 1, closer)
             elif character == '#':
                 command.comment = not command.is_empty()
                 newline = text.find('\n', position)
@@ -194,26 +214,48 @@ class Reader:
         command.redirections.append(Redirection(descriptor, operator, target, heredoc))
         return position
 
-    def read_heredoc_bodies(self, position):
+    def read_heredoc_bodies(self, position, closer):
         text = self.text
         while self.pending:
             heredoc = self.pending.pop(0)
             heredoc.body_start = position
-            while True:
-                if position >= len(text):
-                    heredoc.end = len(text)
-                    break
+            while position < len(text):
                 newline = text.find('\n', position)
                 line_end = len(text) if newline == -1 else newline
                 line = text[position:line_end]
+                backtick = closing_backtick(line) if closer == '`' else None
+                if backtick is not None:
+                    position += backtick
+                    break
                 if heredoc.operator == '<<-':
                     line = line.lstrip('\t')
-                position = len(text) if newline == -1 else newline + 1
                 if line == heredoc.delimiter.text:
-                    heredoc.end = position
+                    body_end = position
                     heredoc.closed = True
+                position = len(text) if newline == -1 else newline + 1
+                if heredoc.closed:
                     break
+            if not heredoc.closed:
+                body_end = position
+            heredoc.end = position
+            if heredoc.expands():
+                self.read_substitutions(heredoc.body_start, body_end)
         return position
+
+    def read_substitutions(self, position, end):
+        pending, self.pending = self.pending, []
+        while position < end:
+            character = self.text[position]
+            if character == '\\':
+                position += 2
+            elif character == '$':
+                position = self.read_dollar(position, [], True)
+            elif character == '`':
+                position = self.read_list(position + 1, '`')
+            else:
+                position += 1
+        self.leave_pending(end)
+        self.pending = pending
 
     def read_word(self, position, closer):
         text = self.text
@@ -373,6 +415,10 @@ def sources(arguments):
             yield word
 
 
+def source_expands(arguments):
+    return any(source.expands for source in sources(arguments))
+
+
 def standard_inputs(command):
     return [
         redirection
@@ -382,11 +428,15 @@ def standard_inputs(command):
 
 
 def asks_for_help(command, arguments):
-    return (
-        any(word.text in ('-h', '--help') for word in arguments)
-        and not command.piped
-        and not standard_inputs(command)
-    )
+    if command.piped or standard_inputs(command):
+        return False
+    index = 0
+    while index < len(arguments):
+        word = arguments[index].text
+        if word in ('-h', '--help'):
+            return True
+        index += 2 if word in VALUE_OPTIONS else 1
+    return False
 
 
 def is_entry_heredoc(redirection):
@@ -408,23 +458,21 @@ def refusal(text):
     found = list(ledger_commands(Reader(text).read()))
     if any(command.comment for command, _ in found):
         return COMMENT_REFUSAL
-    writes = [
-        (command, arguments)
-        for command, arguments in found
-        if ledger_kind(arguments) and not asks_for_help(command, arguments)
-    ]
+    writes = [(command, arguments) for command, arguments in found if ledger_kind(arguments)]
     if not writes:
         return ''
     if len(writes) > 1:
         return SECOND_WRITE_REFUSAL + FORM
     write, arguments = writes[0]
+    if asks_for_help(write, arguments):
+        return SOURCE_REFUSAL + FORM if source_expands(arguments) else ''
     inputs = standard_inputs(write)
     if write.piped or len(inputs) != 1 or not is_entry_heredoc(inputs[0]):
         return TEXT_REFUSAL + FORM
     heredoc = inputs[0].heredoc
     if not heredoc.closed:
         return UNCLOSED_REFUSAL + FORM
-    if any(source.expands for source in sources(arguments)):
+    if source_expands(arguments):
         return SOURCE_REFUSAL + FORM
     if write.followed_by not in ('\n', '') or text[heredoc.end :].strip():
         return TRAILING_REFUSAL + FORM
@@ -448,6 +496,10 @@ def outside_entries(text):
     return ''.join(kept)
 
 
+def took_too_long(signal_number, frame):
+    raise TimeoutError('the command took too long to read')
+
+
 def main():
     payload = json.loads(sys.stdin.buffer.read().decode('utf-8', 'replace'))
     tool_input = payload.get('tool_input') if isinstance(payload, dict) else None
@@ -458,9 +510,13 @@ def main():
     if question == 'refusal':
         answer = refusal(command)
     elif question == 'outside-entries':
+        signal.signal(signal.SIGALRM, took_too_long)
+        signal.setitimer(signal.ITIMER_REAL, READING_TIME_LIMIT)
         try:
             answer = outside_entries(command)
+            signal.setitimer(signal.ITIMER_REAL, 0)
         except Exception:
+            signal.setitimer(signal.ITIMER_REAL, 0)
             answer = command
     else:
         sys.exit('usage: command-reader.py refusal|outside-entries < hook-payload.json')

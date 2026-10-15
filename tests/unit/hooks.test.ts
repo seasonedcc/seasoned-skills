@@ -137,11 +137,26 @@ describe('the ledger write guard', () => {
         'gh pr create --title "Ledger" --body "echo x | pnpm exec seasoned-skills ledger progress --as orchestrator is refused"',
       )
       passes('echo "pnpm exec seasoned-skills ledger finding --as reviewer"')
+      passes(
+        lines(
+          "gh pr comment 12 --body-file - <<'EOF'",
+          'Refused: $(echo x | pnpm exec seasoned-skills ledger progress --as orchestrator)',
+          'EOF',
+        ),
+      )
+      passes(
+        lines(
+          'cat <<EOF',
+          'Refused: \\$(echo x | pnpm exec seasoned-skills ledger progress --as orchestrator)',
+          'EOF',
+        ),
+      )
     })
 
     it('help on a write command', () => {
       passes('pnpm exec seasoned-skills ledger finding --help')
       passes('pnpm exec seasoned-skills ledger progress -h')
+      passes('pnpm exec seasoned-skills ledger finding --help | head -20')
       passes('pnpm exec seasoned-skills ledger decision --as orchestrator --help')
     })
 
@@ -256,6 +271,17 @@ describe('the ledger write guard', () => {
       refusedWith(lines('cat <<-EOF', '\tnotes', '\tEOF', unquotedProgress), reason)
     })
 
+    it("text that does not arrive through <<'ENTRY', in an unquoted heredoc's substitution", () => {
+      refusedWith(
+        lines(
+          'cat <<EOF',
+          'Notes: $(echo "Pushed $(git rev-parse HEAD)" | pnpm exec seasoned-skills ledger progress --as orchestrator)',
+          'EOF',
+        ),
+        "the entry's text must arrive through <<'ENTRY'",
+      )
+    })
+
     it("text that does not arrive through <<'ENTRY', after a double-quoted plain $", () => {
       const reason = "the entry's text must arrive through <<'ENTRY'"
       refusedWith(`grep -q "ready$" log && ${unquotedProgress}`, reason)
@@ -280,6 +306,10 @@ describe('the ledger write guard', () => {
       refusedWith(`echo "\${name:-it's}" && ${unquotedProgress}`, reason)
       refusedWith(`notes=$((cd /work && ${unquotedProgress}\n) )`, reason)
       refusedWith(`echo ${'$(('.repeat(40)}\n${unquotedProgress}`, reason)
+      refusedWith(`echo $(( 1 << 3 ))\n${unquotedProgress}`, reason)
+      refusedWith(`echo \${x:-\\}<<A}\n${unquotedProgress}`, reason)
+      refusedWith(`echo \${x:-"}"<<A}\n${unquotedProgress}`, reason)
+      refusedWith(`echo \${x:-\`echo }\`<<A}\n${unquotedProgress}`, reason)
     })
 
     it("text that does not arrive through <<'ENTRY', whatever runs the binary", () => {
@@ -301,6 +331,61 @@ describe('the ledger write guard', () => {
         unquotedProgress.replace('pnpm exec seasoned-skills', 'node dist/cli/index.js'),
         reason,
       )
+      refusedWith(
+        unquotedProgress.replace(
+          'pnpm exec seasoned-skills',
+          'node bin/seasoned-skills.js',
+        ),
+        reason,
+      )
+      refusedWith(
+        lines(
+          "pnpm dlx seasoned-skills@1.2.3 ledger finding --as reviewer --source 'gh pr view 12' <<ENTRY",
+          'Next: $(gh pr merge 12)',
+          'ENTRY',
+        ),
+        reason,
+      )
+    })
+
+    it("a write whose -h or --help is an option's value, not a request for help", () => {
+      const reason = "the entry's text must arrive through <<'ENTRY'"
+      refusedWith(
+        'pnpm exec seasoned-skills ledger finding --as -h --source "ran $(touch x)"',
+        reason,
+      )
+      refusedWith(
+        lines(
+          '{ pnpm exec seasoned-skills ledger finding --as r --source -h; } <<EOF',
+          'Ran: $(touch x)',
+          'EOF',
+        ),
+        reason,
+      )
+      refusedWith(
+        'pnpm exec seasoned-skills ledger decision --as orchestrator --by --help --replaces -h',
+        reason,
+      )
+      refusedWith(
+        'pnpm exec seasoned-skills ledger --session -h progress --as orchestrator',
+        reason,
+      )
+    })
+
+    it('a request for help that breaks any rule but the heredoc', () => {
+      refusedWith(
+        'pnpm exec seasoned-skills ledger finding --help --source "$(touch x)"',
+        '--source holds a backtick or a $ outside single quotes',
+      )
+      refusedWith(
+        `pnpm exec seasoned-skills ledger finding --help && ${progress('two')}`,
+        'more than one ledger write',
+      )
+      const { exitCode, stderr } = guard(
+        'pnpm exec seasoned-skills ledger decision --help --replaces #47',
+      )
+      expect(exitCode).toBe(2)
+      expect(stderr).toContain('unquoted word starting with #')
     })
 
     it('an entry that never closes', () => {
@@ -308,6 +393,16 @@ describe('the ledger write guard', () => {
         lines(
           "pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
           'Pushed.',
+        ),
+        'never closes',
+      )
+      refusedWith(
+        lines(
+          "notes=`pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+          'Pushed.',
+          'ENTRY`',
+          'gh pr merge 12',
+          'ENTRY',
         ),
         'never closes',
       )
@@ -385,6 +480,15 @@ describe('the stash hook', () => {
     refused(progress('Pushed.').replace("<<'ENTRY'", "<<'ENTRY' && git stash"))
     refused(`${progress('Pushed.')}\ngit stash`)
     refused(progress(lines('Pushed.', 'ENTRY', 'git stash')))
+    refused(
+      lines(
+        "notes=`pnpm exec seasoned-skills ledger progress --as orchestrator <<'ENTRY'",
+        'Pushed.',
+        'ENTRY`',
+        'git stash',
+        'ENTRY',
+      ),
+    )
   })
 
   it('sees a git stash the shell runs past arithmetic, a parameter expansion, or a plain $', () => {
@@ -419,6 +523,18 @@ describe('the stash hook', () => {
     refused(
       lines("pnpm exec seasoned-skills ledger show 3 <<'ENTRY'", 'git stash', 'ENTRY'),
     )
+  })
+
+  it('refuses a git stash in a command too long for a pipe to hold', () => {
+    refused(lines('git stash', `echo ${'x'.repeat(200_000)}`))
+  })
+
+  it('reads the whole command when the command reader takes too long', {
+    timeout: 15_000,
+  }, () => {
+    const started = Date.now()
+    refused(lines('git stash', ...Array(30_000).fill('(( a')))
+    expect(Date.now() - started).toBeLessThan(5_000)
   })
 
   it('reads the whole command when the command reader cannot read it', () => {

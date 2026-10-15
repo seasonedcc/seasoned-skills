@@ -22,8 +22,14 @@ second write in the same command, anything after the entry, and a
 `--source` holding a `$` or a backtick outside single quotes. It also
 refuses any `ledger` command with an unquoted word starting with `#`, such
 as `ledger show #47`, since the shell reads the rest of that line as a
-comment. The `git stash` guard no longer reads an entry's text, so an entry
-can mention a forbidden command.
+comment. A write command run with `--help` needs no heredoc, but every other
+rule still applies.
+
+The `git stash` guard no longer reads an entry's text, so an entry can
+mention a forbidden command. It now also refuses a `git stash` that shell
+punctuation ends or encloses, such as `git stash; git pull`, `(git stash)`,
+or `` `git stash` ``, and one inside a command longer than about 64 KB. Both
+used to slip past it.
 
 Subagents now write their findings straight into the session's ledger, each
 under its own task name, and their reports point at those entries. Decisions
