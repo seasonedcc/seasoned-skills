@@ -11,19 +11,12 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Readable } from 'node:stream'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildProgram } from '../../src/cli/program.js'
 import { openRecord, writeEntry } from '../../src/ledger/record.js'
-
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>()
-  return { ...actual, readFileSync: vi.fn(actual.readFileSync) }
-})
-
-const { readFileSync: realReadFileSync } =
-  await vi.importActual<typeof import('node:fs')>('node:fs')
 
 const SESSION = '11111111-1111-4111-8111-111111111111'
 
@@ -55,11 +48,14 @@ function complaints() {
     .join('\n')
 }
 
-/** Standard input as a heredoc delivers it. */
-function stdin(text: string) {
-  vi.mocked(readFileSync).mockImplementation((path, options) =>
-    path === 0 ? text : realReadFileSync(path, options as BufferEncoding),
-  )
+const realStdin = Object.getOwnPropertyDescriptor(process, 'stdin') as PropertyDescriptor
+
+/** Standard input as a heredoc delivers it, or as a terminal. */
+function stdin(text: string, terminal = false) {
+  Object.defineProperty(process, 'stdin', {
+    value: Object.assign(Readable.from([text]), { isTTY: terminal }),
+    configurable: true,
+  })
 }
 
 describe('the ledger commands', () => {
@@ -67,14 +63,6 @@ describe('the ledger commands', () => {
   let sessions: string
   let projects: string
   const startDirectory = process.cwd()
-  const terminal = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY')
-
-  function stdinIsTerminal(isTerminal: boolean) {
-    Object.defineProperty(process.stdin, 'isTTY', {
-      value: isTerminal,
-      configurable: true,
-    })
-  }
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'seasoned-skills-ledger-cli-'))
@@ -85,7 +73,7 @@ describe('the ledger commands', () => {
     vi.stubEnv('CLAUDE_CONFIG_DIR', join(root, 'claude-config'))
     vi.stubEnv('CLAUDE_CODE_SESSION_ID', SESSION)
     vi.stubEnv('TZ', 'America/Sao_Paulo')
-    stdinIsTerminal(false)
+    stdin('')
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -93,12 +81,7 @@ describe('the ledger commands', () => {
   afterEach(() => {
     process.chdir(startDirectory)
     process.exitCode = undefined
-    if (terminal === undefined) {
-      Reflect.deleteProperty(process.stdin, 'isTTY')
-    } else {
-      Object.defineProperty(process.stdin, 'isTTY', terminal)
-    }
-    vi.mocked(readFileSync).mockImplementation(realReadFileSync)
+    Object.defineProperty(process, 'stdin', realStdin)
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
     rmSync(root, { recursive: true, force: true })
@@ -124,6 +107,44 @@ describe('the ledger commands', () => {
   function freshOutput() {
     vi.mocked(console.log).mockClear()
     vi.mocked(console.error).mockClear()
+  }
+
+  /** The real command line in its own process, its standard input arriving after a pause. */
+  function ledgerInChildProcess(args: string[], input: string, pause = 0) {
+    return new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (resolve) => {
+        const child = spawn(
+          process.execPath,
+          [
+            '--experimental-transform-types',
+            '--no-warnings',
+            '--import',
+            typescriptSourceLoader,
+            commandLine,
+            'ledger',
+            ...args,
+          ],
+          { cwd: root, env: { ...process.env } },
+        )
+        let stdout = ''
+        let stderr = ''
+        child.stdout.on('data', (chunk) => {
+          stdout += chunk
+        })
+        child.stderr.on('data', (chunk) => {
+          stderr += chunk
+        })
+        child.on('close', (code) => resolve({ code, stdout: stdout.trim(), stderr }))
+        setTimeout(() => child.stdin.end(input), pause)
+      },
+    )
+  }
+
+  function writeInChildProcess(index: number) {
+    return ledgerInChildProcess(
+      ['finding', '--as', `writer-${index}`, '--source', 'a concurrent test'],
+      `Concurrent write number ${index}.\n`,
+    )
   }
 
   describe('writing', () => {
@@ -159,11 +180,23 @@ describe('the ledger commands', () => {
           "The entry has no text: end the command with <<'ENTRY'",
         )
       }
-      stdinIsTerminal(true)
-      await decide('Never read.\n')
+      stdin('Never read.\n', true)
+      await run('ledger', 'decision', '--as', 'orchestrator', '--by', 'person')
       expect(complaints()).toContain("The entry's text comes on standard input")
       expect(process.exitCode).toBe(1)
       expect(existsSync(recordOf())).toBe(false)
+    })
+
+    it('waits for text that arrives after the command has started', {
+      timeout: 60_000,
+    }, async () => {
+      const result = await ledgerInChildProcess(
+        ['progress', '--as', 'orchestrator'],
+        'Slow text.\n',
+        1500,
+      )
+      expect(result).toMatchObject({ code: 0, stderr: '' })
+      expect(result.stdout).toMatch(/^#1 progress, /)
     })
 
     it('requires a writer on every write', async () => {
@@ -316,40 +349,6 @@ describe('the ledger commands', () => {
       expect(results.map((result) => result.stderr)).toEqual(['', '', '', ''])
       expect(results.map((result) => result.code)).toEqual([0, 0, 0, 0])
     })
-
-    function writeInChildProcess(index: number) {
-      return new Promise<{ code: number | null; stdout: string; stderr: string }>(
-        (resolve) => {
-          const child = spawn(
-            process.execPath,
-            [
-              '--experimental-transform-types',
-              '--no-warnings',
-              '--import',
-              typescriptSourceLoader,
-              commandLine,
-              'ledger',
-              'finding',
-              '--as',
-              `writer-${index}`,
-              '--source',
-              'a concurrent test',
-            ],
-            { cwd: root, env: { ...process.env } },
-          )
-          let stdout = ''
-          let stderr = ''
-          child.stdout.on('data', (chunk) => {
-            stdout += chunk
-          })
-          child.stderr.on('data', (chunk) => {
-            stderr += chunk
-          })
-          child.on('close', (code) => resolve({ code, stdout: stdout.trim(), stderr }))
-          child.stdin.end(`Concurrent write number ${index}.\n`)
-        },
-      )
-    }
   })
 
   describe('reading', () => {
@@ -606,6 +605,19 @@ describe('the ledger commands', () => {
       expect(process.exitCode).toBeUndefined()
     })
 
+    it('waits for a payload that arrives after the hook has started', {
+      timeout: 60_000,
+    }, async () => {
+      await decide('The person decided this.\n')
+      const result = await ledgerInChildProcess(
+        ['--hook'],
+        JSON.stringify({ session_id: SESSION }),
+        1500,
+      )
+      expect(result).toMatchObject({ code: 0, stderr: '' })
+      expect(result.stdout).toContain('The person decided this.')
+    })
+
     it('prints nothing and never fails without a record, a valid payload, or a valid id', async () => {
       for (const payload of [
         JSON.stringify({ session_id: SESSION }),
@@ -615,7 +627,7 @@ describe('the ledger commands', () => {
       ]) {
         await hookPayload(payload)
       }
-      stdinIsTerminal(true)
+      stdin('', true)
       await run('ledger', '--hook')
       expect(vi.mocked(console.log)).not.toHaveBeenCalled()
       expect(vi.mocked(console.error)).not.toHaveBeenCalled()
