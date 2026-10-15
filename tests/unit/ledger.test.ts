@@ -29,6 +29,8 @@ const typescriptSourceLoader = fileURLToPath(
   new URL('./typescript-source-loader.mjs', import.meta.url),
 )
 
+const packageManifest = fileURLToPath(new URL('../../package.json', import.meta.url))
+
 /**
  * Preloaded into a child command line: on file descriptor 3 it says
  * `reading` the first time the command reads its standard input, and
@@ -643,6 +645,14 @@ describe('the ledger commands', () => {
         expect(existsSync(sessions)).toBe(false)
       })
     }
+
+    it('needs the Node the package declares as its floor', async () => {
+      vi.doMock('node:sqlite', withoutSqlite)
+      await run('ledger')
+      const needed = complaints().match(/^The ledger needs Node (\d+\.\d+) or later\.$/)
+      const { engines } = JSON.parse(readFileSync(packageManifest, 'utf8'))
+      expect(engines.node).toBe(`>=${needed?.[1]}.0`)
+    })
 
     it('keeps the compaction hook silent on a Node whose node:sqlite lacks FTS5', async () => {
       await decide('The person decided this.\n')
