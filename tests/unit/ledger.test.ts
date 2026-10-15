@@ -508,6 +508,8 @@ describe('the ledger commands', () => {
 
     it("reaches the main checkout's record from a linked worktree, both ways", async () => {
       const worktree = join(root, 'lane-a')
+      execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root })
+      execFileSync('git', ['config', 'user.name', 'Test'], { cwd: root })
       execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'root'], {
         cwd: root,
       })
