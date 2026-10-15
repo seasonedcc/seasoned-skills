@@ -361,6 +361,22 @@ describe('the stash hook', () => {
     allowed('git status')
   })
 
+  it('refuses a git stash that shell punctuation ends or encloses', () => {
+    refused('git stash; git pull')
+    refused('git stash&&git pull')
+    refused('git stash|cat')
+    refused('git stash>stash.log')
+    refused('echo $(git stash)')
+    refused('(git stash)')
+    refused('echo `git stash`')
+    refused('true|git stash')
+  })
+
+  it('lets through words that merely start with stash', () => {
+    allowed('git checkout stashes')
+    allowed('git log --grep stashed')
+  })
+
   it("records an entry that mentions git stash, since a ledger entry's text never runs", () => {
     allowed(progress('Never run git stash here: lanes share the stack.'))
   })
