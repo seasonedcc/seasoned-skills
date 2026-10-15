@@ -666,13 +666,15 @@ describe('the ledger commands', () => {
       return run('ledger', '--hook')
     }
 
-    it('prints the fitted in-force view of the session the payload names', async () => {
+    it("prints the fitted in-force view of the session the payload names, whatever the hook's environment names", async () => {
       vi.stubEnv('CLAUDE_CODE_SESSION_ID', OTHER_SESSION)
-      await decide('The person decided this.\n')
-      vi.stubEnv('CLAUDE_CODE_SESSION_ID', undefined)
+      await decide('The payload names this session.\n')
+      vi.stubEnv('CLAUDE_CODE_SESSION_ID', SESSION)
+      await decide('The environment names this session.\n')
       freshOutput()
       await hookPayload(JSON.stringify({ session_id: OTHER_SESSION, source: 'compact' }))
-      expect(printed()).toContain('The person decided this.')
+      expect(printed()).toContain('The payload names this session.')
+      expect(printed()).not.toContain('The environment names this session.')
       expect(process.exitCode).toBeUndefined()
     })
 
