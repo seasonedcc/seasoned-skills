@@ -71,6 +71,17 @@ describe('the ledger record', () => {
     reopened?.close()
   })
 
+  it('keeps its entries in one STRICT table, whose integer primary key is its only unique constraint', () => {
+    expect(database.prepare(`PRAGMA table_list('entries')`).get()).toMatchObject({
+      strict: 1,
+    })
+    const indexes = database.prepare(`PRAGMA index_list('entries')`).all() as {
+      name: string
+      unique: number
+    }[]
+    expect(indexes.filter((index) => index.unique === 1)).toEqual([])
+  })
+
   it('sets a busy timeout and WAL mode on every connection', async () => {
     const reader = await openExistingRecord(path)
     for (const connection of [database, reader as DatabaseSync]) {
@@ -273,7 +284,7 @@ describe('the ledger record', () => {
     }
 
     it('requires who decided on a decision, and nowhere else', () => {
-      expect(insert('source', `'decision', 'x', 'orchestrator', 'a source'`)).toThrow(
+      expect(insert('decided_by', `'decision', 'x', 'orchestrator', NULL`)).toThrow(
         /CHECK constraint failed/,
       )
       expect(
