@@ -337,37 +337,12 @@
           moment it is made.
         </p>
         <p>
-          Judging that case is never the author&rsquo;s own job. Every change to an
-          instruction file goes through a fresh-reader cycle before a person sees it:
-          a reader with the agent-instructions skill loaded and no memory of the edits
-          first understands the file deeply, why it exists, who loads it and when, why
-          each section is there, and how it relates to the other skills, well enough
-          to say what the whole does for its reader that no part does alone, and
-          what goes wrong without any part, and understands the change the same way, what its author meant
-          to achieve, from the case the pull request argues. Only then does it read every touched file whole, never the diff, and
-          report where the change or the file fails. The question is
-          whether the change serves the file&rsquo;s intent, never whether a sentence
-          matches a principle: a sentence can pass every principle and still teach
-          what another skill owns, or name a thing its reader never acts on, and a
-          review that matches principles asks for every term defined and every tool
-          named, each finding right alone and all of them together past the budget.
-          The author judges each finding under the change
-          bar, like any other change, never at face value, and fixes or declines it
-          in the pull request. Two errors rank the judgment: bloating the file is
-          worse than leaving it slightly imprecise, and removing essential
-          information is worse than either;
-          then a new fresh reader reads again. The cycle ends when the author is satisfied with the
-          file, not when a reader runs out of findings. It is a cycle, not a pass,
-          the way the review loop in the Definition of Done is. The rule was earned during this
-          project&rsquo;s own shaping, twice. First, every finding the person raised on
-          the draft skill was a rule already written in the file, broken by its author
-          editing one sentence at a time. Then the cycle itself overshot: five rounds
-          of rule-by-rule findings grew the draft from 1,873 to 2,215 words, past its
-          budget, with a section re-teaching the pipeline the package&rsquo;s own skill
-          already teaches, a line describing a feature no project used, and a tool
-          named by its engine and its rule&rsquo;s internal name &mdash; each accepted by
-          an author taking findings at face value, and each removed again when the
-          person read the file whole.
+          A change to instructions is reviewed the way every change is: through the
+          workflow&rsquo;s review loop, run on the pull request as the Definition of
+          Done requires. The agent-instructions skill carries no review phase of its
+          own. Review lives in the review skills, and the shaping skill&rsquo;s
+          review of its document stays the one exception; other skills don&rsquo;t
+          grow review phases when the regular loop can review their work.
         </p>
         <p>
           The guide gets a home that already exists. The writing guide for
@@ -762,7 +737,7 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
           rethinking it, and a rule added to a skill nobody has rethought lands on
           the same pile that blocked the backlog in the first place. The rethink is
           judged the way every instruction change is: each cut argues its case, and
-          fresh readers check that nothing the skill does today was lost. We
+          the review loop checks that nothing the skill does today was lost. We
           considered two gentler paths and rejected both for that same reason. A
           ratchet, where a touched skill only has to not grow, improves a skill
           without rethinking it, and lets the biggest skills fail forever, so the
