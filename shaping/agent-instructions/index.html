@@ -519,6 +519,57 @@
           So the sync adds the approval to the project&rsquo;s
           <code>package.json</code>, the way it already keeps the sync script there.
         </p>
+        <p>
+          A second pass ran the same rules over projects&rsquo; own prose for the
+          first time &mdash; five consuming projects&rsquo; additions and their own
+          skills &mdash; because this project puts that prose under them. Most rules
+          held: sentence length was right nineteen times in twenty, and nested lists,
+          em dash counts, and shouting were right every time. Three rules tripped on
+          words that are a project&rsquo;s real vocabulary: spelling on product
+          names, domain acronyms, tool names, and Portuguese interface strings;
+          heading case on product names its fixed list of proper nouns lacked, such
+          as &ldquo;Exceptions through Sentry&rdquo;; and the dialect rule on a
+          research data set literally named a corpus, on &ldquo;artifacts&rdquo; in
+          the continuous-integration sense, on &ldquo;upstream&rdquo; as in a git
+          fork. So each project keeps one vocabulary list in its configuration, and
+          all three rules accept it: a listed word passes spelling, counts as a
+          proper noun in a heading when capitalized, and, when it is a dialect word,
+          passes the dialect rule in that project. The package ships a shared
+          dictionary beneath every project&rsquo;s list, with the words several
+          projects share and the Portuguese dictionary. A listed dialect word stops
+          being caught anywhere in that project, and we accept that: the list is
+          short, visible, and every word on it argues its case in a pull request.
+          Dropping every dialect word with a technical sense would keep the rule
+          clean everywhere, but lose its most frequent catches in the
+          package&rsquo;s own prose, where &ldquo;surface&rdquo; and
+          &ldquo;artifact&rdquo; are almost always dialect.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Spike</span>
+            What the second pass found in the checks themselves
+          </summary>
+          <div class="technical-body">
+            <p>
+              The pass also exposed defects in the working copy of the checks, each
+              observed and each the build&rsquo;s to fix. Spelling checked zero files
+              whenever they sat outside its working folder, and passed silently; its
+              output was cut off past one megabyte. Duplicate findings named paths
+              that do not exist. The link rule read link syntax inside inline code.
+              Heading case reported once per word instead of once per heading.
+              Budgets were keyed on file names, so a project&rsquo;s additions had
+              none. The roster came from the package instead of the project. And the
+              dash-spacing rule fired on every correctly spaced dash followed by
+              bold, italics, or a link, because Vale lints rendered text; the runner
+              checks dash spacing on the raw text instead, the way it already checks
+              heading case. The pass also confirmed the checks must read composed
+              text: a skill whose body lives in a separate file the sync pulls in
+              looks like an orphan reference when read raw.
+            </p>
+          </div>
+        </details>
 
         <h3>Who owns which words</h3>
         <p>
@@ -643,6 +694,7 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
   ownSkills: 'changed' | 'all',   // skills the project writes whole
   additions: 'changed' | 'all',   // its content files and their reference files
   ignore: [{ path: string, reason: string }],
+  vocabulary: string[],           // the project's own words
 }</code></pre>
             <p>
               In the package&rsquo;s own repository, <code>ownSkills</code> also
