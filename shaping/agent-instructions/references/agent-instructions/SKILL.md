@@ -20,13 +20,13 @@ People and agents read the same file, and they need different things from it. Th
 
 ## What you edit
 
-For CLAUDE.md and every package skill, the file an agent loads is not the file you edit. The `seasoned-skills sync` command generates them from two sources: the package's content, and the project's content files. The seasoned-skills skill teaches that pipeline, from the configuration to a failed sync; load it before you touch a content file.
+For CLAUDE.md and every package skill, the file an agent loads is not the file you edit. The `pnpm exec seasoned-skills sync` command generates them from two sources: the package's content, and the project's content files. The seasoned-skills skill teaches that pipeline, from the configuration to a failed sync; load it before you touch a content file.
 
 ## Core principles
 
 1. **Write headings in sentence case.** Write "Running a session", never "Running A Session".
 
-2. **Write plain speech, never AI dialect.** Keep the words agents use with each other out of instructions people review. The `seasoned-skills check` command flags each one and prints the plain word beside it. Write the name of a command, setting, or file as it is, in backticks, which the check skips. For example, write `seasoned-skills corpus` for the command and "the reference library" for what it builds.
+2. **Write plain speech, never AI dialect.** Keep the words agents use with each other out of instructions people review. The `pnpm exec seasoned-skills check` command flags each one and prints the plain word beside it. Write the name of a command, setting, or file as it is, in backticks, which the check skips. For example, write `pnpm exec seasoned-skills corpus` for the command and "the reference library" for what it builds.
 
 3. **Put the situation before the rule.** Order a file the same way: say what the thing is and how it works before you say how to change it. A rule that comes before its situation looks arbitrary. An agent applies an arbitrary rule everywhere or nowhere.
 
@@ -36,7 +36,7 @@ For CLAUDE.md and every package skill, the file an agent loads is not the file y
 
 6. **Define terms on first meeting.** The instructions may teach a term of art, such as lane, or name a tool, such as the sync. The first time a reader meets either, put a plain-words definition beside it. Name a tool before you describe it and the reader guesses which one.
 
-7. **Give each rule one home.** Everywhere else that needs it, point there. Two copies of one rule drift apart the moment one is edited. Repeat a short fact a reader acts on, like which model reviews instructions, where it is used. A pointer there would cost a skill load.
+7. **Give each rule one home.** Everywhere else that needs it, point there. Two copies of one rule drift apart the moment one is edited. Repeat a short fact a reader acts on, like the command a step runs, where it is used. A pointer there would cost a skill load.
 
 8. **Make no claim nobody can count.** "Every caller", "all N cases", and "always" are promises prose can't keep over a set nobody counted. Say what guarantees it, and give one example you checked yourself. Keep claims about "all" for sets the text itself defines.
 
@@ -59,13 +59,16 @@ A rule in the wrong home gets restated until the copies disagree, or goes stale 
 - A reference file costs nothing until a step in the body sends the agent to it, so give it the detail that only some uses of the skill need. One no step names is dead text, and the check refuses it.
 - Never split a skill for size alone. A part with no situation of its own is one no agent loads.
 - Put practice that holds across projects in the package, and a project's own facts in its content files, workarounds for its tooling included. Delete a workaround in the same pull request that fixes what it worked around.
-- Never land a lesson from a task in any home directly. File it as an issue, on the project or on the package, and let it reach the text later in a pull request of its own. The self-improvement skill teaches how.
+- Never land a lesson from a task in any home directly. It travels the way the self-improvement skill says.
 
 ## Size and shape
 
-Every line an agent loads costs tokens on every use. A file too long for one sitting goes without review. So the sync refuses what doesn't fit, naming the generated file, what broke, and this skill. Fix the source: the package's content or the project's content file. The limits:
+Every line an agent loads costs tokens on every use. A file too long for one sitting goes without review. So the check fails what doesn't fit, naming the file, what broke, and this skill. Fix the source: the package's content or the project's content file. The limits:
 
-- word budgets: 2,000 words for a skill body or a reference file, and 2,500 for the generated CLAUDE.md;
+- word budgets, with the package's words and a project's counted apart: 2,000 for a skill body;
+- 2,000 for each reference file, including a project's own for a package skill, kept at `<contentDir>/<skill name>/references/<file>.md`;
+- 500 for a project's addition to a package skill;
+- 1,500 for the package's part of CLAUDE.md, and 1,000 for the project's part, which counts text from its configuration;
 - a `name` that matches the skill's folder and uses only lowercase letters, digits, and hyphens;
 - a description within 1,024 characters;
 - em dashes: none in the front matter, and at most two in any file, since past two the voice reads affected;
@@ -77,9 +80,13 @@ Every line an agent loads costs tokens on every use. A file too long for one sit
 - no misspelling, dead link, reference file the body never names, or paragraph repeated from another file;
 - no "the … skill" phrase naming a skill by anything but its folder name.
 
-Run `seasoned-skills check` before you commit, so the failure reaches you, not the reviewer. It runs these checks over what the sync would generate, or over any files you name.
+Run `pnpm exec seasoned-skills check` before you commit, so the failure reaches you, not the reviewer. It checks the text your branch changed, or any files you name.
 
-When a sentence reads well and still fails, change it so the check passes. Then say in the pull request that the rule may be what to fix.
+Today two settings decide which text it holds: `instructionChecks.ownSkills` for the skills a project writes whole, and `instructionChecks.additions` for its content files. Each is `'changed'`, the default, or `'all'`. At `'changed'`, a text is held to the rules from the first change that touches it. That change leaves the whole text passing, not only the lines it came to add. There are no exceptions: a command renamed inside backticks touches the skill too.
+
+Some supporting files are material a skill reads, not instructions, such as a verbatim third-party text, a data set, or a generated table. List each in `instructionChecks.ignore` with the reason. The check prints the reason whenever it skips the file. It refuses an entry that covers a `SKILL.md` or a content file, and fails one that matches nothing.
+
+When a sentence reads well and still fails, change it so the check passes. Then say in the pull request that the rule may be what to fix. When the failing word is the project's own, such as a product name, add it to `instructionChecks.vocabulary`. Spelling, heading case, and the dialect rule all accept it there.
 
 ## The change bar
 
@@ -96,14 +103,6 @@ For a deletion, name why the text is dead. Under a budget, every sentence looks 
 - it teaches nothing that creates upside or prevents a failure that has happened.
 
 When a change breaks a budget, make room. Cut what fails the bar, move enforcement to tooling, or move detail to a reference file.
-
-## Reviewing a change to instructions
-
-After making changes to instructions, go through a review cycle with fresh Fable subagents with the agent-instructions skill loaded and the full context to evaluate the changes. The review agents should deeply understand the whole of the file and how it relates to other skills, not only each fact in isolation.
-
-When evaluating each reviewer's output, do not take their feedback at face value. Bloating an instruction file is worse than having it slightly imprecise. At the same time, the worst error of all is removing essential information: do not throw the baby out with the bath water.
-
-Loop until you are satisfied with the quality, not until you get a clean report.
 
 ## Voice guide
 
