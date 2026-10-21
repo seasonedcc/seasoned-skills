@@ -346,6 +346,24 @@
           that names it &mdash; gets 2,000 words of its own, never summed with the
           body, because it loads only when that step comes.
         </p>
+        <p>
+          We&rsquo;ll let a project give a package skill reference files of its own,
+          which today only the package can do. Without them, 500 words would be a wall:
+          a project whose design rules apply on every screen could only split the
+          design-system skill for size alone, which the guide forbids, or lose
+          material. A project&rsquo;s reference file sits beside its addition, and the
+          sync places it in the skill&rsquo;s reference folder beside the
+          package&rsquo;s own. It gets the same 2,000 words and every rule, the
+          project&rsquo;s addition names it at the step that reads it, and the
+          project&rsquo;s additions setting covers it. Take a project that adds 2,402
+          words to design-system today: its date-field rules become a skill of the
+          project&rsquo;s own, since building a date field is a situation of its own;
+          the detail behind hover-revealed and disabled controls moves to reference
+          files read when someone builds one; and its addition keeps the tokens and a
+          line per rule that every screen needs. An agent building an ordinary screen
+          then loads 2,500 words of design system instead of 6,000, and the project
+          loses no rule it has today.
+        </p>
 
         <details class="technical" open>
           <summary>
@@ -364,7 +382,11 @@
             </p>
             <pre><code>package text for a skill (content/skills/&lt;name&gt;/SKILL.md body)  2,000
 project addition to a skill (&lt;contentDir&gt;/&lt;name&gt;.md)            500
-any reference file                                              2,000 each
+any reference file, package or project                         2,000 each
+  package:  content/skills/&lt;name&gt;/references/&lt;file&gt;.md
+  project:  &lt;contentDir&gt;/&lt;name&gt;/references/&lt;file&gt;.md
+            &rarr; .claude/skills/&lt;name&gt;/references/&lt;file&gt;.md
+            refused when &lt;file&gt; matches a package reference file
 CLAUDE.md                                         package part and project part: open</code></pre>
             <p>
               Today, against these numbers: ten of the package&rsquo;s skills are
