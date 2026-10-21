@@ -439,6 +439,36 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
         </p>
 
         <p>
+          The checks live in one new command, <code>seasoned-skills check</code>,
+          and nowhere else enforces them. With no arguments it finds what changed by
+          comparing the working copy, uncommitted edits included, with the point
+          where the branch left the default branch; it checks every changed piece of
+          text, and all the text of any kind whose setting is on; it reports each
+          failure with the file, the line, and what broke, writes nothing, and exits
+          non-zero. Given file paths, it checks those markdown files as they are,
+          whole, which is what an agent drafting a skill needs before it commits, and
+          what a project needs for a content file before it is woven. The
+          agent-instructions skill tells agents to run it before they commit. It
+          lands in the reference pages and their enumeration test like every other
+          command.
+        </p>
+        <p>
+          The sync never fails because of these checks, which is a change from the
+          earlier plan to have it refuse to write a file that fails them. The sync
+          runs on every install &mdash; on the default branch, in fresh clones, in
+          continuous integration &mdash; where nothing has changed and the question
+          has no answer; and a failed sync takes the workflow down with it, leaving
+          everyone in that checkout without their skills. A broken rule blocks a pull
+          request, never an install. So the check runs where pull requests are
+          judged: the Definition of Done&rsquo;s gates criterion names it beside the
+          linter, the type-checker, and the unit tests, in this repository and in
+          every project the sync generates that criterion for; this
+          repository&rsquo;s continuous integration runs it; and both the
+          seasoned-skills skill and the documentation tell every project to add it to
+          its own.
+        </p>
+
+        <p>
           The project also renames
           everything the new design leaves out of step, in the package and in every
           consuming project: the content file that feeds CLAUDE.md, today named after
