@@ -314,6 +314,205 @@
           exactly as they do today until the transition ends.
         </p>
 
+        <h3>The standard</h3>
+        <p>
+          One rule is settled and anchors everything else: <strong>every change to the
+          instructions argues its case in the pull request that carries it, whichever
+          direction it points.</strong> The case never enters the instruction text,
+          which keeps only a rule&rsquo;s scope and reason; the pull request keeps the
+          case for changing it, where a reviewer judges it. An addition names the upside it creates or the live failure
+          it prevents, and shows that the rule is not already on the books in other
+          words and would not serve better as tooling. A deletion argues why the text
+          is dead: it compensated for a weakness that is gone, duplicates a rule stated
+          elsewhere, teaches what every model already knows, has been absorbed into
+          tooling, or teaches nothing about creating the upside or preventing a live
+          failure. And a cut is judged with the same care as a growth, because budget
+          pressure makes every sentence look dead: before cutting a sentence, the
+          author thinks hard about what goes wrong without it, and when the sentence
+          is a rule, whether the cut itself breaks it. This
+          project learned that the hard way, when the guide&rsquo;s own sentence saying
+          the meaning has to survive every cut was the first thing a cut removed. The same bar binds the slimming
+          passes of this project and every improvement pass that follows it &mdash;
+          detection stays as the backstop, but every cut and every growth defends
+          itself at the moment it is made.
+        </p>
+        <p>
+          Judging that case is never the author&rsquo;s own job. Every change to an
+          instruction file goes through a fresh-reader cycle before a person sees it:
+          a reader with the agent-instructions skill loaded and no memory of the edits
+          first understands the file deeply, why it exists, who loads it and when, why
+          each section is there, and how it relates to the other skills, well enough
+          to say what the whole does for its reader that no part does alone, and
+          what goes wrong without any part, and understands the change the same way, what its author meant
+          to achieve, from the case the pull request argues. Only then does it read every touched file whole, never the diff, and
+          report where the change or the file fails. The question is
+          whether the change serves the file&rsquo;s intent, never whether a sentence
+          matches a principle: a sentence can pass every principle and still teach
+          what another skill owns, or name a thing its reader never acts on, and a
+          review that matches principles asks for every term defined and every tool
+          named, each finding right alone and all of them together past the budget.
+          The author judges each finding under the change
+          bar, like any other change, never at face value, and fixes or declines it
+          in the pull request. Two errors rank the judgment: bloating the file is
+          worse than leaving it slightly imprecise, and removing essential
+          information is worse than either;
+          then a new fresh reader reads again. The cycle ends when the author is satisfied with the
+          file, not when a reader runs out of findings. It is a cycle, not a pass,
+          the way the review loop in the Definition of Done is. The rule was earned during this
+          project&rsquo;s own shaping, twice. First, every finding the person raised on
+          the draft skill was a rule already written in the file, broken by its author
+          editing one sentence at a time. Then the cycle itself overshot: five rounds
+          of rule-by-rule findings grew the draft from 1,873 to 2,215 words, past its
+          budget, with a section re-teaching the pipeline the package&rsquo;s own skill
+          already teaches, a line describing a feature no project used, and a tool
+          named by its engine and its rule&rsquo;s internal name &mdash; each accepted by
+          an author taking findings at face value, and each removed again when the
+          person read the file whole.
+        </p>
+        <p>
+          The fifth settled element is the guide&rsquo;s home. The writing guide for
+          agent-facing instructions does not become a new skill: it becomes the heart
+          of the reworked skill known today as skill-management, renamed
+          <strong>agent-instructions</strong> &mdash; because it now governs every
+          instruction agents read: the skills, the always-loaded rules in CLAUDE.md,
+          and the local additions each consuming project layers on. One skill, loaded
+          for any act of instruction-writing, carrying structure, prose, and size
+          together &mdash; and every size check points at it when it fails. It does not
+          re-teach how the files are generated: the seasoned-skills skill is the home
+          of the pipeline, from the configuration to a failed sync, and
+          agent-instructions defines the sync and the check in a sentence each and
+          points there, under its own one-home rule. The
+          dialect agents produce by default is caught by the linter, not by a table
+          in the skill: the rule files hold the words and their replacements, and
+          the check names both when it fires, because a list that lives in the skill and in
+          the rule is two homes for one rule, and a skill that quotes the words it
+          bans fails its own check. The
+          repo&rsquo;s guide for human-facing pages, docs-copywriting, stays what it
+          is; agent-instructions inherits its voice by starting from a verbatim copy
+          of its text &mdash; years of adjudicated input live in that voice, and
+          everything reusable is reused &mdash; edited only where agent-facing prose
+          or the size budget demands, and never by pointing at a file consumers do
+          not have. The voice guide the skill carries as a reference file inherits
+          the same way, and then has to pass every rule the skill states, the
+          sixth-grade ceiling included: its spirit stays, but its example sentences
+          are rewritten, because the founders&rsquo; own prose the guide quotes
+          reads above the ceiling and a reference file is checked like any other.
+          That rewrite waits until the skill itself is settled.
+        </p>
+
+        <h3>The checks</h3>
+        <p>
+          The sixth settled element is how size is enforced. The budgets bind the
+          generated artifacts &mdash; the woven skill files and the assembled
+          CLAUDE.md that agents actually load &mdash; so one rule covers the
+          package&rsquo;s prose and every consuming project&rsquo;s additions at once.
+          The sync refuses to write an artifact over budget, naming the file, the
+          excess, and agent-instructions as the guide for fixing it; the
+          package&rsquo;s own tests run the same check over every configuration it can
+          generate, so no release can break a consumer&rsquo;s sync. The numbers are
+          package-versioned constants &mdash; tuning one is a release, never a local
+          edit: 2,000 words for a generated skill&rsquo;s body and 2,500 for the
+          generated CLAUDE.md. A skill&rsquo;s budget counts its body alone,
+          everything below the front matter, because the two front matter fields
+          already have caps of their own. A word is a
+          whitespace-separated token holding a letter or a digit, so code counts
+          and list markers do not. The budgets reach a skill&rsquo;s reference files
+          too: any prose file a skill carries for on-demand reading gets 2,000 words
+          of its own, measured whole since it has no front matter, and the writing
+          guide binds it &mdash; otherwise a budget on skill bodies would only push
+          the overflow into the references, hiding the bloat instead of removing it.
+          The check lives today in the project&rsquo;s references folder and fails
+          the file with the guide&rsquo;s own three moves in its message; ten of the
+          package&rsquo;s thirty-three skills fail it as they stand, orchestration at
+          over nine thousand words, and the agent-instructions draft was brought under
+          it at 1,994 after growing to 2,125 during review. The only exceptions
+          are named file by file in the package&rsquo;s own code, and today that
+          list holds exactly one family: the verbatim source texts the shaping skill
+          builds onto each machine, which our rules require byte for byte and no
+          lint may touch. Scripts are code, checked by the code linters the
+          repository already runs.
+        </p>
+        <p>
+          The same mechanism carries six checks on the shape of a skill, not only
+          its length. A skill&rsquo;s name follows the open Agent Skills
+          specification: one to sixty-four characters, lowercase letters, digits, and
+          hyphens only, never starting, ending, or doubling a hyphen, and matching
+          the skill&rsquo;s folder &mdash; today the build guarantees the match by
+          construction, and nothing checks the characters. The description stays within
+          1,024 characters: Claude Code truncates a longer one at 1,536 and cuts from
+          the end, which is exactly where the &ldquo;use when&rdquo; half lives, and
+          1,024 is the open specification&rsquo;s own cap. Em dashes are rationed the
+          way the voice guide already asks, as a number the sync can count: none in
+          the front matter, at most two in any generated file or reference file.
+          Lists stay flat: a list item nested inside another fails the file, since
+          each level is one more thing for a reader to hold, and the fix is a
+          subheading over a flat list or a rewrite as prose. Today two skills and
+          one CLAUDE.md fragment nest lists, and the guide&rsquo;s own draft nested
+          nine items before the check existed. A reference file the skill&rsquo;s body
+          never names fails the file too: a reference file costs nothing until a
+          step in the body sends the agent to it, so one no step names is dead text
+          nobody reads. Today the testing skill ships one, an examples file its body
+          never mentions. And a reading-grade ceiling holds the sentences short: the generated file,
+          with its front matter, headings, tables, and code stripped, scores no
+          higher than sixth grade on the Flesch-Kincaid scale, a plain formula over
+          words per sentence and syllables per word that any open-source library
+          computes the same way every time. A spike settled that this ceiling is
+          reachable without dumbing anything down: the agent-instructions draft went
+          from grade 7.8 to 5.4 by splitting sentences alone, with the same word
+          count, the same vocabulary, and no rule dropped. The ceiling is per file,
+          never per sentence: the formula punishes a long word in a short sentence,
+          so a three-word heading can score at grade twelve. The generated
+          description is scored on its own under the same ceiling, because it is
+          the one part of a skill every agent reads on every turn, and the
+          draft&rsquo;s own description scored at grade eleven before its two
+          sentences became four. Every check fails the
+          way the budgets fail, naming the file and the line
+          and pointing at agent-instructions, and every one turns on with the
+          slimming rewrite, since today&rsquo;s corpus breaks them all &mdash; the
+          orchestration skill alone carries over a hundred em dashes. The shaping
+          corpus stays the one exempt family here too.
+        </p>
+        <p>
+          The grade ceiling proved that a formula can carry part of the editing,
+          so the checks grow a prose linter beside it. The engine is Vale, an
+          open-source linter for prose whose rules are small, readable files, so the
+          standard itself is something a person can review. The package ships it
+          through its npm wrapper, carries our rules as one Vale style, and installs
+          both into every consuming project as part of the managed footprint. Every
+          rule fails the file, the way the budgets do, and there is no second tier
+          of warnings: the dialect translation table, the jargon and hedging lists,
+          shouting, sentence case in headings, a cap of thirty words per sentence,
+          spelling against a project dictionary, blocks of prose repeated verbatim
+          across files, links between files that no longer resolve, and a skill
+          referred to by anything but its roster name. A rule earns its place by
+          measurement: it runs over our own files first, its hits are read by hand,
+          and it turns on only when every hit was real. A rule that cannot get
+          there is deleted, never demoted to a warning, because a warning misguides
+          agents in two ways we watched happen: an agent treats it like a rule and
+          applies it everywhere, rewriting approved sentences to silence it, and a
+          rule that can be satisfied mechanically gets satisfied mechanically, the
+          way the grade ceiling first produced choppy fragments. The first pass over
+          the package&rsquo;s own thirty-three skills settled the list: passive
+          voice (523 hits, almost none a defect), vague quantifiers, universal
+          claims, comma counts, contractions, and a part-of-speech rule for words
+          that read as both noun and verb all failed the bar and are gone, while
+          &ldquo;solution&rdquo; left the jargon list because twenty of its
+          twenty-three hits were the word&rsquo;s plain meaning. Text in double
+          quotes is a mention, not a use, so a rule can quote the phrase it bans.
+          The banned words themselves live only in the rule files, never in the
+          skill, so no file quotes what it bans, and the skill keeps only what no
+          check can see. Nor does the skill point at the rule files: the check
+          prints the word, its replacement, and the rule that fired, and it is fast
+          enough to lean on, measured at 0.6 seconds for one file and 4.2 seconds
+          for all thirty-three skills in one run. Rules face the change bar like prose: a rule whose
+          failures turn out wrong is fixed or deleted in the pull request that
+          found it. What is left for a person is the reading no rule can take over.
+          One thing stays to confirm before this element is final: that the npm
+          wrapper installs the Vale binary cleanly on a fresh machine and in
+          continuous integration, which under pnpm 10 needs the package&rsquo;s
+          build step approved.
+        </p>
+
         <h3>Who owns which words</h3>
         <p>
           Three kinds of text make up what an agent reads, and each has exactly one
