@@ -62,53 +62,227 @@
 
         <h3>The struggling moment</h3>
         <p>
-          Tell the story of one real moment where someone got stuck: who they are, what
-          they were trying to get done, what they reached for, and what it cost them.
-          Name the day, the shift, the order — the concrete details are what make people
-          say &ldquo;yes, that is exactly it&rdquo; or &ldquo;no, that is not how it works
-          here.&rdquo;
+          Daniel stewards the workflow this repository ships: the written instructions
+          &mdash; the skills &mdash; that our agents read before doing any piece of work.
+          By late August 2026 the backlog of recorded lessons had reached 184 open
+          issues, most arriving with suggested wording ready to fold in, and Daniel had a
+          clear vision for improvements beyond them. He opened a shaping session to plan
+          that next round &mdash; and stopped before the first question. Almost every
+          lesson would land as a new paragraph on instructions that are already too long:
+          the corpus stands near 74,000 words, the orchestration skill alone near 9,500,
+          and an agent that reads too much before starting works measurably worse.
+          Folding the lessons in as filed would make the workflow worse, not better.
         </p>
 
         <figure class="quote">
           <blockquote>
             <p>
-              Quote the person word for word. Verbatim, not tidied up — their phrasing is
-              the evidence.
+              If I try to shape many improvements to our skills now, we&rsquo;ll probably
+              end up with a bloated context window before the agents even start the work.
             </p>
           </blockquote>
-          <figcaption>
-            <a href="#">Where this came from</a>
-          </figcaption>
+          <figcaption>Daniel, opening this shaping session, August 30, 2026</figcaption>
         </figure>
 
         <h3>Today's way, and where it breaks</h3>
         <p>
-          Describe how the work gets done right now, end to end, including the parts that
-          happen outside any system. Then say precisely where it breaks, and what people
-          do to cope when it does.
+          New instructions arrive from two directions. When a skill is born, someone on
+          the team asks an agent to write it &mdash; and the agent writes with no guide for how
+          agent-facing prose should sound or how long it may run: the workflow has
+          exactly such a guide for its human-facing pages, and nothing for the far
+          larger body of prose the agents themselves read. And every
+          finished task runs a self-improvement pass that files its lessons as
+          additions: a new rule, a new warning, a new paragraph, each individually
+          reasonable. Nothing pushes the other way. No tool measures how big a skill has
+          grown; the one size rule on the books &mdash; keep a skill under about five
+          thousand words &mdash; sits inside a skill and is enforced by nothing, and the
+          largest skill is nearly double it.
+        </p>
+        <p>
+          It breaks in review. These instructions are for humans as much as for agents:
+          a person reviews every change to them, and a person is who each rule must
+          convince. Yet the prose arrives in an AI dialect &mdash; a register dense
+          with the agents&rsquo; own shorthand &mdash; that the reviewer has to
+          translate before they can even judge, and the workflow&rsquo;s existing guide
+          for human-facing pages, whose translation table makes exactly this dialect
+          mechanical to spot, stops at the docs and never reaches the skills. Size
+          raises the wall higher still: judging a change means holding the whole skill
+          in your head to see whether the new rule is already there in other words,
+          contradicts a neighbor, or belongs somewhere else &mdash; and at
+          today&rsquo;s sizes nobody can, so additions pass and deletions almost never
+          happen. The record shows where that leads: one lesson codified
+          across ten separate issues in as many places, skills that contradict
+          themselves, and rules kept alive only to compensate for weaknesses long gone.
         </p>
 
-        <h3>The outcome test</h3>
+        <figure class="quote">
+          <blockquote>
+            <p>
+              A rule that exists to patch degraded behavior is bloat wearing a
+              refinement&rsquo;s clothes.
+            </p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/7"
+              >Issue 7, on the deletion criterion the corpus lacks</a
+            >
+          </figcaption>
+        </figure>
+
         <p>
-          What has to be true afterwards for this to have worked. Write it so anyone can
-          check it without asking us — an observable difference in someone's day, not a
-          feature list.
+          The projects that use the workflow repeat the pattern on their own side: each
+          adds its local instructions on top, with no bound on how much, and upgrades
+          never prune what the package has since absorbed &mdash; so the same rule ends
+          up stated twice, in slightly different words, drifting apart.
         </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              The dual-channel rule manufactures this drift for every generalizable
+              lesson, which in practice is most lessons.
+            </p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/139"
+              >Issue 139, on how lessons travel today</a
+            >
+          </figcaption>
+        </figure>
+
+        <p>
+          The growth has a direction bias, too. Nearly every filed lesson is born from
+          something going wrong, so the corpus teaches prevention far more than it
+          teaches creation &mdash; and models and people alike drift into guarding the
+          downside above all. Preventing mistakes matters, but it is not what the
+          instructions are for: their highest return is teaching how to produce
+          amazing work and how to invent, and any rewrite of them must be judged by
+          the upside it creates before the failures it prevents.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              We should, for sure, prevent mistakes. But the biggest return on
+              investiment comes from creating upside through teaching how to create
+              amazing work (our quality bar) and to invent new things with
+              self-improvement, not only correct our failures.
+            </p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
+
+        <p>
+          One truth bounds everything above: the workflow, big skills and all,
+          <em>works</em>. It carries our projects every day, and the failures its rules
+          exist to prevent stay prevented. The problem is what the size costs and what
+          it blocks &mdash; never what the instructions do for us. Any cure that loses
+          what they do is worse than the disease.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              Our workflow is doing wonders for us today, even with big skills. We
+              cannot, under any circunstance, throw the baby out with the bath water.
+            </p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
+
+        <h3>The outcome test</h3>
+        <p>Five things have to be true afterwards, each checkable without asking us.</p>
+        <ol>
+          <li>
+            <p>
+              <strong>Nothing that works today is lost.</strong> The workflow keeps
+              doing for us what it does now &mdash; it is doing wonders even with the
+              big skills, and no slimming is worth breaking that. The slimmed
+              instructions still deliver everything the old ones deliver: the quality
+              of work they teach, the inventions the improvement channel keeps
+              producing, and the failures they prevent. The observable trace: in the
+              efforts that follow, the work stays at the bar we hold today, and the
+              lessons the corpus already carries do not get re-learned the hard way
+              and re-filed as new issues &mdash; a re-filed lesson we once had is the
+              alarm that a cut went too deep.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The postponed session opens.</strong> The day this ships, Daniel
+              starts the shaping session this project displaced &mdash; working the
+              backlog of recorded improvements &mdash; and folding a lesson into a skill
+              no longer fights the corpus. The exact session that could not open in
+              August opens.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The rules hold mechanically on every new and changed
+              skill.</strong> Every skill born after this ships, and every skill a
+              change touches, passes the checks &mdash; in this repository and in every
+              consuming project &mdash; and a change that fails them is blocked by
+              tooling instead of depending on anyone&rsquo;s discipline or memory.
+              Skills nobody touches may keep failing until the transition ends.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>Changes become reviewable, and deletion becomes normal.</strong>
+              A person can read any skill, and judge any proposed instruction change,
+              in one sitting &mdash; the prose in plain language, with nothing to
+              translate. And over
+              the months after shipping, the changes that land on the corpus delete
+              and rewrite as often as they add.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The transition ends cleanly.</strong> The day every skill in a
+              project passes, the project turns one setting on, and from then on every
+              skill &mdash; the package&rsquo;s and the project&rsquo;s own &mdash; is
+              held to the rules, with nothing breaking the day it flips.
+            </p>
+          </li>
+        </ol>
 
         <h3>Why now</h3>
         <p>
-          What changed to make this worth doing this month rather than next year. Growth,
-          a deadline, a cost that keeps climbing, a promise already made.
+          Every improvement we want to make &mdash; the 184 recorded lessons and the
+          vision beyond them &mdash; lands as prose on this same corpus, so until the
+          corpus can absorb change without growing sicker, every other project stays
+          queued behind this one. The cost also compounds on its own: every agent, on
+          every task, in every project that uses the workflow, reads these instructions
+          before starting work, and the pile grows with each finished effort &mdash; the
+          newest third of the backlog arrived from a single one.
         </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>We literally can&rsquo;t shape anything else before we solve this.</p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
 
         <h3>The big hire and the little hires</h3>
         <p>
-          The big hire: the moment someone switches to this and leaves the old way behind
-          — what has to be true for them to make that switch.
+          The big hire is Daniel&rsquo;s, made once: adopting the new discipline into
+          the workflow &mdash; the writing guide as a binding rule, the size budgets as
+          enforced checks, the reorganized skills as the new baseline. What earns that
+          switch is the outcome test&rsquo;s first item: proof that nothing the
+          workflow does for us today was lost in the slimming.
         </p>
         <p>
-          The little hires: every ordinary time they reach for it afterwards. Say what
-          each of those moments has to feel like for them to keep reaching.
+          The little hires are made daily, and they are where this lives or dies.
+          Every agent writing instructions &mdash; a skill rewrite, an improvement
+          pass, a project&rsquo;s local additions &mdash; has to choose the
+          guide&rsquo;s plain, sized prose over the dialect it would produce by
+          default; the guide and the checks must make the right way the easy way. And
+          every person reviewing an instruction change has to keep finding that one
+          sitting suffices &mdash; the day a review requires translation again,
+          rubber-stamping returns, and with it the additive-only drift. Agents reliably
+          re-hire whatever the enforced path is, so the little hires that can genuinely
+          be lost are the human ones.
         </p>
       </section>
 
