@@ -419,6 +419,24 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
           text heal at different speeds: a project can hold its own few skills to the
           rules long before it has trimmed every addition, or the other way round.
         </p>
+        <p>
+          A change that touches a skill touches all of it. The first time a change
+          lands on text that fails today, that same change leaves the text passing
+          whole &mdash; every word under budget, every rule met &mdash; not just the
+          lines it came to add. Adding two sentences to the 10,000-word orchestration
+          skill means rethinking orchestration down to 2,000 words in that pull
+          request. That is deliberate: we don&rsquo;t improve a skill without
+          rethinking it, and a rule added to a skill nobody has rethought lands on
+          the same pile that blocked the backlog in the first place. The rethink is
+          judged the way every instruction change is: each cut argues its case, and
+          fresh readers check that nothing the skill does today was lost. We
+          considered two gentler paths and rejected both. A ratchet, where a touched
+          skill only has to not grow, keeps lesson changes small but lets the
+          biggest skills fail forever, so the transition never ends. Healing a skill
+          in a pull request of its own before the lesson lands keeps each rethink
+          visible, but treats the rethink as chores done before the real work, when
+          the rethink is the real work.
+        </p>
 
         <p>
           The project also renames
