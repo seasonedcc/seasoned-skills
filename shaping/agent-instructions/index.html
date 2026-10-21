@@ -344,7 +344,15 @@
           the body an agent loads for any package skill stays within 2,500 words. A
           reference file &mdash; a file a skill carries for reading only at the step
           that names it &mdash; gets 2,000 words of its own, never summed with the
-          body, because it loads only when that step comes.
+          body, because it loads only when that step comes. CLAUDE.md, which loads in
+          every session before anything else, keeps the 2,500 words it would have
+          had whole, split the other way round: 1,500 for the package&rsquo;s part and
+          1,000 for the project&rsquo;s. What every task needs first is mostly a
+          project&rsquo;s own facts &mdash; its commands, its stack, the rules that
+          hold everywhere in it &mdash; and those have nowhere else to go, while most
+          of the package&rsquo;s part is general practice a skill can carry. A
+          criterion a project adds to the Definition of Done through its
+          configuration counts as the project&rsquo;s words.
         </p>
         <p>
           We&rsquo;ll let a project give a package skill reference files of its own,
@@ -387,13 +395,17 @@ any reference file, package or project                         2,000 each
   project:  &lt;contentDir&gt;/&lt;name&gt;/references/&lt;file&gt;.md
             &rarr; .claude/skills/&lt;name&gt;/references/&lt;file&gt;.md
             refused when &lt;file&gt; matches a package reference file
-CLAUDE.md                                         package part and project part: open</code></pre>
+CLAUDE.md, the package's part (content/doctrine/ fragments)    1,500
+CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
+  plus additionalCriteria text from the configuration)          1,000</code></pre>
             <p>
-              Today, against these numbers: ten of the package&rsquo;s skills are
+              The paths above are today&rsquo;s; the rename below moves the two
+              that carry the banned word. Today, against these numbers: ten of the package&rsquo;s skills are
               over 2,000 words in their own text, orchestration at 10,119; across the
               five consuming projects measured, most additions sit under 600 words,
               and the largest are on testing (2,800 and 3,300) and design-system
-              (2,364).
+              (2,364). The package&rsquo;s part of this repository&rsquo;s CLAUDE.md
+              is about 3,100 words; the projects&rsquo; parts run from 234 to 1,475.
             </p>
           </div>
         </details>
@@ -406,6 +418,21 @@ CLAUDE.md                                         package part and project part:
           it is on, all of it must. Two settings, not one, because the two kinds of
           text heal at different speeds: a project can hold its own few skills to the
           rules long before it has trimmed every addition, or the other way round.
+        </p>
+
+        <p>
+          The project also renames
+          everything the new design leaves out of step, in the package and in every
+          consuming project: the content file that feeds CLAUDE.md, today named after
+          a word the dialect rule bans, becomes <code>claude.md</code>, named after
+          what it generates, the way each skill&rsquo;s content file is named after its
+          skill; the code module and fragments that carry that word follow. A design that
+          bans a word in prose and keeps it as a file name is not cohesive. Prose
+          that uses the word is not renamed with them: it meets the dialect rule the
+          way all prose does, the first time a change touches it. A project that
+          upgrades with the old file still in place gets a sync that refuses it by
+          name and says what it is called now, the way the sync already refuses any
+          content file nothing loads.
         </p>
 
         <h3>Walkthrough</h3>
@@ -447,9 +474,8 @@ CLAUDE.md                                         package part and project part:
             separate work.
           </li>
           <li>
-            Renaming the content file that feeds CLAUDE.md, or removing the
-            <code>triggers:</code> line a content file may open with. Both stay as they
-            are.
+            Removing the <code>triggers:</code> line a content file may open with. It
+            stays as it is.
           </li>
         </ul>
       </section>
