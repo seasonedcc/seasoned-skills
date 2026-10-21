@@ -268,7 +268,7 @@
         <p>
           The big hire is Daniel&rsquo;s, made once: adopting the new discipline into
           the workflow &mdash; the writing guide as a binding rule, the size budgets as
-          enforced checks, the reorganized skills as the new baseline. What earns that
+          enforced checks, every skill passing as the new baseline. What earns that
           switch is the outcome test&rsquo;s first item: proof that nothing the
           workflow does for us today was lost in the slimming.
         </p>
@@ -303,42 +303,50 @@
 
         <h3>In plain language</h3>
         <p>
-          Say what we will build, as the team that will build it: &ldquo;We'll add a card
-          to the dashboard&rdquo;, never &ldquo;The screen shows a card&rdquo;. Open with
-          what gets built, where it sits, and who sees it; the mechanism comes after. Say
-          outright what stays the same.
+          We&rsquo;ll give every instruction an agent reads a written standard and a
+          machine that holds it to that standard. The standard is a skill,
+          <strong>agent-instructions</strong>, which takes the place of today&rsquo;s
+          skill-management. The machine is a set of checks &mdash; size, shape, and
+          plain prose &mdash; that run inside the sync and in a new command that agents
+          run before they commit. We won&rsquo;t rewrite the skills we have. Every new
+          skill is born under the standard, and an existing skill is held to it the
+          first time a change touches it; the skills nobody touches keep working
+          exactly as they do today until the transition ends.
         </p>
 
-        <figure class="drawing">
-          <div class="drawing-canvas shaping-drawing-frame">
-            <!-- Draw here with the drawing library: ShapingDrawing, loaded from
-                 ../assets/drawing/. Hand-drawn and lo-fi — boxes and arrows. -->
-          </div>
-          <figcaption>One line saying what this drawing shows.</figcaption>
-        </figure>
+        <h3>Who owns which words</h3>
+        <p>
+          Three kinds of text make up what an agent reads, and each has exactly one
+          owner. The package writes its own text for every skill it ships and for
+          CLAUDE.md. A project adds its own words to those skills and to CLAUDE.md
+          through its content files, which the sync weaves in. And a project writes
+          skills of its own, whole, that the package never sees &mdash; this
+          repository&rsquo;s docs-copywriting is one.
+        </p>
+        <p>
+          Each owner&rsquo;s text is checked alone, against a budget of its own, and
+          no check ever looks at the other owner&rsquo;s words. The package&rsquo;s
+          text for a skill is held to the rules as the package wrote it; a
+          project&rsquo;s addition to that skill is held to them as the project wrote
+          it. A package release can never push a project over a budget, and a project
+          can never fail on prose it does not own. What an agent loads stays bounded,
+          because it is the sum of two bounded parts. We considered one shared budget
+          on the woven file, and rejected it: whoever wrote last would pay for the
+          other owner&rsquo;s words, and the transition would need to build every skill
+          twice to tell whose words broke it.
+        </p>
+
+        <div id="drawing-owners"></div>
 
         <p>
-          Keep going in prose. Where a claim rests on something technical, attach the
-          detail right here, next to it, as a note the reader can open or ignore.
+          Each project ends its transition on its own terms, with two settings. One
+          covers the skills the project writes whole; the other covers the
+          project&rsquo;s additions to the package&rsquo;s skills and to CLAUDE.md.
+          While a setting is off, only new and changed text under it must pass; once
+          it is on, all of it must. Two settings, not one, because the two kinds of
+          text heal at different speeds: a project can hold its own few skills to the
+          rules long before it has trimmed every addition, or the other way round.
         </p>
-
-        <!-- The technical affordance. Anchor one beside whatever it defines: a
-             paragraph, a list item, a drawing's caption. Copy this block as often as
-             you need. The kind label is free text — SCHEMA, CONTRACT, SPIKE, DATA. -->
-        <details class="technical" open>
-          <summary>
-            <span class="technical-caret" aria-hidden="true">&#9656;</span>
-            <span class="technical-kind">Schema</span>
-            What this note defines
-          </summary>
-          <div class="technical-body">
-            <p>The technical detail behind the sentence above. Short. Concrete.</p>
-            <pre><code>table_or_signature(
-  field  type,
-  field  type
-)</code></pre>
-          </div>
-        </details>
 
         <h3>Walkthrough</h3>
         <p>
@@ -361,8 +369,28 @@
         <h3>No-gos</h3>
         <p>Things this project deliberately does not do, so nobody has to wonder.</p>
         <ul class="no-gos">
-          <li>Something a reader might reasonably expect, and why it is out.</li>
-          <li>Another one.</li>
+          <li>
+            Rewriting the skills we have. No skill is slimmed for its own sake; each
+            one heals the first time a change touches it, and the change that touches
+            it carries the rewrite.
+          </li>
+          <li>
+            Reorganizing where rules live: no skill for running goal-driven efforts, no
+            skill for the session ledger, no folding of the calibration record into the
+            subagents skill, and no restoring of the rules lost in the move to the
+            package. Each of those rewrites a skill&rsquo;s content, and this project
+            only gives that content a standard to meet.
+          </li>
+          <li>
+            Changing the improvement pass. It keeps filing lessons as it does today;
+            teaching it to deduplicate before filing and to propose inventions is
+            separate work.
+          </li>
+          <li>
+            Renaming the content file that feeds CLAUDE.md, or removing the
+            <code>triggers:</code> line a content file may open with. Both stay as they
+            are.
+          </li>
         </ul>
       </section>
 
@@ -392,5 +420,67 @@ Say what to build and what &ldquo;done&rdquo; means, point at this document for 
         </div>
       </section>
     </main>
+
+    <script>
+      // Drawing 1 — who owns which words, and which switch holds each to the rules.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'owners',
+          width: 900,
+          height: 470,
+          style: 'marker',
+          label:
+            'The package writes its own text for each skill and for CLAUDE.md; a project adds its own words through content files; the sync weaves the two into the skill an agent loads. A project also writes whole skills of its own. Each kind of text is checked alone, against its own budget.'
+        })
+
+        s.rect(20, 40, 290, 110, { width: 7 })
+        s.text("THE PACKAGE'S TEXT", 165, 82, { size: 18, weight: 700, align: 'middle', caps: true })
+        s.text('per skill, and for CLAUDE.md', 165, 110, { size: 15, align: 'middle' })
+        s.text('checked in the package', 165, 134, { size: 15, align: 'middle' })
+
+        s.rect(20, 200, 290, 110, { width: 7 })
+        s.text("THE PROJECT'S ADDITION", 165, 242, { size: 18, weight: 700, align: 'middle', caps: true })
+        s.text('a content file', 165, 270, { size: 15, align: 'middle' })
+        s.text('switch: additions', 165, 294, { size: 15, align: 'middle', color: 'accent' })
+
+        s.arrow([316, 96], [430, 150], { width: 6 })
+        s.arrow([316, 254], [430, 196], { width: 6 })
+        s.text('woven by', 372, 168, { size: 15, align: 'middle' })
+        s.text('the sync', 372, 186, { size: 15, align: 'middle' })
+
+        s.rect(440, 110, 230, 120, { width: 7 })
+        s.text('THE SKILL', 555, 152, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('AN AGENT LOADS', 555, 180, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('two bounded parts', 555, 208, { size: 15, align: 'middle' })
+
+        s.rect(20, 350, 290, 100, { width: 7 })
+        s.text("THE PROJECT'S OWN SKILL", 165, 392, { size: 18, weight: 700, align: 'middle', caps: true })
+        s.text('switch: own skills', 165, 420, { size: 15, align: 'middle', color: 'accent' })
+        s.arrow([316, 400], [434, 330], { width: 6 })
+        s.rect(440, 280, 230, 90, { width: 7 })
+        s.text('THE SKILL', 555, 316, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('loaded as written', 555, 344, { size: 15, align: 'middle' })
+
+        s.brace(705, 40, 450, { width: 6, reach: 18 })
+        s.text('EACH PART', 737, 220, { size: 20, weight: 700, caps: true, color: 'accent' })
+        s.text('checked alone,', 737, 246, { size: 16, color: 'accent' })
+        s.text('against its own', 737, 270, { size: 16, color: 'accent' })
+        s.text('budget', 737, 294, { size: 16, color: 'accent' })
+
+        s.callout(1, 20, 40, { radius: 22 })
+        s.callout(2, 20, 200, { radius: 22 })
+        s.callout(3, 20, 350, { radius: 22 })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'The package’s own text. Only the package can change it, so only the package is checked on it.',
+            'A project’s addition to a package skill or to CLAUDE.md. It has a budget of its own, and the project’s additions switch decides whether all of them are checked or only the ones a change touches.',
+            'A skill the project writes whole. The project’s own-skills switch decides the same for these.'
+          ],
+          caption: 'Three kinds of text, two owners, and no check that reads another owner’s words.'
+        }).mount('#drawing-owners')
+      })()
+    </script>
   </body>
 </html>
