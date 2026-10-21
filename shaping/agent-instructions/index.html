@@ -339,6 +339,44 @@
         <div id="drawing-owners"></div>
 
         <p>
+          The budgets follow the owners. The package&rsquo;s text for a skill gets
+          2,000 words, and a project&rsquo;s addition to that skill gets 500 more, so
+          the body an agent loads for any package skill stays within 2,500 words. A
+          reference file &mdash; a file a skill carries for reading only at the step
+          that names it &mdash; gets 2,000 words of its own, never summed with the
+          body, because it loads only when that step comes.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The word budgets
+          </summary>
+          <div class="technical-body">
+            <p>
+              A word is a whitespace-separated token holding a letter or a digit, so
+              code counts and list markers do not. A skill&rsquo;s budget counts its
+              body alone, everything below the front matter, because the two front
+              matter fields have caps of their own. A reference file has no front
+              matter and is measured whole. The numbers are package-versioned
+              constants: tuning one is a release, never a local edit.
+            </p>
+            <pre><code>package text for a skill (content/skills/&lt;name&gt;/SKILL.md body)  2,000
+project addition to a skill (&lt;contentDir&gt;/&lt;name&gt;.md)            500
+any reference file                                              2,000 each
+CLAUDE.md                                         package part and project part: open</code></pre>
+            <p>
+              Today, against these numbers: ten of the package&rsquo;s skills are
+              over 2,000 words in their own text, orchestration at 10,119; across the
+              five consuming projects measured, most additions sit under 600 words,
+              and the largest are on testing (2,800 and 3,300) and design-system
+              (2,364).
+            </p>
+          </div>
+        </details>
+
+        <p>
           Each project ends its transition on its own terms, with two settings. One
           covers the skills the project writes whole; the other covers the
           project&rsquo;s additions to the package&rsquo;s skills and to CLAUDE.md.
