@@ -412,12 +412,32 @@
           folder and fails the file with the guide&rsquo;s own three moves in its
           message; ten of the package&rsquo;s thirty-one skills fail it as they
           stand, orchestration at nearly ten thousand words, and the
-          agent-instructions draft fits at 1,769. The only exceptions
-          are named file by file in the package&rsquo;s own code, and today that
-          list holds exactly one family: the verbatim source texts the shaping skill
-          builds onto each machine, which our rules require byte for byte and no
-          lint may touch. Scripts are code, checked by the code linters the
-          repository already runs.
+          agent-instructions draft fits at 1,769. Scripts are code, checked by the
+          code linters the repository already runs.
+        </p>
+        <p>
+          Not everything a skill carries is instructions, so a project can tell the
+          check to skip a file. Three projects keep verbatim third-party texts inside
+          their own skills &mdash; marketing books, health-privacy regulations,
+          Brazilian privacy law in Portuguese &mdash; which our rules require byte
+          for byte and no lint may touch; another keeps a research data set of
+          generated comparison tables and customer reviews quoted word for word. The
+          line is between instruction prose an agent follows and material a skill
+          reads. A project lists what to skip in its configuration, each entry with
+          the reason it is not instructions, and the check prints that reason
+          whenever it skips a file, so every exemption stays in front of a
+          reviewer. Three guards keep the list from becoming a way around the
+          transition. The check refuses an entry that covers a skill&rsquo;s main
+          file or a project&rsquo;s addition to a package skill or to CLAUDE.md, so
+          only supporting files inside a skill&rsquo;s folder can be skipped, never
+          the text an agent loads every time. An entry that matches no file fails
+          the check, so an exemption leaves with what it excused. And adding an
+          entry is a change like any other, arguing its case in its pull request.
+          The package keeps its own list the same way, in this repository&rsquo;s
+          configuration, and it holds one entry today: the complete documentation of
+          the composable-functions library, a 3,073-word verbatim copy. The shaping
+          corpus needs none, because it is built onto each machine into generated
+          folders the check never reads.
         </p>
         <p>
           The check holds six things about the shape of a skill, not only its
@@ -455,8 +475,7 @@
           way the budgets fail, naming the file and the line
           and pointing at agent-instructions, and every one binds a text from the
           first change that touches it, since today&rsquo;s skills break them all
-          &mdash; the orchestration skill alone carries over a hundred em dashes. The shaping
-          corpus stays the one exempt family here too.
+          &mdash; the orchestration skill alone carries over a hundred em dashes.
         </p>
         <p>
           The grade ceiling proved that a formula can carry part of the editing,
@@ -606,6 +625,34 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
           text heal at different speeds: a project can hold its own few skills to the
           rules long before it has trimmed every addition, or the other way round.
         </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The settings
+          </summary>
+          <div class="technical-body">
+            <p>
+              One new key in <code>seasoned-skills.config.ts</code>, typed in the
+              configuration&rsquo;s types, validated with the rest, and listed in the
+              configuration reference like every key. Every project starts with both
+              settings at <code>'changed'</code>.
+            </p>
+            <pre><code>instructionChecks: {
+  ownSkills: 'changed' | 'all',   // skills the project writes whole
+  additions: 'changed' | 'all',   // its content files and their reference files
+  ignore: [{ path: string, reason: string }],
+}</code></pre>
+            <p>
+              In the package&rsquo;s own repository, <code>ownSkills</code> also
+              covers the package&rsquo;s skills and its part of CLAUDE.md.
+              <code>ignore</code> paths are relative to the project root and may be
+              patterns; an entry matching a <code>SKILL.md</code> or a content file is
+              refused, and so is an entry matching nothing.
+            </p>
+          </div>
+        </details>
         <p>
           The package&rsquo;s own transition ends the same way, with no machinery of
           its own. Only this repository holds the package&rsquo;s text, and from
