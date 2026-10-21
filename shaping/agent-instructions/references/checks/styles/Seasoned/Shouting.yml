@@ -1,0 +1,14 @@
+extends: existence
+message: "'%s' shouts. A scoped rule with its reason does the work."
+level: error
+ignorecase: false
+scope:
+  - paragraph
+  - list
+tokens:
+  - NEVER
+  - ALWAYS
+  - IMPORTANT
+  - MUST
+  - CRITICAL
+  - DO NOT

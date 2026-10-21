@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent instructions — shaping document</title>
+    <link rel="stylesheet" href="../assets/document.css" />
+    <link rel="stylesheet" href="../assets/drawing/drawing.css" />
+    <script src="../assets/document.js"></script>
+    <script src="../assets/drawing/shaping-drawing.js"></script>
+  </head>
+  <body>
+    <div class="doc-bar">
+      <div class="doc-bar-inner">
+        <button
+          type="button"
+          class="tech-switch"
+          role="switch"
+          aria-checked="true"
+          data-technical-toggle
+        >
+          Technical details
+          <span class="tech-switch-track" aria-hidden="true">
+            <span class="tech-switch-thumb"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <main class="doc">
+      <!-- Part one: the title and the one-sentence essence. -->
+      <!-- Part two: the status — one bit, built or not. -->
+      <header class="masthead">
+        <p class="masthead-eyebrow">Shaping document</p>
+        <h1>Agent instructions</h1>
+        <p class="essence">
+          Give the workflow a guide for writing the instructions agents read, and checks
+          that hold every skill to it: every new and changed skill from the day it ships,
+          and every skill once we end the transition.
+        </p>
+        <!-- Flip data-built to "true" the day it ships. There is no third state. -->
+        <p class="status" data-built="false">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-label-unbuilt">Not built yet</span>
+          <span class="status-label-built">Built</span>
+        </p>
+      </header>
+
+      <!-- Part three: the framing. Plain words only — no system names, no table names,
+           no jargon. If a sentence needs the reader to know how software works, rewrite
+           it. The people who hold the business rules read this to tell us where we have
+           it wrong, before anything gets built. -->
+      <section class="part" id="framing">
+        <header class="part-header">
+          <p class="part-kicker">Why this matters</p>
+          <h2>The framing</h2>
+          <p class="part-note">
+            The problem this project sets out to solve, and how we will know it is
+            solved &mdash; told in the words of the people who live it.
+          </p>
+        </header>
+
+        <h3>The struggling moment</h3>
+        <p>
+          Daniel stewards the workflow this repository ships: the written instructions
+          &mdash; the skills &mdash; that our agents read before doing any piece of work.
+          By late August 2026 the backlog of recorded lessons had reached 184 open
+          issues, most arriving with suggested wording ready to fold in, and Daniel had a
+          clear vision for improvements beyond them. He opened a shaping session to plan
+          that next round &mdash; and stopped before the first question. Almost every
+          lesson would land as a new paragraph on instructions that are already too long:
+          the corpus stands near 74,000 words, the orchestration skill alone near 9,500,
+          and an agent that reads too much before starting works measurably worse.
+          Folding the lessons in as filed would make the workflow worse, not better.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              If I try to shape many improvements to our skills now, we&rsquo;ll probably
+              end up with a bloated context window before the agents even start the work.
+            </p>
+          </blockquote>
+          <figcaption>Daniel, opening this shaping session, August 30, 2026</figcaption>
+        </figure>
+
+        <h3>Today's way, and where it breaks</h3>
+        <p>
+          New instructions arrive from two directions. When a skill is born, someone on
+          the team asks an agent to write it &mdash; and the agent writes with no guide for how
+          agent-facing prose should sound or how long it may run: the workflow has
+          exactly such a guide for its human-facing pages, and nothing for the far
+          larger body of prose the agents themselves read. And every
+          finished task runs a self-improvement pass that files its lessons as
+          additions: a new rule, a new warning, a new paragraph, each individually
+          reasonable. Nothing pushes the other way. No tool measures how big a skill has
+          grown; the one size rule on the books &mdash; keep a skill under about five
+          thousand words &mdash; sits inside a skill and is enforced by nothing, and the
+          largest skill is nearly double it.
+        </p>
+        <p>
+          It breaks in review. These instructions are for humans as much as for agents:
+          a person reviews every change to them, and a person is who each rule must
+          convince. Yet the prose arrives in an AI dialect &mdash; a register dense
+          with the agents&rsquo; own shorthand &mdash; that the reviewer has to
+          translate before they can even judge, and the workflow&rsquo;s existing guide
+          for human-facing pages, whose translation table makes exactly this dialect
+          mechanical to spot, stops at the docs and never reaches the skills. Size
+          raises the wall higher still: judging a change means holding the whole skill
+          in your head to see whether the new rule is already there in other words,
+          contradicts a neighbor, or belongs somewhere else &mdash; and at
+          today&rsquo;s sizes nobody can, so additions pass and deletions almost never
+          happen. The record shows where that leads: one lesson codified
+          across ten separate issues in as many places, skills that contradict
+          themselves, and rules kept alive only to compensate for weaknesses long gone.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              A rule that exists to patch degraded behavior is bloat wearing a
+              refinement&rsquo;s clothes.
+            </p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/7"
+              >Issue 7, on the deletion criterion the corpus lacks</a
+            >
+          </figcaption>
+        </figure>
+
+        <p>
+          The projects that use the workflow repeat the pattern on their own side: each
+          adds its local instructions on top, with no bound on how much, and upgrades
+          never prune what the package has since absorbed &mdash; so the same rule ends
+          up stated twice, in slightly different words, drifting apart.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              The dual-channel rule manufactures this drift for every generalizable
+              lesson, which in practice is most lessons.
+            </p>
+          </blockquote>
+          <figcaption>
+            <a href="https://github.com/seasonedcc/seasoned-skills/issues/139"
+              >Issue 139, on how lessons travelled in August</a
+            >
+          </figcaption>
+        </figure>
+
+        <p>
+          The growth has a direction bias, too. Nearly every filed lesson is born from
+          something going wrong, so the corpus teaches prevention far more than it
+          teaches creation &mdash; and models and people alike drift into guarding the
+          downside above all. Preventing mistakes matters, but it is not what the
+          instructions are for: their highest return is teaching how to produce
+          amazing work and how to invent, and any rewrite of them must be judged by
+          the upside it creates before the failures it prevents.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              We should, for sure, prevent mistakes. But the biggest return on
+              investiment comes from creating upside through teaching how to create
+              amazing work (our quality bar) and to invent new things with
+              self-improvement, not only correct our failures.
+            </p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
+
+        <p>
+          One truth bounds everything above: the workflow, big skills and all,
+          <em>works</em>. It carries our projects every day, and the failures its rules
+          exist to prevent stay prevented. The problem is what the size costs and what
+          it blocks &mdash; never what the instructions do for us. Any cure that loses
+          what they do is worse than the disease.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>
+              Our workflow is doing wonders for us today, even with big skills. We
+              cannot, under any circunstance, throw the baby out with the bath water.
+            </p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
+
+        <h3>The outcome test</h3>
+        <p>Five things have to be true afterwards, each checkable without asking us.</p>
+        <ol>
+          <li>
+            <p>
+              <strong>Nothing that works today is lost.</strong> The workflow keeps
+              doing for us what it does now &mdash; it is doing wonders even with the
+              big skills, and no slimming is worth breaking that. The slimmed
+              instructions still deliver everything the old ones deliver: the quality
+              of work they teach, the inventions the improvement channel keeps
+              producing, and the failures they prevent. The observable trace: in the
+              efforts that follow, the work stays at the bar we hold today, and the
+              lessons the corpus already carries do not get re-learned the hard way
+              and re-filed as new issues &mdash; a re-filed lesson we once had is the
+              alarm that a cut went too deep.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The postponed session opens.</strong> The day this ships, Daniel
+              starts the shaping session this project displaced &mdash; working the
+              backlog of recorded improvements &mdash; and folding a lesson into a skill
+              no longer fights the corpus. The exact session that could not open in
+              August opens.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The rules hold mechanically on every new and changed
+              skill.</strong> Every skill born after this ships, and every skill a
+              change touches, passes the checks &mdash; in this repository and in every
+              consuming project &mdash; and a change that fails them is blocked by
+              tooling instead of depending on anyone&rsquo;s discipline or memory.
+              Skills nobody touches may keep failing until the transition ends.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>Changes become reviewable, and deletion becomes normal.</strong>
+              A person can read any skill, and judge any proposed instruction change,
+              in one sitting &mdash; the prose in plain language, with nothing to
+              translate. And over
+              the months after shipping, the changes that land on the corpus delete
+              and rewrite as often as they add.
+            </p>
+          </li>
+          <li>
+            <p>
+              <strong>The transition ends cleanly.</strong> The day every skill in a
+              project passes, the project turns one setting on, and from then on every
+              skill &mdash; the package&rsquo;s and the project&rsquo;s own &mdash; is
+              held to the rules, with nothing breaking the day it flips.
+            </p>
+          </li>
+        </ol>
+
+        <h3>Why now</h3>
+        <p>
+          Every improvement we want to make &mdash; the 184 recorded lessons and the
+          vision beyond them &mdash; lands as prose on this same corpus, so until the
+          corpus can absorb change without growing sicker, every other project stays
+          queued behind this one. The cost also compounds on its own: every agent, on
+          every task, in every project that uses the workflow, reads these instructions
+          before starting work, and the pile grows with each finished effort &mdash; the
+          newest third of the backlog arrived from a single one.
+        </p>
+
+        <figure class="quote">
+          <blockquote>
+            <p>We literally can&rsquo;t shape anything else before we solve this.</p>
+          </blockquote>
+          <figcaption>Daniel, in this shaping session</figcaption>
+        </figure>
+
+        <h3>The big hire and the little hires</h3>
+        <p>
+          The big hire is Daniel&rsquo;s, made once: adopting the new discipline into
+          the workflow &mdash; the writing guide as a binding rule, the size budgets as
+          enforced checks, every skill passing as the new baseline. What earns that
+          switch is the outcome test&rsquo;s first item: proof that nothing the
+          workflow does for us today was lost in the slimming.
+        </p>
+        <p>
+          The little hires are made daily, and they are where this lives or dies.
+          Every agent writing instructions &mdash; a skill rewrite, an improvement
+          pass, a project&rsquo;s local additions &mdash; has to choose the
+          guide&rsquo;s plain, sized prose over the dialect it would produce by
+          default; the guide and the checks must make the right way the easy way. And
+          every person reviewing an instruction change has to keep finding that one
+          sitting suffices &mdash; the day a review requires translation again,
+          rubber-stamping returns, and with it the additive-only drift. Agents reliably
+          re-hire whatever the enforced path is, so the little hires that can genuinely
+          be lost are the human ones.
+        </p>
+      </section>
+
+      <!-- Part four: the shape. Still plain language, now about the solution. Drawings
+           stay lo-fi on purpose: enough to argue with, not enough to mistake for a
+           design. Technical detail belongs in a <details class="technical" open> note beside
+           the thing it defines — never gathered into a technical section. A solved time
+           bomb goes in the note of the element it concerns, never in a list of its own. -->
+      <section class="part" id="shape">
+        <header class="part-header">
+          <p class="part-kicker">What we will build</p>
+          <h2>The shape</h2>
+          <p class="part-note">
+            The solution at the level of what people see and do. The drawings are rough
+            sketches of how it works, not of how it will look.
+          </p>
+        </header>
+
+        <h3>In plain language</h3>
+        <p>
+          We&rsquo;ll give every instruction an agent reads a written standard and a
+          machine that holds it to that standard. The standard is a skill,
+          <strong>agent-instructions</strong>, which takes the place of today&rsquo;s
+          skill-management. The machine is a set of checks &mdash; size, shape, and
+          plain prose &mdash; in a new command that agents run before they commit and
+          that every pull request&rsquo;s gates run again. We won&rsquo;t rewrite the skills we have. Every new
+          skill is born under the standard, and an existing skill is held to it the
+          first time a change touches it; the skills nobody touches keep working
+          exactly as they do today until the transition ends.
+        </p>
+
+        <h3>The standard</h3>
+        <p>
+          The standard opens with the rule that anchors everything else:
+          <strong>every change to the instructions argues its case in the pull request that carries it, whichever
+          direction it points.</strong> The case never enters the instruction text,
+          which keeps only a rule&rsquo;s scope and reason; the pull request keeps the
+          case for changing it, where a reviewer judges it. An addition names the upside it creates or the live failure
+          it prevents, and shows that the rule is not already on the books in other
+          words and would not serve better as tooling. A deletion argues why the text
+          is dead: it compensated for a weakness that is gone, duplicates a rule stated
+          elsewhere, teaches what every model already knows, has been absorbed into
+          tooling, or teaches nothing about creating the upside or preventing a live
+          failure. And a cut is judged with the same care as a growth, because budget
+          pressure makes every sentence look dead: before cutting a sentence, the
+          author thinks hard about what goes wrong without it, and when the sentence
+          is a rule, whether the cut itself breaks it. The
+          guide learned that the hard way while it was drafted, when its own sentence saying
+          the meaning has to survive every cut was the first thing a cut removed. The same bar binds every
+          rethink a first change brings and every change after it &mdash; the checks
+          stay as the backstop, but every cut and every growth defends itself at the
+          moment it is made.
+        </p>
+        <p>
+          A change to instructions is reviewed the way every change is: through the
+          workflow&rsquo;s review loop, run on the pull request as the Definition of
+          Done requires. The agent-instructions skill carries no review phase of its
+          own. Review lives in the review skills, and the shaping skill&rsquo;s
+          review of its document stays the one exception; other skills don&rsquo;t
+          grow review phases when the regular loop can review their work.
+        </p>
+        <p>
+          The guide gets a home that already exists. The writing guide for
+          agent-facing instructions does not become a new skill: it becomes the heart
+          of the reworked skill known today as skill-management, renamed
+          <strong>agent-instructions</strong> &mdash; because it now governs every
+          instruction agents read: the skills, the always-loaded rules in CLAUDE.md,
+          and the local additions each consuming project layers on. One skill, loaded
+          for any act of instruction-writing, carrying structure, prose, and size
+          together &mdash; and every size check points at it when it fails. It does not
+          re-teach how the files are generated: the seasoned-skills skill is the home
+          of the pipeline, from the configuration to a failed sync, and
+          agent-instructions defines the sync and the check in a sentence each and
+          points there, under its own one-home rule. The
+          dialect agents produce by default is caught by the linter, not by a table
+          in the skill: the rule files hold the words and their replacements, and
+          the check names both when it fires, because a list that lives in the skill and in
+          the rule is two homes for one rule, and a skill that quotes the words it
+          bans fails its own check. The
+          repo&rsquo;s guide for human-facing pages, docs-copywriting, stays what it
+          is; agent-instructions inherits its voice by starting from a verbatim copy
+          of its text &mdash; years of adjudicated input live in that voice, and
+          everything reusable is reused &mdash; edited only where agent-facing prose
+          or the size budget demands, and never by pointing at a file consumers do
+          not have. The voice guide the skill carries as a reference file inherits
+          the same way, and then has to pass every rule the skill states, the
+          sixth-grade ceiling included: its spirit stays, but its example sentences
+          are rewritten, because the founders&rsquo; own prose the guide quotes
+          reads above the ceiling and a reference file is checked like any other.
+          We rewrite it during this shaping, once the skill itself is settled.
+        </p>
+        <p>
+          Five things skill-management teaches today don&rsquo;t move into the new
+          skill: where skills live on a machine, the front-matter field that limits a
+          skill&rsquo;s tools, the folder for files a skill outputs, a step-by-step
+          guide to creating a skill, and a checklist for one that doesn&rsquo;t load.
+          They are general knowledge about Claude Code that every agent already has,
+          not lessons the workflow learned, and the guide&rsquo;s own bar cuts what
+          every model already knows.
+        </p>
+        <p>
+          The rename reaches one other skill. Self-improvement, which stays exactly
+          as it is in this project, points at skill-management by name in one line
+          of its writing rules. We change that line to the new name, and we land
+          that change before the checks exist, so it happens before the transition
+          does and asks for no rethink. A project with a content file named after
+          the old skill gets a sync that refuses it by name and says what it is
+          called now, the same way the renamed CLAUDE.md content file is handled
+          below. Everything else in self-improvement stays word for word, including
+          the writing advice it shares with the new skill; that overlap waits for
+          self-improvement&rsquo;s own rethink.
+        </p>
+
+        <h3>The checks</h3>
+        <p>
+          The budgets, and every other check, bind the text each owner writes, as
+          the section on owners below sets out. The numbers are package-versioned
+          constants &mdash; tuning one is a release, never a local edit. The budgets
+          reach a skill&rsquo;s reference files too, each with 2,000 words of its own
+          and the writing guide binding it &mdash; otherwise a budget on skill bodies
+          would only push the overflow into the references, hiding the bloat instead
+          of removing it. The check lives today in this project&rsquo;s references
+          folder and fails the file with the guide&rsquo;s own three moves in its
+          message; ten of the package&rsquo;s thirty-one skills fail it as they
+          stand, orchestration at nearly ten thousand words, and the
+          agent-instructions draft fits at 1,769. Scripts are code, checked by the
+          code linters the repository already runs.
+        </p>
+        <p>
+          Not everything a skill carries is instructions, so a project can tell the
+          check to skip a file. Three projects keep verbatim third-party texts inside
+          their own skills &mdash; marketing books, health-privacy regulations,
+          Brazilian privacy law in Portuguese &mdash; which our rules require byte
+          for byte and no lint may touch; another keeps a research data set of
+          generated comparison tables and customer reviews quoted word for word. The
+          line is between instruction prose an agent follows and material a skill
+          reads. A project lists what to skip in its configuration, each entry with
+          the reason it is not instructions, and the check prints that reason
+          whenever it skips a file, so every exemption stays in front of a
+          reviewer. Three guards keep the list from becoming a way around the
+          transition. The check refuses an entry that covers a skill&rsquo;s main
+          file or a project&rsquo;s addition to a package skill or to CLAUDE.md, so
+          only supporting files inside a skill&rsquo;s folder can be skipped, never
+          the text an agent loads every time. An entry that matches no file fails
+          the check, so an exemption leaves with what it excused. And adding an
+          entry is a change like any other, arguing its case in its pull request.
+          The package keeps its own list the same way, in this repository&rsquo;s
+          configuration, and it holds one entry today: the complete documentation of
+          the composable-functions library, a 3,073-word verbatim copy. The shaping
+          corpus needs none, because it is built onto each machine into generated
+          folders the check never reads.
+        </p>
+        <p>
+          The check holds six things about the shape of a skill, not only its
+          length. A skill&rsquo;s name follows the open Agent Skills
+          specification: one to sixty-four characters, lowercase letters, digits, and
+          hyphens only, never starting, ending, or doubling a hyphen, and matching
+          the skill&rsquo;s folder &mdash; today the build guarantees the match by
+          construction, and nothing checks the characters. The description stays within
+          1,024 characters: Claude Code truncates a longer one at 1,536 and cuts from
+          the end, which is exactly where the &ldquo;use when&rdquo; half lives, and
+          1,024 is the open specification&rsquo;s own cap. Em dashes are rationed the
+          way the voice guide already asks, as a number the sync can count: none in
+          the front matter, at most two in any generated file or reference file.
+          Lists stay flat: a list item nested inside another fails the file, since
+          each level is one more thing for a reader to hold, and the fix is a
+          subheading over a flat list or a rewrite as prose. Today two skills and
+          one CLAUDE.md fragment nest lists, and the guide&rsquo;s own draft nested
+          nine items before the check existed. A reference file the skill&rsquo;s body
+          never names fails the file too: a reference file costs nothing until a
+          step in the body sends the agent to it, so one no step names is dead text
+          nobody reads. And a reading-grade ceiling holds the sentences short: the generated file,
+          with its front matter, headings, tables, and code stripped, scores no
+          higher than sixth grade on the Flesch-Kincaid scale, a plain formula over
+          words per sentence and syllables per word that any open-source library
+          computes the same way every time. A spike settled that this ceiling is
+          reachable without dumbing anything down: the agent-instructions draft went
+          from grade 7.8 to 5.4 by splitting sentences alone, with the same word
+          count, the same vocabulary, and no rule dropped. The ceiling is per file,
+          never per sentence: the formula punishes a long word in a short sentence,
+          so a three-word heading can score at grade twelve. The generated
+          description is scored on its own under the same ceiling, because it is
+          the one part of a skill every agent reads on every turn, and the
+          draft&rsquo;s own description scored at grade eleven before its two
+          sentences became four. Every check fails the
+          way the budgets fail, naming the file and the line
+          and pointing at agent-instructions, and every one binds a text from the
+          first change that touches it, since today&rsquo;s skills break them all
+          &mdash; the orchestration skill alone carries over a hundred em dashes.
+        </p>
+        <p>
+          The grade ceiling proved that a formula can carry part of the editing,
+          so the checks grow a prose linter beside it. The engine is Vale, an
+          open-source linter for prose whose rules are small, readable files, so the
+          standard itself is something a person can review. The package ships it
+          through its npm wrapper, carries our rules as one Vale style, and installs
+          both into every consuming project as part of the managed footprint. Every
+          rule fails the file, the way the budgets do, and there is no second tier
+          of warnings: the dialect translation table, the jargon and hedging lists,
+          shouting, sentence case in headings, a cap of thirty words per sentence,
+          spelling against a project dictionary, blocks of prose repeated verbatim
+          across files, links between files that no longer resolve, and a skill
+          referred to by anything but its roster name. A rule earns its place by
+          measurement: it runs over our own files first, its hits are read by hand,
+          and it turns on only when every hit was real. A rule that cannot get
+          there is deleted, never demoted to a warning, because a warning misguides
+          agents in two ways we watched happen: an agent treats it like a rule and
+          applies it everywhere, rewriting approved sentences to silence it, and a
+          rule that can be satisfied mechanically gets satisfied mechanically, the
+          way the grade ceiling first produced choppy fragments. The first pass, over
+          the thirty-three skills the package carried in September, settled the list: passive
+          voice (523 hits, almost none a defect), vague quantifiers, universal
+          claims, comma counts, contractions, and a part-of-speech rule for words
+          that read as both noun and verb all failed the bar and are gone, while
+          &ldquo;solution&rdquo; left the jargon list because twenty of its
+          twenty-three hits were the word&rsquo;s plain meaning. Text in double
+          quotes is a mention, not a use, so a rule can quote the phrase it bans.
+          The banned words themselves live only in the rule files, never in the
+          skill, so no file quotes what it bans, and the skill keeps only what no
+          check can see. Nor does the skill point at the rule files: the check
+          prints the word, its replacement, and the rule that fired, and it is fast
+          enough to lean on, measured at 0.6 seconds for one file and 4.2 seconds
+          for all thirty-three skills the package carried then. Rules face the change bar like prose: a rule whose
+          failures turn out wrong is fixed or deleted in the pull request that
+          found it. What is left for a person is the reading no rule can take over.
+          A spike settled how Vale reaches a project: its npm wrapper downloads the
+          binary from GitHub when the package installs, and under pnpm 10 only
+          once the project&rsquo;s <code>package.json</code> approves that step.
+          Without the approval the install succeeds and the check finds no binary.
+          So the sync adds the approval to the project&rsquo;s
+          <code>package.json</code>, the way it already keeps the sync script there.
+        </p>
+        <p>
+          A second pass ran the same rules over projects&rsquo; own prose for the
+          first time &mdash; five consuming projects&rsquo; additions and their own
+          skills &mdash; because this project puts that prose under them. Most rules
+          held: sentence length was right nineteen times in twenty, and nested lists,
+          em dash counts, and shouting were right every time. Three rules tripped on
+          words that are a project&rsquo;s real vocabulary: spelling on product
+          names, domain acronyms, tool names, and Portuguese interface strings;
+          heading case on product names its fixed list of proper nouns lacked, such
+          as &ldquo;Exceptions through Sentry&rdquo;; and the dialect rule on a
+          research data set literally named a corpus, on &ldquo;artifacts&rdquo; in
+          the continuous-integration sense, on &ldquo;upstream&rdquo; as in a git
+          fork. So each project keeps one vocabulary list in its configuration, and
+          all three rules accept it: a listed word passes spelling, counts as a
+          proper noun in a heading when capitalized, and, when it is a dialect word,
+          passes the dialect rule in that project. The package ships a shared
+          dictionary beneath every project&rsquo;s list, with the words several
+          projects share and the Portuguese dictionary. A listed dialect word stops
+          being caught anywhere in that project, and we accept that: the list is
+          short, visible, and every word on it argues its case in a pull request.
+          Dropping every dialect word with a technical sense would keep the rule
+          clean everywhere, but lose its most frequent catches in the
+          package&rsquo;s own prose, where &ldquo;surface&rdquo; and
+          &ldquo;artifact&rdquo; are almost always dialect.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Spike</span>
+            What the second pass found in the checks themselves
+          </summary>
+          <div class="technical-body">
+            <p>
+              The pass also exposed defects in the working copy of the checks, each
+              observed and each the build&rsquo;s to fix. Spelling checked zero files
+              whenever they sat outside its working folder, and passed silently; its
+              output was cut off past one megabyte. Duplicate findings named paths
+              that do not exist. The link rule read link syntax inside inline code.
+              Heading case reported once per word instead of once per heading.
+              Budgets were keyed on file names, so a project&rsquo;s additions had
+              none. The roster came from the package instead of the project. And the
+              dash-spacing rule fired on every correctly spaced dash followed by
+              bold, italics, or a link, because Vale lints rendered text; the runner
+              checks dash spacing on the raw text instead, the way it already checks
+              heading case. The pass also confirmed the checks must read composed
+              text: a skill whose body lives in a separate file the sync pulls in
+              looks like an orphan reference when read raw.
+            </p>
+          </div>
+        </details>
+
+        <h3>Who owns which words</h3>
+        <p>
+          Three kinds of text make up what an agent reads, and each has exactly one
+          owner. The package writes its own text for every skill it ships and for
+          CLAUDE.md. A project adds its own words to those skills and to CLAUDE.md
+          through its content files, which the sync weaves in. And a project writes
+          skills of its own, whole, that the package never sees &mdash; this
+          repository&rsquo;s docs-copywriting is one.
+        </p>
+        <p>
+          Each owner&rsquo;s text is checked alone, against a budget of its own, and
+          no check ever looks at the other owner&rsquo;s words. The package&rsquo;s
+          text for a skill is held to the rules as the package wrote it; a
+          project&rsquo;s addition to that skill is held to them as the project wrote
+          it. A package release can never push a project over a budget, and a project
+          can never fail on prose it does not own. What an agent loads stays bounded,
+          because it is the sum of two bounded parts. We considered one shared budget
+          on the woven file, and rejected it: whoever wrote last would pay for the
+          other owner&rsquo;s words, and the transition would need to build every skill
+          twice to tell whose words broke it.
+        </p>
+
+        <div id="drawing-owners"></div>
+
+        <p>
+          The budgets follow the owners. The package&rsquo;s text for a skill gets
+          2,000 words, and a project&rsquo;s addition to that skill gets 500 more, so
+          the body an agent loads for any package skill stays within 2,500 words. A
+          reference file &mdash; a file a skill carries for reading only at the step
+          that names it &mdash; gets 2,000 words of its own, never summed with the
+          body, because it loads only when that step comes. CLAUDE.md, which loads in
+          every session before anything else, keeps the 2,500 words it would have
+          had whole, split the other way round: 1,500 for the package&rsquo;s part and
+          1,000 for the project&rsquo;s. What every task needs first is mostly a
+          project&rsquo;s own facts &mdash; its commands, its stack, the rules that
+          hold everywhere in it &mdash; and those have nowhere else to go, while most
+          of the package&rsquo;s part is general practice a skill can carry. A
+          criterion a project adds to the Definition of Done through its
+          configuration counts as the project&rsquo;s words.
+        </p>
+        <p>
+          We&rsquo;ll let a project give a package skill reference files of its own,
+          which today only the package can do. Without them, 500 words would be a wall:
+          a project whose design rules apply on every screen could only split the
+          design-system skill for size alone, which the guide forbids, or lose
+          material. A project&rsquo;s reference file sits beside its addition, and the
+          sync places it in the skill&rsquo;s reference folder beside the
+          package&rsquo;s own. It gets the same 2,000 words and every rule, the
+          project&rsquo;s addition names it at the step that reads it, and the
+          project&rsquo;s additions setting covers it. Take a project that adds 2,402
+          words to design-system today: its date-field rules become a skill of the
+          project&rsquo;s own, since building a date field is a situation of its own;
+          the detail behind hover-revealed and disabled controls moves to reference
+          files read when someone builds one; and its addition keeps the tokens and a
+          line per rule that every screen needs. An agent building an ordinary screen
+          then loads 2,500 words of design system instead of 6,000, and the project
+          loses no rule it has today.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The word budgets
+          </summary>
+          <div class="technical-body">
+            <p>
+              A word is a whitespace-separated token holding a letter or a digit, so
+              code counts and list markers do not. A skill&rsquo;s budget counts its
+              body alone, everything below the front matter, because the two front
+              matter fields have caps of their own. A reference file has no front
+              matter and is measured whole. The numbers are package-versioned
+              constants: tuning one is a release, never a local edit.
+            </p>
+            <pre><code>package text for a skill (content/skills/&lt;name&gt;/SKILL.md body)  2,000
+project addition to a skill (&lt;contentDir&gt;/&lt;name&gt;.md)            500
+any reference file, package or project                         2,000 each
+  package:  content/skills/&lt;name&gt;/references/&lt;file&gt;.md
+  project:  &lt;contentDir&gt;/&lt;name&gt;/references/&lt;file&gt;.md
+            &rarr; .claude/skills/&lt;name&gt;/references/&lt;file&gt;.md
+            refused when &lt;file&gt; matches a package reference file
+CLAUDE.md, the package's part (content/doctrine/ fragments)    1,500
+CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
+  plus additionalCriteria text from the configuration)          1,000</code></pre>
+            <p>
+              The paths above are today&rsquo;s; the rename below moves the two
+              that carry the banned word. Today, against these numbers: ten of the package&rsquo;s thirty-one skills are
+              over 2,000 words in their own text, orchestration at 9,931; across the
+              five consuming projects measured, most additions sit under 600 words,
+              and the largest are on testing (2,800 and 3,300) and design-system
+              (2,364). The package&rsquo;s part of this repository&rsquo;s CLAUDE.md
+              is about 3,030 words; the projects&rsquo; parts run from 234 to 1,475.
+            </p>
+          </div>
+        </details>
+
+        <p>
+          Each project ends its transition on its own terms, with two settings. One
+          covers the skills the project writes whole; the other covers the
+          project&rsquo;s additions to the package&rsquo;s skills and to CLAUDE.md.
+          While a setting is off, only new and changed text under it must pass; once
+          it is on, all of it must. Two settings, not one, because the two kinds of
+          text heal at different speeds: a project can hold its own few skills to the
+          rules long before it has trimmed every addition, or the other way round.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The settings
+          </summary>
+          <div class="technical-body">
+            <p>
+              One new key in <code>seasoned-skills.config.ts</code>, typed in the
+              configuration&rsquo;s types, validated with the rest, and listed in the
+              configuration reference like every key. Every project starts with both
+              settings at <code>'changed'</code>.
+            </p>
+            <pre><code>instructionChecks: {
+  ownSkills: 'changed' | 'all',   // skills the project writes whole
+  additions: 'changed' | 'all',   // its content files and their reference files
+  ignore: [{ path: string, reason: string }],
+  vocabulary: string[],           // the project's own words
+}</code></pre>
+            <p>
+              In the package&rsquo;s own repository, <code>ownSkills</code> also
+              covers the package&rsquo;s skills and its part of CLAUDE.md.
+              <code>ignore</code> paths are relative to the project root and may be
+              patterns; an entry matching a <code>SKILL.md</code> or a content file is
+              refused, and so is an entry matching nothing.
+            </p>
+          </div>
+        </details>
+        <p>
+          The package&rsquo;s own transition ends the same way, with no machinery of
+          its own. Only this repository holds the package&rsquo;s text, and from
+          where it stands that text is its own: it writes the package&rsquo;s skills
+          and the package&rsquo;s part of CLAUDE.md whole. So here the own-skills
+          setting covers them, beside docs-copywriting, while this
+          repository&rsquo;s additions sit under the additions setting like any
+          project&rsquo;s. The day we turn the own-skills setting on here, the
+          package&rsquo;s transition is over: from then on every change to the
+          package keeps every skill passing, and every release ships skills that
+          pass.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The package&rsquo;s text varies with configuration
+          </summary>
+          <div class="technical-body">
+            <p>
+              Some of the package&rsquo;s text is assembled from pieces a
+              project&rsquo;s configuration chooses: whether agents may merge during
+              a goal, whether the project is a web application, how out-of-scope
+              findings are handled. The package&rsquo;s text for one skill is
+              therefore a slightly different text in each kind of project. The
+              check composes the package&rsquo;s text in every variant the golden
+              fixtures produce (<code>tests/golden/fixtures/</code>, four today, which
+              exist to cover those variants) and judges each variant alone; a skill
+              passes only when every variant does. A change to a piece shared by
+              several skills, or by a skill and CLAUDE.md, counts as a change to
+              every text it lands in.
+            </p>
+          </div>
+        </details>
+        <p>
+          A change that touches a skill touches all of it. The first time a change
+          lands on text that fails today, that same change leaves the text passing
+          whole &mdash; every word under budget, every rule met &mdash; not just the
+          lines it came to add. Adding two sentences to the 10,000-word orchestration
+          skill means rethinking orchestration down to 2,000 words in that pull
+          request. That is deliberate: we don&rsquo;t improve a skill without
+          rethinking it, and a rule added to a skill nobody has rethought lands on
+          the same pile that blocked the backlog in the first place. The rethink is
+          judged the way every instruction change is: each cut argues its case, and
+          the review loop checks that nothing the skill does today was lost. We
+          considered two gentler paths and rejected both for that same reason. A
+          ratchet, where a touched skill only has to not grow, improves a skill
+          without rethinking it, and lets the biggest skills fail forever, so the
+          transition never ends. Healing a skill in a pull request of its own before
+          the lesson lands splits the rethink from the improvement that called for
+          it. The rule has no exceptions: a command renamed inside a skill, or a
+          statement an effort made false, touches the skill like any other change.
+          We mean the transition to be short, and a sweep across many skills waits
+          until it ends.
+        </p>
+
+        <p>
+          The checks live in one new command, <code>seasoned-skills check</code>,
+          and nowhere else enforces them. With no arguments it finds what changed by
+          comparing the working copy, uncommitted edits included, with the point
+          where the branch left the default branch; it checks every changed piece of
+          text, and all the text of any kind whose setting is on; it reports each
+          failure with the file, the line, and what broke, writes nothing, and exits
+          non-zero. Given file paths, it checks those markdown files as they are,
+          whole, which is what an agent drafting a skill needs before it commits, and
+          what a project needs for a content file before it is woven. The
+          agent-instructions skill tells agents to run it before they commit. It
+          lands in the reference pages and their enumeration test like every other
+          command.
+        </p>
+        <p>
+          The sync never fails because of these checks, which is a change from the
+          earlier plan to have it refuse to write a file that fails them. The sync
+          runs on every install &mdash; on the default branch, in fresh clones, in
+          continuous integration &mdash; where nothing has changed and the question
+          has no answer; and a failed sync takes the workflow down with it, leaving
+          everyone in that checkout without their skills. A broken rule blocks a pull
+          request, never an install. So the check runs where pull requests are
+          judged: the Definition of Done&rsquo;s gates criterion names it beside the
+          linter, the type-checker, and the unit tests, in this repository and in
+          every project the sync generates that criterion for; this
+          repository&rsquo;s continuous integration runs it; and both the
+          seasoned-skills skill and the documentation tell every project to add it to
+          its own.
+        </p>
+
+        <p>
+          The project also renames
+          everything the new design leaves out of step, in the package and in every
+          consuming project: the content file that feeds CLAUDE.md, today named after
+          a word the dialect rule bans, becomes <code>claude.md</code>, named after
+          what it generates, the way each skill&rsquo;s content file is named after its
+          skill; the code module and fragments that carry that word follow. A design that
+          bans a word in prose and keeps it as a file name is not cohesive. Prose
+          that uses the word is not renamed with them: it meets the dialect rule the
+          way all prose does, the first time a change touches it. A project that
+          upgrades with the old file still in place gets a sync that refuses it by
+          name and says what it is called now, the way the sync already refuses any
+          content file nothing loads.
+        </p>
+
+        <h3>Walkthrough</h3>
+        <p>
+          Replay the framing's story — the same person, the same moment — with this in
+          place. Step by step, in their words, so the reader can check it against how the
+          work really goes.
+        </p>
+        <ol class="walkthrough">
+          <li>
+            <p>Where they start, and what they see.</p>
+          </li>
+          <li>
+            <p>What they do next, and how the solution answers.</p>
+          </li>
+          <li>
+            <p>Where they end up, and how they know they are done.</p>
+          </li>
+        </ol>
+
+        <h3>No-gos</h3>
+        <p>Things this project deliberately does not do, so nobody has to wonder.</p>
+        <ul class="no-gos">
+          <li>
+            Rewriting the skills we have. No skill is slimmed for its own sake; each
+            one heals the first time a change touches it, and the change that touches
+            it carries the rewrite.
+          </li>
+          <li>
+            Reorganizing where rules live: no skill for running goal-driven efforts, no
+            skill for the session ledger, and no restoring of the rules lost in the
+            move to the package. Each of those rewrites a skill&rsquo;s content, and this project
+            only gives that content a standard to meet.
+          </li>
+          <li>
+            Removing the <code>triggers:</code> line a content file may open with. It
+            stays as it is.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Part five: the goal. Technical — the toggle hides this whole section. Keep
+           the text under 4,000 characters; the meter tracks it. -->
+      <section class="part technical-section" id="goal">
+        <header class="part-header">
+          <p class="part-kicker">How the build starts</p>
+          <h2>The goal</h2>
+          <p class="part-note">
+            The text that ignites the build, ready to paste, with a live count against
+            its 4,000-character limit.
+          </p>
+        </header>
+
+        <div class="goal" data-goal>
+<pre class="goal-text" data-goal-text>Write the goal here, in the second person, addressed to whoever picks up the build.
+
+Say what to build and what &ldquo;done&rdquo; means, point at this document for the shape, to be read raw and whole with its drawings, and name the boundaries the build must not cross.</pre>
+          <div class="goal-footer">
+            <div class="goal-meter" aria-hidden="true">
+              <div class="goal-meter-fill" data-goal-meter-fill></div>
+            </div>
+            <p class="goal-count" data-goal-count aria-live="polite"></p>
+            <button type="button" class="goal-copy" data-goal-copy>Copy</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // Drawing 1 — who owns which words, and which switch holds each to the rules.
+      (function () {
+        const s = ShapingDrawing.sketch({
+          seed: 'owners',
+          width: 900,
+          height: 470,
+          style: 'marker',
+          label:
+            'The package writes its own text for each skill and for CLAUDE.md; a project adds its own words through content files; the sync weaves the two into the skill an agent loads. A project also writes whole skills of its own. Each kind of text is checked alone, against its own budget.'
+        })
+
+        s.rect(20, 40, 290, 110, { width: 7 })
+        s.text("THE PACKAGE'S TEXT", 165, 82, { size: 18, weight: 700, align: 'middle', caps: true })
+        s.text('per skill, and for CLAUDE.md', 165, 110, { size: 15, align: 'middle' })
+        s.text('checked in the package', 165, 134, { size: 15, align: 'middle' })
+
+        s.rect(20, 200, 290, 110, { width: 7 })
+        s.text("THE PROJECT'S ADDITION", 165, 242, { size: 18, weight: 700, align: 'middle', caps: true })
+        s.text('a content file', 165, 270, { size: 15, align: 'middle' })
+        s.text('switch: additions', 165, 294, { size: 15, align: 'middle', color: 'accent' })
+
+        s.arrow([316, 96], [430, 150], { width: 6 })
+        s.arrow([316, 254], [430, 196], { width: 6 })
+        s.text('woven by', 372, 168, { size: 15, align: 'middle' })
+        s.text('the sync', 372, 186, { size: 15, align: 'middle' })
+
+        s.rect(440, 110, 230, 120, { width: 7 })
+        s.text('THE SKILL', 555, 152, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('AN AGENT LOADS', 555, 180, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('two bounded parts', 555, 208, { size: 15, align: 'middle' })
+
+        s.rect(20, 350, 290, 100, { width: 7 })
+        s.text("THE PROJECT'S OWN SKILL", 165, 392, { size: 18, weight: 700, align: 'middle', caps: true })
+        s.text('switch: own skills', 165, 420, { size: 15, align: 'middle', color: 'accent' })
+        s.arrow([316, 400], [434, 330], { width: 6 })
+        s.rect(440, 280, 230, 90, { width: 7 })
+        s.text('THE SKILL', 555, 316, { size: 20, weight: 700, align: 'middle', caps: true })
+        s.text('loaded as written', 555, 344, { size: 15, align: 'middle' })
+
+        s.brace(705, 40, 450, { width: 6, reach: 18 })
+        s.text('EACH PART', 737, 220, { size: 20, weight: 700, caps: true, color: 'accent' })
+        s.text('checked alone,', 737, 246, { size: 16, color: 'accent' })
+        s.text('against its own', 737, 270, { size: 16, color: 'accent' })
+        s.text('budget', 737, 294, { size: 16, color: 'accent' })
+
+        s.callout(1, 20, 40, { radius: 22 })
+        s.callout(2, 20, 200, { radius: 22 })
+        s.callout(3, 20, 350, { radius: 22 })
+
+        ShapingDrawing.figure({
+          drawing: s,
+          callouts: [
+            'The package’s own text. Only the package can change it, so only the package is checked on it.',
+            'A project’s addition to a package skill or to CLAUDE.md. It has a budget of its own, and the project’s additions switch decides whether all of them are checked or only the ones a change touches.',
+            'A skill the project writes whole. The project’s own-skills switch decides the same for these.'
+          ],
+          caption: 'Three kinds of text, two owners, and no check that reads another owner’s words.'
+        }).mount('#drawing-owners')
+      })()
+    </script>
+  </body>
+</html>
