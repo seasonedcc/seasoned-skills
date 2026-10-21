@@ -420,6 +420,41 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
           rules long before it has trimmed every addition, or the other way round.
         </p>
         <p>
+          The package&rsquo;s own transition ends the same way, with no machinery of
+          its own. Only this repository holds the package&rsquo;s text, and from
+          where it stands that text is its own: it writes the package&rsquo;s skills
+          and the package&rsquo;s part of CLAUDE.md whole. So here the own-skills
+          setting covers them, beside docs-copywriting, while this
+          repository&rsquo;s additions sit under the additions setting like any
+          project&rsquo;s. The day we turn the own-skills setting on here, the
+          package&rsquo;s transition is over: from then on every change to the
+          package keeps every skill passing, and every release ships skills that
+          pass.
+        </p>
+
+        <details class="technical" open>
+          <summary>
+            <span class="technical-caret" aria-hidden="true">&#9656;</span>
+            <span class="technical-kind">Contract</span>
+            The package&rsquo;s text varies with configuration
+          </summary>
+          <div class="technical-body">
+            <p>
+              Some of the package&rsquo;s text is assembled from pieces a
+              project&rsquo;s configuration chooses: whether agents may merge during
+              a goal, whether the project is a web application, how out-of-scope
+              findings are handled. The package&rsquo;s text for one skill is
+              therefore a slightly different text in each kind of project. The
+              check composes the package&rsquo;s text in every variant the golden
+              fixtures produce (<code>tests/golden/fixtures/</code>, four today, which
+              exist to cover those variants) and judges each variant alone; a skill
+              passes only when every variant does. A change to a piece shared by
+              several skills, or by a skill and CLAUDE.md, counts as a change to
+              every text it lands in.
+            </p>
+          </div>
+        </details>
+        <p>
           A change that touches a skill touches all of it. The first time a change
           lands on text that fails today, that same change leaves the text passing
           whole &mdash; every word under budget, every rule met &mdash; not just the
