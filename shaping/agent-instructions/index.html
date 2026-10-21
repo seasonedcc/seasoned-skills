@@ -145,7 +145,7 @@
           </blockquote>
           <figcaption>
             <a href="https://github.com/seasonedcc/seasoned-skills/issues/139"
-              >Issue 139, on how lessons travel today</a
+              >Issue 139, on how lessons travelled in August</a
             >
           </figcaption>
         </figure>
@@ -307,8 +307,8 @@
           machine that holds it to that standard. The standard is a skill,
           <strong>agent-instructions</strong>, which takes the place of today&rsquo;s
           skill-management. The machine is a set of checks &mdash; size, shape, and
-          plain prose &mdash; that run inside the sync and in a new command that agents
-          run before they commit. We won&rsquo;t rewrite the skills we have. Every new
+          plain prose &mdash; in a new command that agents run before they commit and
+          that every pull request&rsquo;s gates run again. We won&rsquo;t rewrite the skills we have. Every new
           skill is born under the standard, and an existing skill is held to it the
           first time a change touches it; the skills nobody touches keep working
           exactly as they do today until the transition ends.
@@ -316,8 +316,8 @@
 
         <h3>The standard</h3>
         <p>
-          One rule is settled and anchors everything else: <strong>every change to the
-          instructions argues its case in the pull request that carries it, whichever
+          The standard opens with the rule that anchors everything else:
+          <strong>every change to the instructions argues its case in the pull request that carries it, whichever
           direction it points.</strong> The case never enters the instruction text,
           which keeps only a rule&rsquo;s scope and reason; the pull request keeps the
           case for changing it, where a reviewer judges it. An addition names the upside it creates or the live failure
@@ -329,12 +329,12 @@
           failure. And a cut is judged with the same care as a growth, because budget
           pressure makes every sentence look dead: before cutting a sentence, the
           author thinks hard about what goes wrong without it, and when the sentence
-          is a rule, whether the cut itself breaks it. This
-          project learned that the hard way, when the guide&rsquo;s own sentence saying
-          the meaning has to survive every cut was the first thing a cut removed. The same bar binds the slimming
-          passes of this project and every improvement pass that follows it &mdash;
-          detection stays as the backstop, but every cut and every growth defends
-          itself at the moment it is made.
+          is a rule, whether the cut itself breaks it. The
+          guide learned that the hard way while it was drafted, when its own sentence saying
+          the meaning has to survive every cut was the first thing a cut removed. The same bar binds every
+          rethink a first change brings and every change after it &mdash; the checks
+          stay as the backstop, but every cut and every growth defends itself at the
+          moment it is made.
         </p>
         <p>
           Judging that case is never the author&rsquo;s own job. Every change to an
@@ -370,7 +370,7 @@
           person read the file whole.
         </p>
         <p>
-          The fifth settled element is the guide&rsquo;s home. The writing guide for
+          The guide gets a home that already exists. The writing guide for
           agent-facing instructions does not become a new skill: it becomes the heart
           of the reworked skill known today as skill-management, renamed
           <strong>agent-instructions</strong> &mdash; because it now governs every
@@ -397,35 +397,22 @@
           sixth-grade ceiling included: its spirit stays, but its example sentences
           are rewritten, because the founders&rsquo; own prose the guide quotes
           reads above the ceiling and a reference file is checked like any other.
-          That rewrite waits until the skill itself is settled.
+          We rewrite it during this shaping, once the skill itself is settled.
         </p>
 
         <h3>The checks</h3>
         <p>
-          The sixth settled element is how size is enforced. The budgets bind the
-          generated artifacts &mdash; the woven skill files and the assembled
-          CLAUDE.md that agents actually load &mdash; so one rule covers the
-          package&rsquo;s prose and every consuming project&rsquo;s additions at once.
-          The sync refuses to write an artifact over budget, naming the file, the
-          excess, and agent-instructions as the guide for fixing it; the
-          package&rsquo;s own tests run the same check over every configuration it can
-          generate, so no release can break a consumer&rsquo;s sync. The numbers are
-          package-versioned constants &mdash; tuning one is a release, never a local
-          edit: 2,000 words for a generated skill&rsquo;s body and 2,500 for the
-          generated CLAUDE.md. A skill&rsquo;s budget counts its body alone,
-          everything below the front matter, because the two front matter fields
-          already have caps of their own. A word is a
-          whitespace-separated token holding a letter or a digit, so code counts
-          and list markers do not. The budgets reach a skill&rsquo;s reference files
-          too: any prose file a skill carries for on-demand reading gets 2,000 words
-          of its own, measured whole since it has no front matter, and the writing
-          guide binds it &mdash; otherwise a budget on skill bodies would only push
-          the overflow into the references, hiding the bloat instead of removing it.
-          The check lives today in the project&rsquo;s references folder and fails
-          the file with the guide&rsquo;s own three moves in its message; ten of the
-          package&rsquo;s thirty-three skills fail it as they stand, orchestration at
-          over nine thousand words, and the agent-instructions draft was brought under
-          it at 1,994 after growing to 2,125 during review. The only exceptions
+          The budgets, and every other check, bind the text each owner writes, as
+          the section on owners below sets out. The numbers are package-versioned
+          constants &mdash; tuning one is a release, never a local edit. The budgets
+          reach a skill&rsquo;s reference files too, each with 2,000 words of its own
+          and the writing guide binding it &mdash; otherwise a budget on skill bodies
+          would only push the overflow into the references, hiding the bloat instead
+          of removing it. The check lives today in this project&rsquo;s references
+          folder and fails the file with the guide&rsquo;s own three moves in its
+          message; ten of the package&rsquo;s thirty-one skills fail it as they
+          stand, orchestration at nearly ten thousand words, and the
+          agent-instructions draft fits at 1,769. The only exceptions
           are named file by file in the package&rsquo;s own code, and today that
           list holds exactly one family: the verbatim source texts the shaping skill
           builds onto each machine, which our rules require byte for byte and no
@@ -433,8 +420,8 @@
           repository already runs.
         </p>
         <p>
-          The same mechanism carries six checks on the shape of a skill, not only
-          its length. A skill&rsquo;s name follows the open Agent Skills
+          The check holds six things about the shape of a skill, not only its
+          length. A skill&rsquo;s name follows the open Agent Skills
           specification: one to sixty-four characters, lowercase letters, digits, and
           hyphens only, never starting, ending, or doubling a hyphen, and matching
           the skill&rsquo;s folder &mdash; today the build guarantees the match by
@@ -451,8 +438,7 @@
           nine items before the check existed. A reference file the skill&rsquo;s body
           never names fails the file too: a reference file costs nothing until a
           step in the body sends the agent to it, so one no step names is dead text
-          nobody reads. Today the testing skill ships one, an examples file its body
-          never mentions. And a reading-grade ceiling holds the sentences short: the generated file,
+          nobody reads. And a reading-grade ceiling holds the sentences short: the generated file,
           with its front matter, headings, tables, and code stripped, scores no
           higher than sixth grade on the Flesch-Kincaid scale, a plain formula over
           words per sentence and syllables per word that any open-source library
@@ -467,9 +453,9 @@
           draft&rsquo;s own description scored at grade eleven before its two
           sentences became four. Every check fails the
           way the budgets fail, naming the file and the line
-          and pointing at agent-instructions, and every one turns on with the
-          slimming rewrite, since today&rsquo;s corpus breaks them all &mdash; the
-          orchestration skill alone carries over a hundred em dashes. The shaping
+          and pointing at agent-instructions, and every one binds a text from the
+          first change that touches it, since today&rsquo;s skills break them all
+          &mdash; the orchestration skill alone carries over a hundred em dashes. The shaping
           corpus stays the one exempt family here too.
         </p>
         <p>
@@ -491,8 +477,8 @@
           agents in two ways we watched happen: an agent treats it like a rule and
           applies it everywhere, rewriting approved sentences to silence it, and a
           rule that can be satisfied mechanically gets satisfied mechanically, the
-          way the grade ceiling first produced choppy fragments. The first pass over
-          the package&rsquo;s own thirty-three skills settled the list: passive
+          way the grade ceiling first produced choppy fragments. The first pass, over
+          the thirty-three skills the package carried in September, settled the list: passive
           voice (523 hits, almost none a defect), vague quantifiers, universal
           claims, comma counts, contractions, and a part-of-speech rule for words
           that read as both noun and verb all failed the bar and are gone, while
@@ -504,13 +490,15 @@
           check can see. Nor does the skill point at the rule files: the check
           prints the word, its replacement, and the rule that fired, and it is fast
           enough to lean on, measured at 0.6 seconds for one file and 4.2 seconds
-          for all thirty-three skills in one run. Rules face the change bar like prose: a rule whose
+          for all thirty-three skills the package carried then. Rules face the change bar like prose: a rule whose
           failures turn out wrong is fixed or deleted in the pull request that
           found it. What is left for a person is the reading no rule can take over.
-          One thing stays to confirm before this element is final: that the npm
-          wrapper installs the Vale binary cleanly on a fresh machine and in
-          continuous integration, which under pnpm 10 needs the package&rsquo;s
-          build step approved.
+          A spike settled how Vale reaches a project: its npm wrapper downloads the
+          binary from GitHub when the package installs, and under pnpm 10 only
+          once the project&rsquo;s <code>package.json</code> approves that step.
+          Without the approval the install succeeds and the check finds no binary.
+          So the sync adds the approval to the project&rsquo;s
+          <code>package.json</code>, the way it already keeps the sync script there.
         </p>
 
         <h3>Who owns which words</h3>
@@ -599,12 +587,12 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
   plus additionalCriteria text from the configuration)          1,000</code></pre>
             <p>
               The paths above are today&rsquo;s; the rename below moves the two
-              that carry the banned word. Today, against these numbers: ten of the package&rsquo;s skills are
-              over 2,000 words in their own text, orchestration at 10,119; across the
+              that carry the banned word. Today, against these numbers: ten of the package&rsquo;s thirty-one skills are
+              over 2,000 words in their own text, orchestration at 9,931; across the
               five consuming projects measured, most additions sit under 600 words,
               and the largest are on testing (2,800 and 3,300) and design-system
               (2,364). The package&rsquo;s part of this repository&rsquo;s CLAUDE.md
-              is about 3,100 words; the projects&rsquo; parts run from 234 to 1,475.
+              is about 3,030 words; the projects&rsquo; parts run from 234 to 1,475.
             </p>
           </div>
         </details>
@@ -745,15 +733,9 @@ CLAUDE.md, the project's part (&lt;contentDir&gt;/doctrine.md,
           </li>
           <li>
             Reorganizing where rules live: no skill for running goal-driven efforts, no
-            skill for the session ledger, no folding of the calibration record into the
-            subagents skill, and no restoring of the rules lost in the move to the
-            package. Each of those rewrites a skill&rsquo;s content, and this project
+            skill for the session ledger, and no restoring of the rules lost in the
+            move to the package. Each of those rewrites a skill&rsquo;s content, and this project
             only gives that content a standard to meet.
-          </li>
-          <li>
-            Changing the improvement pass. It keeps filing lessons as it does today;
-            teaching it to deduplicate before filing and to propose inventions is
-            separate work.
           </li>
           <li>
             Removing the <code>triggers:</code> line a content file may open with. It
