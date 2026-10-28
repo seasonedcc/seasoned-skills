@@ -16,7 +16,7 @@ app/mcp/
   server.server.ts        per-request Server, listTools/callTool dispatch, JSON-schema projection
   registry.server.ts      accumulate-only array of every domain's tools
   tools/<domain>.server.ts one array per domain (authTools, profileTools, ordersTools…)
-  parity.test.ts          CI gate: every route-invoked business fn is wrapped/exempt/pending
+  parity.test.ts          CI gate: every route-invoked business fn is wrapped/kept in the browser/exempt/pending
   parity-exemptions.ts    route-invoked machine surfaces that are not user capabilities (with a reason each)
   pending-coverage.ts     route-invoked fns not yet wrapped — shrinks to [] as domains land
 
@@ -73,14 +73,21 @@ execute: async (input, context) =>
 
 `withLocationRoles(input, context)` reads the resource id from the input and returns the context with the caller's roles for that resource attached — empty when the caller has none there, so the business function's context schema then denies, exactly like the app. `isAvailable` for such tools degrades to `(context) => Boolean(context.currentUser)`: per-resource permission can only be checked at call time, so visibility gates on being signed in and the real gate lives in the schema denial.
 
-### Tools outside the rule — by criterion, never by list
+### The exception register — by criterion, never by list
 
-Every tool wraps a route-invoked business function. A tool may stand outside that rule **only by meeting one of two criteria — never by joining a hard-coded allowlist**:
+Every tool wraps a route-invoked business function, and every route-invoked business function that is a user capability gets a tool. The committed, project-owned exception register at `app/mcp/exceptions.ts` records the only departures, in three kinds, each by criterion and each with a one-line rationale. The parity check reads the register, so an unregistered departure fails the gate.
+
+**Tools outside the rule.** A tool may stand outside the wrap rule **only by meeting one of three criteria — never by joining a hard-coded allowlist**:
 
 - **A pure context projection** — a capability the app exposes through no single business function, so there is nothing to wrap: a whoami tool that reflects the resolved authenticated context back, or a tool projecting a registry constant that a static page renders without invoking any business fn.
 - **An MCP-only transport primitive** — the mirror image of a parity exemption. An exemption is a route-invoked function that is *not* a user capability; this is a genuine capability that *no route invokes* because the browser reaches the same outcome through a different transport (an upload-URL tool standing in for the browser's multipart byte route — see "Documents over MCP"). Since no route invokes the function, naming it in `wraps` would trip the parity dangling check; the tool carries `wraps: []` and its `execute` calls the composable directly.
+- **A handoff** — a read-only tool for a job that stays in the browser (below): it calls no business function and answers the page's link with one sentence the agent can relay, so the agent hands the person over instead of leaving them stranded. It carries `wraps: []`, and the job it hands over is a row among the capabilities kept in the browser.
 
-Every excepted tool is listed in the committed, project-owned exception register at `app/mcp/exceptions.ts`, with a one-line rationale each — and the parity check reads the register, so an unregistered exception fails the gate. A candidate that fits neither criterion gets no exception: if there is nothing to wrap there is no capability to expose (a static page is not a capability), and any capability an app route reaches must be wrapped by name.
+**Capabilities only the tools offer.** A tool may wrap a business function no route invokes when the capability exists only for agents: reporting a request no tool could serve is the typical one, since a person in the browser sees directly what is missing. The register pairs the tool with its function, so the dangling check accepts it, and the check fails the moment a route starts invoking the function, which turns it into an ordinary capability.
+
+**Capabilities kept in the browser.** A route-invoked function whose job needs a password, a raw secret, a sign-in or two-factor ceremony, the management of the credentials that hold access to the account, or a payment stays off the machine surface by a written ruling: the register lists the function with its reason and the page link a refusing tool or a handoff returns. The check counts it claimed, and fails if a tool also wraps it or if no route invokes it any more. Passwords and raw secrets never travel through the machine surface. Only the ceremony is excluded: the management around it still gets its tools, unless the register rules otherwise with its reason.
+
+A candidate that fits none of these gets no exception: if there is nothing to wrap there is no capability to expose (a static page is not a capability), and any capability an app route reaches must be wrapped by name or ruled into the browser with its reason.
 
 ### Scope model
 
@@ -147,9 +154,10 @@ Each manifest resolves a conflict its own way; a blind marker-strip corrupts two
 
 ## Parity check (the same-PR DoD)
 
-`parity.test.ts` walks each route module's AST (with whatever parser the project already carries) to extract every business function the module touches, by a **reference walk**: a business fn counts as route-invoked when the module holds ANY value reference to an identifier imported from `~/business/<module>.server` (or a non-computed member access on a namespace import of one), recorded as `module.exportName` and excluding names ending in `Context`/`Schema`. The walk skips `ImportDeclaration` subtrees (so the import binding itself never counts) and, on any other node, adds the reference the moment it resolves and stops descending. Five assertions: every extracted fn is **wrapped xor exempt xor pending**; no stale pending (already wrapped); no dangling `wraps` (fn no route invokes); never both exempt and pending; no duplicate tool names. The check also reads the exception register at `app/mcp/exceptions.ts`: a tool standing outside the wrap rule that is not listed there fails the gate.
+`parity.test.ts` walks each route module's AST (with whatever parser the project already carries) to extract every business function the module touches, by a **reference walk**: a business fn counts as route-invoked when the module holds ANY value reference to an identifier imported from `~/business/<module>.server` (or a non-computed member access on a namespace import of one), recorded as `module.exportName` and excluding names ending in `Context`/`Schema`. The walk skips `ImportDeclaration` subtrees (so the import binding itself never counts) and, on any other node, adds the reference the moment it resolves and stops descending. Five assertions: every extracted fn is **wrapped xor kept in the browser xor exempt xor pending**; no stale pending (already wrapped); no dangling `wraps` (fn no route invokes, unless the register lists it as a capability only the tools offer); never both exempt and pending; no duplicate tool names. The check also reads the exception register at `app/mcp/exceptions.ts`: a tool standing outside the wrap rule that is not listed there fails the gate, and so does a register row that no longer matches the code — a listed tool missing from the registry, an agent-only function a route now invokes, a browser-kept function a tool wraps or no route invokes.
 
 - **Wrapped** — a tool's `wraps` names it. This is the goal state for a user capability.
+- **Kept in the browser** (the exception register) — a user capability that needs a password, a raw secret, a ceremony, credential management or a payment, ruled off the machine surface with its reason and page link.
 - **Exempt** (`parity-exemptions.ts`, `{ functionName, reason }`) — a machine surface that is *not* a user capability: the OAuth authorization-server functions, third-party webhooks and their dev fakes, browser-only auth redirects. A bogus exemption ("I didn't get to it yet") is a lie the reviewer must reject — exemptions are forever, for genuine non-capabilities only.
 - **Pending** (`pending-coverage.ts`) — a real capability not yet wrapped. This list is the backlog; it shrinks to `[]` as domains land. Seed new entries by running the test once and copying the printed `uncovered` array.
 

@@ -168,8 +168,10 @@ export interface MachineSurfaceConfig {
   /** The committed capability-parity standard the review skills audit against. */
   parityStandard: string
   /**
-   * The committed exception register: every tool standing outside the
-   * wrap-a-business-function rule, with a one-line rationale each.
+   * The committed exception register: every departure from the
+   * wrap-a-business-function rule — tools outside it, capabilities only the
+   * tools offer, capabilities kept in the browser — with a one-line rationale
+   * each.
    */
   exceptionRegister: string
 }

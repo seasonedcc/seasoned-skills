@@ -117,7 +117,7 @@ export function planInstall(projectRoot: string, answers: InstallAnswers): Insta
       {
         path: answers.machineSurface.exceptionRegister,
         contents:
-          '# Exception register\n\nEvery tool standing outside the wrap-a-business-function rule, with a\none-line rationale each.\n',
+          '# Exception register\n\nEvery departure from the wrap-a-business-function rule, with a one-line\nrationale each: tools outside the rule, capabilities only the tools\noffer, and capabilities kept in the browser.\n',
       },
     )
   }

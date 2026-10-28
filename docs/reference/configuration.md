@@ -158,7 +158,7 @@ guessing at them.
 | Key | Required | What it does |
 | --- | --- | --- |
 | `machineSurface.parityStandard` | yes | The committed standard saying what the machine side must keep up with, audited by the review skills. |
-| `machineSurface.exceptionRegister` | yes | The committed register of every tool standing outside the wrap-a-business-function rule, with a one-line reason each. |
+| `machineSurface.exceptionRegister` | yes | The committed register of every exception to the rule that a tool wraps a business function, with a one-line reason each: tools outside the rule, capabilities only the tools offer, and capabilities kept in the browser. |
 
 ## The stack layer
 
